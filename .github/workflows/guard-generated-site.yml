@@ -1,0 +1,29 @@
+name: Guard Generated Site Output
+
+on:
+  pull_request:
+  push:
+    branches: ["main", "master"]
+
+permissions:
+  contents: read
+
+jobs:
+  ensure-site-not-tracked:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fail if generated site files are tracked
+        shell: bash
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files site)"
+          if [ -n "$tracked" ]; then
+            echo "Generated files under site/ must not be tracked."
+            echo "Tracked entries:"
+            echo "$tracked"
+            exit 1
+          fi
+          echo "OK: no tracked files under site/."
