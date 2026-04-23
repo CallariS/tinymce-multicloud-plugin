@@ -37,6 +37,8 @@ npm run pages:build
 
 This creates a static bundle in `site/`.
 
+Note: `site/` is generated output and is intentionally not tracked in git.
+
 ### Automatic publish
 
 1. Push to `main` or `master`.
