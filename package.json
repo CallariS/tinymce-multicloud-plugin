@@ -1,0 +1,36 @@
+{
+    "name": "tinymce-multicloud-plugin",
+    "version": "0.1.0",
+    "description": "TinyMCE plugin for picking and inserting assets from multiple cloud providers.",
+    "type": "module",
+    "main": "dist/index.global.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist",
+        "README.md",
+        "LICENSE"
+    ],
+    "scripts": {
+        "build": "tsup src/index.ts --dts --format iife --global-name TinyMceMultiCloudPlugin --out-dir dist --clean --minify",
+        "dev": "tsup src/index.ts --dts --format iife --global-name TinyMceMultiCloudPlugin --out-dir dist --watch",
+        "typecheck": "tsc --noEmit"
+    },
+    "keywords": [
+        "tinymce",
+        "plugin",
+        "google-drive",
+        "onedrive",
+        "dropbox",
+        "bayerncloud",
+        "cloud"
+    ],
+    "author": "",
+    "license": "MIT",
+    "peerDependencies": {
+        "tinymce": ">=6"
+    },
+    "devDependencies": {
+        "tsup": "^8.2.4",
+        "typescript": "^5.6.3"
+    }
+}

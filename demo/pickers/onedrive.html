@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OneDrive Picker Mock</title>
+  </head>
+  <body>
+    <h2>OneDrive Picker Mock</h2>
+    <button id="insert">Insert link</button>
+    <button id="cancel">Cancel</button>
+    <script>
+      const providerId = "oneDrive";
+      const post = (type, payload) => {
+        window.opener?.postMessage(
+          {
+            source: "tinymce-multicloud-plugin",
+            type,
+            providerId,
+            payload,
+          },
+          "*",
+        );
+        window.close();
+      };
+
+      document.getElementById("insert").onclick = () => {
+        post("picked", {
+          item: {
+            id: "o-1",
+            name: "OneDrive Document",
+            url: "https://example.com/onedrive/document.pdf",
+          },
+          mode: "link",
+        });
+      };
+
+      document.getElementById("cancel").onclick = () => post("cancelled");
+    </script>
+  </body>
+</html>
