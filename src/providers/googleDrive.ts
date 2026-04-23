@@ -5,6 +5,7 @@ import type {
 } from "../types";
 import { createPopupProvider } from "./popupProvider";
 import { detectInsertMode, loadScript } from "./utils";
+import { validateGoogleDocBoundary } from "../validation/boundary";
 
 type TokenResponse = { access_token?: string; error?: string };
 
@@ -107,22 +108,23 @@ const launchPicker = async (
                 }
 
                 const doc = data.docs[0];
+                const validatedDoc = validateGoogleDocBoundary(doc);
                 const fallbackUrl = `https://drive.google.com/file/d/${doc.id}/view`;
 
                 resolve({
                     item: {
-                        id: doc.id,
-                        name: doc.name || doc.id,
-                        url: doc.url || fallbackUrl,
-                        mimeType: doc.mimeType,
-                        thumbnailUrl: doc.thumbnails?.[0]?.url,
-                        embedUrl: `https://drive.google.com/file/d/${doc.id}/preview`,
+                        id: validatedDoc.id,
+                        name: validatedDoc.name || validatedDoc.id,
+                        url: validatedDoc.url || fallbackUrl,
+                        mimeType: validatedDoc.mimeType,
+                        thumbnailUrl: validatedDoc.thumbnails?.[0]?.url,
+                        embedUrl: `https://drive.google.com/file/d/${validatedDoc.id}/preview`,
                     },
                     mode: detectInsertMode({
-                        id: doc.id,
-                        name: doc.name || doc.id,
-                        url: doc.url || fallbackUrl,
-                        mimeType: doc.mimeType,
+                        id: validatedDoc.id,
+                        name: validatedDoc.name || validatedDoc.id,
+                        url: validatedDoc.url || fallbackUrl,
+                        mimeType: validatedDoc.mimeType,
                     }),
                 });
             })

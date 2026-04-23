@@ -7,6 +7,10 @@ import type {
     PickerResult,
     ProviderRuntimeConfig,
 } from "./types";
+import {
+    validatePickerResultBoundary,
+    validatePluginOptionsBoundary,
+} from "./validation/boundary";
 
 declare const tinymce: any;
 
@@ -20,13 +24,17 @@ const escapeHtml = (value: string): string =>
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
 
-const getOptions = (editor: any): MultiCloudPluginOptions => ({
-    providers: editor.options.get("multicloud_providers") || {},
-    defaultProvider: editor.options.get("multicloud_default_provider"),
-    defaultInsertMode: editor.options.get("multicloud_default_insert_mode") || "link",
-    dialogTitle: editor.options.get("multicloud_dialog_title") || "Insert From Cloud",
-    popupTimeoutMs: editor.options.get("multicloud_popup_timeout_ms") || 120000,
-});
+const getOptions = (editor: any): MultiCloudPluginOptions => {
+    const raw = {
+        providers: editor.options.get("multicloud_providers") || {},
+        defaultProvider: editor.options.get("multicloud_default_provider"),
+        defaultInsertMode: editor.options.get("multicloud_default_insert_mode") || "link",
+        dialogTitle: editor.options.get("multicloud_dialog_title") || "Insert From Cloud",
+        popupTimeoutMs: editor.options.get("multicloud_popup_timeout_ms") || 120000,
+    };
+
+    return validatePluginOptionsBoundary(raw);
+};
 
 const insertResult = (
     editor: any,
@@ -84,7 +92,8 @@ const pickAndInsert = async (
             return;
         }
 
-        insertResult(editor, result, options.defaultInsertMode || "link");
+        const validatedResult = validatePickerResultBoundary(provider.id, result);
+        insertResult(editor, validatedResult, options.defaultInsertMode || "link");
     } catch (error) {
         const message =
             error instanceof Error
@@ -125,41 +134,41 @@ const openProviderDialog = (
                 {
                     type: "selectbox",
                     name: "provider",
-                    label: "Provider",
-                    items: providers.map((provider) => ({
-                        text: provider.label,
-                        value: provider.id,
-                    })),
+    label: "Provider",
+        items: providers.map((provider) => ({
+            text: provider.label,
+            value: provider.id,
+        })),
                 },
             ],
         },
-        initialData: {
-            provider: initialProvider,
+initialData: {
+    provider: initialProvider,
         },
-        buttons: [
-            { type: "cancel", text: "Cancel" },
-            { type: "submit", text: "Browse", primary: true },
-        ],
-        onSubmit: (api: any) => {
-            const data = api.getData();
-            const selectedProvider = providers.find(
-                (provider) => provider.id === data.provider,
-            );
-            api.close();
+buttons: [
+    { type: "cancel", text: "Cancel" },
+    { type: "submit", text: "Browse", primary: true },
+],
+    onSubmit: (api: any) => {
+        const data = api.getData();
+        const selectedProvider = providers.find(
+            (provider) => provider.id === data.provider,
+        );
+        api.close();
 
-            if (!selectedProvider) {
-                editor.notificationManager.open({
-                    type: "warning",
-                    text: "No provider selected.",
-                });
-                return;
-            }
+        if (!selectedProvider) {
+            editor.notificationManager.open({
+                type: "warning",
+                text: "No provider selected.",
+            });
+            return;
+        }
 
-            void pickAndInsert(editor, selectedProvider, pluginUrl);
-        },
+        void pickAndInsert(editor, selectedProvider, pluginUrl);
+    },
     });
 
-    dialogApi.focus("provider");
+dialogApi.focus("provider");
 };
 
 const register = (): void => {

@@ -31,6 +31,10 @@
     "peerDependencies": {
         "tinymce": ">=6"
     },
+    "dependencies": {
+        "xdbc": "^1.0.211",
+        "zod": "^3.25.0"
+    },
     "devDependencies": {
         "tsup": "^8.2.4",
         "typescript": "^5.6.3"

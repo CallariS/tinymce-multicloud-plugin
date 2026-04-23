@@ -5,6 +5,7 @@ import type {
 } from "../types";
 import { createPopupProvider } from "./popupProvider";
 import { detectInsertMode, loadScript } from "./utils";
+import { validateDropboxFileBoundary } from "../validation/boundary";
 
 declare global {
     interface Window {
@@ -48,17 +49,19 @@ const openDropboxChooser = async (
                     return;
                 }
 
+                const validated = validateDropboxFileBoundary(first);
+
                 const result: PickerResult = {
                     item: {
-                        id: first.id || first.name,
-                        name: first.name || "Dropbox file",
-                        url: first.link,
-                        thumbnailUrl: first.thumbnailLink,
+                        id: validated.id || validated.name || "dropbox-file",
+                        name: validated.name || "Dropbox file",
+                        url: validated.link,
+                        thumbnailUrl: validated.thumbnailLink,
                     },
                     mode: detectInsertMode({
-                        id: first.id || first.name,
-                        name: first.name || "Dropbox file",
-                        url: first.link,
+                        id: validated.id || validated.name || "dropbox-file",
+                        name: validated.name || "Dropbox file",
+                        url: validated.link,
                     }),
                 };
 

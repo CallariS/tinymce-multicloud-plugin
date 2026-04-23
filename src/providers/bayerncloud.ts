@@ -6,6 +6,7 @@ import type {
 } from "../types";
 import { createPopupProvider } from "./popupProvider";
 import { basicAuthHeader, combineUrl, detectInsertMode, toAbsoluteUrl } from "./utils";
+import { validateWebDavNodeBoundary } from "../validation/boundary";
 
 type WebDavNode = CloudItem & {
     isDirectory: boolean;
@@ -72,7 +73,7 @@ const parseWebDavListing = (
         const fallbackName = decodeURIComponent(pathSegments[pathSegments.length - 1] || "file");
         const name = displayNameNode?.textContent?.trim() || fallbackName;
 
-        nodes.push({
+        const rawNode = {
             id: hrefPath,
             name,
             url: hrefAbsolute,
@@ -80,7 +81,9 @@ const parseWebDavListing = (
             type: isDirectory ? "folder" : "file",
             isDirectory,
             webdavPath: hrefPath,
-        });
+        };
+
+        nodes.push(validateWebDavNodeBoundary(rawNode) as WebDavNode);
     });
 
     return nodes.sort((a, b) => Number(b.isDirectory) - Number(a.isDirectory) || a.name.localeCompare(b.name));

@@ -5,6 +5,7 @@ import type {
 } from "../types";
 import { createPopupProvider } from "./popupProvider";
 import { detectInsertMode, loadScript } from "./utils";
+import { validateOneDriveFileBoundary } from "../validation/boundary";
 
 declare global {
     interface Window {
@@ -45,7 +46,9 @@ const openOneDrivePicker = async (
                     return;
                 }
 
-                const url = first.webUrl || first["@microsoft.graph.downloadUrl"] || "";
+                const validated = validateOneDriveFileBoundary(first);
+
+                const url = validated.webUrl || validated["@microsoft.graph.downloadUrl"] || "";
                 if (!url) {
                     reject(new Error("OneDrive picker did not return a usable URL."));
                     return;
@@ -53,17 +56,17 @@ const openOneDrivePicker = async (
 
                 const result: PickerResult = {
                     item: {
-                        id: first.id || first.name,
-                        name: first.name || first.id,
+                        id: validated.id || validated.name,
+                        name: validated.name || validated.id,
                         url,
-                        mimeType: first.file?.mimeType,
-                        downloadUrl: first["@microsoft.graph.downloadUrl"],
+                        mimeType: validated.file?.mimeType,
+                        downloadUrl: validated["@microsoft.graph.downloadUrl"],
                     },
                     mode: detectInsertMode({
-                        id: first.id || first.name,
-                        name: first.name || first.id,
+                        id: validated.id || validated.name,
+                        name: validated.name || validated.id,
                         url,
-                        mimeType: first.file?.mimeType,
+                        mimeType: validated.file?.mimeType,
                     }),
                 };
 
