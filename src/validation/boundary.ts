@@ -1,51 +1,137 @@
 import { ZOD } from "xdbc/src/DBC/ZOD";
+import { DEFINED } from "xdbc/src/DBC/DEFINED";
+import { OR } from "xdbc/src/DBC/OR";
+import { REGEX } from "xdbc/src/DBC/REGEX";
+import { TYPE } from "xdbc/src/DBC/TYPE";
 import { z } from "zod";
 import type {
     CloudProviderId,
     MultiCloudPluginOptions,
     PickerResult,
+    ProviderRuntimeConfig,
 } from "../types";
 
-const providerRuntimeConfigSchema = z.object({
-    enabled: z.boolean().optional(),
-    pickerUrl: z.string().min(1).optional(),
-    popupFeatures: z.string().min(1).optional(),
-    timeoutMs: z.number().int().positive().optional(),
-    clientId: z.string().min(1).optional(),
-    apiKey: z.string().min(1).optional(),
-    scopes: z.array(z.string().min(1)).optional(),
-    token: z.string().min(1).optional(),
-    headers: z.record(z.string()).optional(),
-    appId: z.string().min(1).optional(),
-    pickerLocale: z.string().min(1).optional(),
-    viewMimeTypes: z.string().min(1).optional(),
-    action: z.enum(["query", "share", "download"]).optional(),
-    multiSelect: z.boolean().optional(),
-    redirectUri: z.string().min(1).optional(),
-    advanced: z.record(z.unknown()).optional(),
-    appKey: z.string().min(1).optional(),
-    linkType: z.enum(["preview", "direct"]).optional(),
-    multiselect: z.boolean().optional(),
-    extensions: z.array(z.string().min(1)).optional(),
-    mode: z.literal("nextcloud-webdav").optional(),
-    baseUrl: z.string().url().optional(),
-    username: z.string().min(1).optional(),
-    password: z.string().min(1).optional(),
-    bearerToken: z.string().min(1).optional(),
-    webdavPath: z.string().optional(),
-    createPublicShare: z.boolean().optional(),
-    sharingApiPath: z.string().min(1).optional(),
-    sharePassword: z.string().min(1).optional(),
-    shareExpireDate: z.string().min(1).optional(),
-});
+const rxNonEmpty = /^.*\S.*$/;
+const rxRelativePath = /^(?:\.{1,2}\/|\/)[^\s]+$/;
+const rxApiKeyLike = /^[A-Za-z0-9._\-~]{8,}$/;
 
-const pluginOptionsSchema = z.object({
-    providers: z.record(providerRuntimeConfigSchema).optional(),
-    defaultProvider: z.string().min(1).optional(),
-    defaultInsertMode: z.enum(["link", "image", "embed"]).optional(),
-    dialogTitle: z.string().min(1).optional(),
-    popupTimeoutMs: z.number().int().positive().optional(),
-});
+const assertXdbc = (result: boolean | string, context: string): void => {
+    if (result !== true) {
+        throw new Error(`[XDBC Boundary] ${context}: ${result}`);
+    }
+};
+
+const ensurePlainObject = (value: unknown, context: string): Record<string, unknown> => {
+    assertXdbc(TYPE.checkAlgorithm(value, "object"), context);
+
+    if (value === null || Array.isArray(value)) {
+        throw new Error(`[XDBC Boundary] ${context}: expected a non-null object.`);
+    }
+
+    return value as Record<string, unknown>;
+};
+
+const validateOptionalString = (
+    value: unknown,
+    context: string,
+    regex: RegExp = rxNonEmpty,
+): void => {
+    if (value === undefined) return;
+
+    assertXdbc(TYPE.checkAlgorithm(value, "string"), context);
+    assertXdbc(REGEX.checkAlgorithm(value, regex), context);
+};
+
+const validateRequiredString = (
+    value: unknown,
+    context: string,
+    regex: RegExp = rxNonEmpty,
+): void => {
+    assertXdbc(DEFINED.checkAlgorithm(value), context);
+    assertXdbc(TYPE.checkAlgorithm(value, "string"), context);
+    assertXdbc(REGEX.checkAlgorithm(value, regex), context);
+};
+
+const validateOptionalBoolean = (value: unknown, context: string): void => {
+    if (value === undefined) return;
+    assertXdbc(TYPE.checkAlgorithm(value, "boolean"), context);
+};
+
+const validateOptionalPositiveNumber = (value: unknown, context: string): void => {
+    if (value === undefined) return;
+    assertXdbc(TYPE.checkAlgorithm(value, "number"), context);
+    if ((value as number) <= 0) {
+        throw new Error(`[XDBC Boundary] ${context}: must be a positive number.`);
+    }
+};
+
+const validateOptionalUrlOrRelative = (value: unknown, context: string): void => {
+    if (value === undefined) return;
+    assertXdbc(TYPE.checkAlgorithm(value, "string"), context);
+
+    const composed = OR.checkAlgorithm([
+        new REGEX(REGEX.stdExp.url),
+        new REGEX(rxRelativePath),
+    ], value);
+    assertXdbc(composed, context);
+};
+
+const validateProviderConfig = (
+    providerId: string,
+    providerConfig: Record<string, unknown>,
+): ProviderRuntimeConfig => {
+    const prefix = `providers.${providerId}`;
+    const enabled = providerConfig.enabled !== false;
+
+    validateOptionalBoolean(providerConfig.enabled, `${prefix}.enabled`);
+    validateOptionalString(providerConfig.popupFeatures, `${prefix}.popupFeatures`);
+    validateOptionalPositiveNumber(providerConfig.timeoutMs, `${prefix}.timeoutMs`);
+    validateOptionalUrlOrRelative(providerConfig.pickerUrl, `${prefix}.pickerUrl`);
+
+    validateOptionalString(providerConfig.clientId, `${prefix}.clientId`, rxApiKeyLike);
+    validateOptionalString(providerConfig.apiKey, `${prefix}.apiKey`, rxApiKeyLike);
+    validateOptionalString(providerConfig.appKey, `${prefix}.appKey`, rxApiKeyLike);
+
+    if (providerConfig.redirectUri !== undefined) {
+        validateOptionalUrlOrRelative(providerConfig.redirectUri, `${prefix}.redirectUri`);
+    }
+
+    const hasPopupOverride = Boolean(providerConfig.pickerUrl);
+    if (enabled && !hasPopupOverride) {
+        if (providerId === "googleDrive") {
+            validateRequiredString(providerConfig.clientId, `${prefix}.clientId`, rxApiKeyLike);
+            validateRequiredString(providerConfig.apiKey, `${prefix}.apiKey`, rxApiKeyLike);
+        }
+
+        if (providerId === "oneDrive") {
+            validateRequiredString(providerConfig.clientId, `${prefix}.clientId`, rxApiKeyLike);
+        }
+
+        if (providerId === "dropbox") {
+            validateRequiredString(providerConfig.appKey, `${prefix}.appKey`, rxApiKeyLike);
+        }
+
+        if (providerId === "bayerncloud") {
+            validateRequiredString(providerConfig.baseUrl, `${prefix}.baseUrl`, REGEX.stdExp.url);
+            validateRequiredString(providerConfig.username, `${prefix}.username`);
+
+            const authRule = OR.checkAlgorithm([
+                { check: (v) => DEFINED.checkAlgorithm((v as Record<string, unknown>)?.password) },
+                { check: (v) => DEFINED.checkAlgorithm((v as Record<string, unknown>)?.bearerToken) },
+            ], providerConfig);
+            assertXdbc(authRule, `${prefix}.password|bearerToken`);
+
+            if (providerConfig.password !== undefined) {
+                validateRequiredString(providerConfig.password, `${prefix}.password`);
+            }
+            if (providerConfig.bearerToken !== undefined) {
+                validateRequiredString(providerConfig.bearerToken, `${prefix}.bearerToken`);
+            }
+        }
+    }
+
+    return providerConfig as ProviderRuntimeConfig;
+};
 
 const pickerResultSchema = z.object({
     item: z.object({
@@ -114,7 +200,45 @@ const validate = <T>(name: string, value: unknown, schema: z.ZodType<T>): T => {
 
 export const validatePluginOptionsBoundary = (
     options: unknown,
-): MultiCloudPluginOptions => validate("plugin options", options, pluginOptionsSchema);
+): MultiCloudPluginOptions => {
+    const raw = ensurePlainObject(options, "plugin options");
+    const providersRaw = raw.providers === undefined
+        ? {}
+        : ensurePlainObject(raw.providers, "plugin options.providers");
+
+    const providers: Partial<Record<CloudProviderId, ProviderRuntimeConfig>> = {};
+    for (const [providerId, value] of Object.entries(providersRaw)) {
+        const config = ensurePlainObject(value, `plugin options.providers.${providerId}`);
+        providers[providerId as CloudProviderId] = validateProviderConfig(providerId, config);
+    }
+
+    if (raw.defaultProvider !== undefined) {
+        validateRequiredString(raw.defaultProvider, "plugin options.defaultProvider");
+    }
+
+    if (raw.defaultInsertMode !== undefined) {
+        const mode = raw.defaultInsertMode;
+        const isValidMode = mode === "link" || mode === "image" || mode === "embed";
+        if (!isValidMode) {
+            throw new Error("[XDBC Boundary] plugin options.defaultInsertMode: must be link, image or embed.");
+        }
+    }
+
+    validateOptionalString(raw.dialogTitle, "plugin options.dialogTitle");
+    validateOptionalPositiveNumber(raw.popupTimeoutMs, "plugin options.popupTimeoutMs");
+
+    if (raw.defaultProvider !== undefined && providers[raw.defaultProvider as CloudProviderId] === undefined) {
+        throw new Error("[XDBC Boundary] plugin options.defaultProvider: provider not configured in providers map.");
+    }
+
+    return {
+        providers,
+        defaultProvider: raw.defaultProvider as CloudProviderId | undefined,
+        defaultInsertMode: raw.defaultInsertMode as MultiCloudPluginOptions["defaultInsertMode"],
+        dialogTitle: raw.dialogTitle as string | undefined,
+        popupTimeoutMs: raw.popupTimeoutMs as number | undefined,
+    };
+};
 
 export const validatePickerResultBoundary = (
     providerId: CloudProviderId,
