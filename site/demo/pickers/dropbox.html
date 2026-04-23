@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dropbox Picker Mock</title>
+  </head>
+  <body>
+    <h2>Dropbox Picker Mock</h2>
+    <button id="insert">Insert embed</button>
+    <button id="cancel">Cancel</button>
+    <script>
+      const providerId = "dropbox";
+      const post = (type, payload) => {
+        window.opener?.postMessage(
+          {
+            source: "tinymce-multicloud-plugin",
+            type,
+            providerId,
+            payload,
+          },
+          "*",
+        );
+        window.close();
+      };
+
+      document.getElementById("insert").onclick = () => {
+        post("picked", {
+          item: {
+            id: "d-1",
+            name: "Dropbox Viewer",
+            url: "https://example.com/dropbox/file",
+            embedUrl: "https://example.com/dropbox/embed/file",
+          },
+          mode: "embed",
+        });
+      };
+
+      document.getElementById("cancel").onclick = () => post("cancelled");
+    </script>
+  </body>
+</html>

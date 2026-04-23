@@ -25,6 +25,33 @@ npm run build
 2. Fill in your real cloud app IDs/keys and BayernCloud endpoint values.
 3. Follow the provider console checklists in `docs/PRODUCTION_SETUP.md`.
 
+## GitHub Pages demo deployment
+
+This repository includes a Pages workflow at `.github/workflows/deploy-pages.yml`.
+
+### Manual local check
+
+```bash
+npm run pages:build
+```
+
+This creates a static bundle in `site/`.
+
+### Automatic publish
+
+1. Push to `main` or `master`.
+2. In GitHub repository settings, ensure Pages is enabled and uses GitHub Actions.
+3. Wait for the `Deploy GitHub Pages` workflow to complete.
+
+The demo URL will be:
+
+- `https://<owner>.github.io/<repo>/demo/tinymce-demo.html`
+
+When configuring OAuth allowlists, include exactly:
+
+- `https://<owner>.github.io`
+- `https://<owner>.github.io/<repo>`
+
 ## TinyMCE usage
 
 ```html

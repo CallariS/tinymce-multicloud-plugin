@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TinyMCE MultiCloud Plugin Demo</title>
+    <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="../dist/index.global.js"></script>
+    <script src="./multicloud.config.js"></script>
+  </head>
+  <body>
+    <textarea id="editor">Select "Insert From Cloud" in the toolbar.</textarea>
+
+    <script>
+      const fallbackConfig = {
+        providers: {
+          googleDrive: { enabled: true, pickerUrl: "./pickers/google-drive.html" },
+          oneDrive: { enabled: true, pickerUrl: "./pickers/onedrive.html" },
+          dropbox: { enabled: true, pickerUrl: "./pickers/dropbox.html" },
+          bayerncloud: { enabled: true, pickerUrl: "./pickers/bayerncloud.html" },
+        },
+        defaultProvider: "googleDrive",
+        defaultInsertMode: "link",
+        dialogTitle: "Insert From Cloud",
+        popupTimeoutMs: 120000,
+      };
+
+      const config = window.MULTICLOUD_CONFIG || fallbackConfig;
+
+      tinymce.init({
+        selector: "#editor",
+        height: 540,
+        plugins: "link image media multicloud",
+        toolbar:
+          "undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud",
+        multicloud_providers: config.providers,
+        multicloud_default_provider: config.defaultProvider,
+        multicloud_default_insert_mode: config.defaultInsertMode,
+        multicloud_dialog_title: config.dialogTitle,
+        multicloud_popup_timeout_ms: config.popupTimeoutMs,
+      });
+    </script>
+  </body>
+</html>
