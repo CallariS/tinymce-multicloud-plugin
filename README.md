@@ -19,6 +19,12 @@ npm install
 npm run build
 ```
 
+## Production quickstart
+
+1. Copy `demo/multicloud.config.example.js` to `demo/multicloud.config.js`.
+2. Fill in your real cloud app IDs/keys and BayernCloud endpoint values.
+3. Follow the provider console checklists in `docs/PRODUCTION_SETUP.md`.
+
 ## TinyMCE usage
 
 ```html
@@ -138,6 +144,8 @@ Every built-in provider supports `pickerUrl`. If `pickerUrl` is set, the plugin 
 ## Demo
 
 Open `demo/tinymce-demo.html` after building. The demo includes mock pickers under `demo/pickers/` for all providers.
+
+The demo auto-loads `demo/multicloud.config.js` if present; otherwise it falls back to local mock picker pages.
 
 ## Scope and next steps
 
