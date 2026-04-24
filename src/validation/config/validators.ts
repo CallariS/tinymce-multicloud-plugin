@@ -207,7 +207,9 @@ const normalizeProviderConfig = (
     }
 
     if (typeof value === "object" && !Array.isArray(value)) {
-        return value as Record<string, unknown>;
+        // Ensure it's a plain object by creating a shallow copy
+        // This handles cases where the object might be a Proxy or have special prototype chains
+        return { ...value } as Record<string, unknown>;
     }
 
     throw new Error(
