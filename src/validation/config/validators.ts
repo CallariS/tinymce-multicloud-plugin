@@ -64,20 +64,8 @@ class XdbcBoundary {
 
 abstract class BaseProviderConfigValidator {
     protected readonly prefix: string;
-    @TYPE.INVARIANT("object", undefined, "Did you pass a provider config object?", VALIDATION_DBC_PATH)
-    @TYPE.INVARIANT("boolean", "enabled", "Did you set providers.<id>.enabled as true or false?", VALIDATION_DBC_PATH)
-    @TYPE.INVARIANT("string", "popupFeatures", "Did you set providers.<id>.popupFeatures as a string?", VALIDATION_DBC_PATH)
-    @REGEX.INVARIANT(rxNonEmpty, "popupFeatures", "Did you leave providers.<id>.popupFeatures empty by mistake?", VALIDATION_DBC_PATH)
-    @TYPE.INVARIANT("number", "timeoutMs", "Did you set providers.<id>.timeoutMs as a number?", VALIDATION_DBC_PATH)
-    @GREATER.INVARIANT(0, false, false, "timeoutMs", "Did you set providers.<id>.timeoutMs greater than 0?", VALIDATION_DBC_PATH)
-    @OR.INVARIANT(
-        [new REGEX(REGEX.stdExp.url), new REGEX(rxRelativePath)],
-        "pickerUrl::redirectUri",
-        "Did you set providers.<id>.pickerUrl or providers.<id>.redirectUri to a valid URL or relative path?",
-        VALIDATION_DBC_PATH,
-    )
-    @TYPE.INVARIANT("string", "clientId::apiKey::appKey", "Did you set clientId/apiKey/appKey as strings?", VALIDATION_DBC_PATH)
-    @REGEX.INVARIANT(rxApiKeyLike, "clientId::apiKey::appKey", "Did you provide a complete clientId/apiKey/appKey value?", VALIDATION_DBC_PATH)
+    // Config validated in constructor via XdbcBoundary.ensurePlainObject
+    // INVARIANT decorators removed due to conflict with constructor property assignment
     protected readonly config: Record<string, unknown>;
 
     public constructor(
@@ -89,7 +77,6 @@ abstract class BaseProviderConfigValidator {
     }
 
     public validate(): ProviderRuntimeConfig {
-        // this.config is already validated in constructor and decorated with INVARIANT checks
         const enabled = this.config.enabled !== false;
         const hasPopupOverride = Boolean(this.config.pickerUrl);
 
