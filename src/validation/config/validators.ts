@@ -49,10 +49,13 @@ class XdbcBoundary {
     }
 
     public static ensurePlainObject(value: unknown, context: string): Record<string, unknown> {
-        this.assertXdbc(TYPE.checkAlgorithm(value, "object"), context);
-
-        if (value === null || Array.isArray(value)) {
-            throw new Error(`[XDBC Boundary] ${context}: expected a non-null object.`);
+        if (
+            value === undefined ||
+            value === null ||
+            Array.isArray(value) ||
+            typeof value !== "object"
+        ) {
+            throw new Error(`[XDBC Boundary] ${context}: expected a plain object.`);
         }
 
         return value as Record<string, unknown>;
