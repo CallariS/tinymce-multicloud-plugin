@@ -89,15 +89,15 @@ abstract class BaseProviderConfigValidator {
     }
 
     public validate(): ProviderRuntimeConfig {
-        const safeConfig = XdbcBoundary.ensurePlainObject(this.config, `${this.prefix} config`);
-        const enabled = safeConfig.enabled !== false;
-        const hasPopupOverride = Boolean(safeConfig.pickerUrl);
+        // this.config is already validated in constructor and decorated with INVARIANT checks
+        const enabled = this.config.enabled !== false;
+        const hasPopupOverride = Boolean(this.config.pickerUrl);
 
         if (enabled && !hasPopupOverride) {
-            this.validateSdkModeRequirements(safeConfig, this.prefix);
+            this.validateSdkModeRequirements(this.config, this.prefix);
         }
 
-        return safeConfig as ProviderRuntimeConfig;
+        return this.config as ProviderRuntimeConfig;
     }
 
     protected abstract validateSdkModeRequirements(
