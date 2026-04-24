@@ -14,7 +14,7 @@
         "build": "tsup src/index.ts --dts --format iife --global-name TinyMceMultiCloudPlugin --out-dir dist --clean --minify",
         "dev": "tsup src/index.ts --dts --format iife --global-name TinyMceMultiCloudPlugin --out-dir dist --watch",
         "typecheck": "tsc --noEmit",
-        "pages:prepare": "node scripts/prepare-pages.mjs",
+        "pages:prepare": "node scripts/prepare-pages-selfhost.mjs",
         "pages:build": "npm run build && npm run pages:prepare"
     },
     "keywords": [
@@ -36,6 +36,7 @@
         "zod": "^3.25.0"
     },
     "devDependencies": {
+        "tinymce": "^6.8.6",
         "tsup": "^8.2.4",
         "typescript": "^5.6.3"
     }

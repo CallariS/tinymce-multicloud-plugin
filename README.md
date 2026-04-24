@@ -49,6 +49,8 @@ The demo URL will be:
 
 - `https://<owner>.github.io/<repo>/demo/tinymce-demo.html`
 
+The Pages bundle self-hosts TinyMCE from this repository output, so the demo does not require a Tiny Cloud API key.
+
 When configuring OAuth allowlists, include exactly:
 
 - `https://<owner>.github.io`
