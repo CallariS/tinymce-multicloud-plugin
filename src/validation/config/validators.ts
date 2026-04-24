@@ -84,19 +84,20 @@ abstract class BaseProviderConfigValidator {
         protected readonly providerId: CloudProviderId,
         config: Record<string, unknown>,
     ) {
-        this.config = config;
         this.prefix = `providers.${providerId}`;
+        this.config = XdbcBoundary.ensurePlainObject(config, `${this.prefix} config`);
     }
 
     public validate(): ProviderRuntimeConfig {
-        const enabled = this.config.enabled !== false;
-        const hasPopupOverride = Boolean(this.config.pickerUrl);
+        const safeConfig = XdbcBoundary.ensurePlainObject(this.config, `${this.prefix} config`);
+        const enabled = safeConfig.enabled !== false;
+        const hasPopupOverride = Boolean(safeConfig.pickerUrl);
 
         if (enabled && !hasPopupOverride) {
-            this.validateSdkModeRequirements(this.config, this.prefix);
+            this.validateSdkModeRequirements(safeConfig, this.prefix);
         }
 
-        return this.config as ProviderRuntimeConfig;
+        return safeConfig as ProviderRuntimeConfig;
     }
 
     protected abstract validateSdkModeRequirements(
