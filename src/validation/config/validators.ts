@@ -194,6 +194,27 @@ const createProviderValidator = (
     return new GenericProviderConfigValidator(providerId, config);
 };
 
+const normalizeProviderConfig = (
+    providerId: CloudProviderId,
+    value: unknown,
+): Record<string, unknown> => {
+    if (value === undefined || value === null) {
+        return { enabled: false };
+    }
+
+    if (typeof value === "boolean") {
+        return { enabled: value };
+    }
+
+    if (typeof value === "object" && !Array.isArray(value)) {
+        return value as Record<string, unknown>;
+    }
+
+    throw new Error(
+        `[XDBC Boundary] providers.${providerId}: expected object|boolean|undefined provider config.`,
+    );
+};
+
 export class PluginOptionsValidator {
     @TYPE.INVARIANT("object", undefined, "Did you pass a plugin options object?", VALIDATION_DBC_PATH)
     @TYPE.INVARIANT("object", "providers", "Did you set plugin options.providers as an object?", VALIDATION_DBC_PATH)
@@ -261,10 +282,7 @@ export class PluginOptionsValidator {
         const providers: Partial<Record<CloudProviderId, ProviderRuntimeConfig>> = {};
 
         for (const [providerId, value] of Object.entries(providersRaw)) {
-            const config = XdbcBoundary.ensurePlainObject(
-                value,
-                `plugin options.providers.${providerId}`,
-            );
+            const config = normalizeProviderConfig(providerId as CloudProviderId, value);
 
             providers[providerId as CloudProviderId] = createProviderValidator(
                 providerId as CloudProviderId,
