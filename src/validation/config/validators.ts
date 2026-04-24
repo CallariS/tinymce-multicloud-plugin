@@ -1,237 +1,279 @@
+import { DBC } from "xdbc/src/DBC";
 import { DEFINED } from "xdbc/src/DBC/DEFINED";
+import { GREATER } from "xdbc/src/DBC/COMPARISON/GREATER";
 import { OR } from "xdbc/src/DBC/OR";
 import { REGEX } from "xdbc/src/DBC/REGEX";
 import { TYPE } from "xdbc/src/DBC/TYPE";
 import type {
-  CloudProviderId,
-  MultiCloudPluginOptions,
-  ProviderRuntimeConfig,
+    CloudProviderId,
+    MultiCloudPluginOptions,
+    ProviderRuntimeConfig,
 } from "../../types";
 
 const rxNonEmpty = /^.*\S.*$/;
 const rxRelativePath = /^(?:\.{1,2}\/|\/)[^\s]+$/;
 const rxApiKeyLike = /^[A-Za-z0-9._\-~]{8,}$/;
+const VALIDATION_DBC_PATH = "MultiCloud.Validation.DBC";
+
+const ensureDBCInstance = (): void => {
+    const host = globalThis as Record<string, unknown>;
+    const segments = VALIDATION_DBC_PATH.split(".");
+    let cursor: Record<string, unknown> = host;
+
+    for (let i = 0; i < segments.length - 1; i++) {
+        const key = segments[i];
+        if (
+            typeof cursor[key] !== "object" ||
+            cursor[key] === null ||
+            Array.isArray(cursor[key])
+        ) {
+            cursor[key] = {};
+        }
+
+        cursor = cursor[key] as Record<string, unknown>;
+    }
+
+    const last = segments[segments.length - 1];
+    if (!(cursor[last] instanceof DBC)) {
+        cursor[last] = new DBC();
+    }
+};
+
+ensureDBCInstance();
 
 class XdbcBoundary {
-  public static assertXdbc(result: boolean | string, context: string): void {
-    if (result !== true) {
-      throw new Error(`[XDBC Boundary] ${context}: ${result}`);
-    }
-  }
-
-  public static ensurePlainObject(value: unknown, context: string): Record<string, unknown> {
-    this.assertXdbc(TYPE.checkAlgorithm(value, "object"), context);
-
-    if (value === null || Array.isArray(value)) {
-      throw new Error(`[XDBC Boundary] ${context}: expected a non-null object.`);
+    public static assertXdbc(result: boolean | string, context: string): void {
+        if (result !== true) {
+            throw new Error(`[XDBC Boundary] ${context}: ${result}`);
+        }
     }
 
-    return value as Record<string, unknown>;
-  }
+    public static ensurePlainObject(value: unknown, context: string): Record<string, unknown> {
+        this.assertXdbc(TYPE.checkAlgorithm(value, "object"), context);
 
-  public static optionalString(
-    value: unknown,
-    context: string,
-    regex: RegExp = rxNonEmpty,
-  ): void {
-    if (value === undefined) return;
+        if (value === null || Array.isArray(value)) {
+            throw new Error(`[XDBC Boundary] ${context}: expected a non-null object.`);
+        }
 
-    this.assertXdbc(TYPE.checkAlgorithm(value, "string"), context);
-    this.assertXdbc(REGEX.checkAlgorithm(value, regex), context);
-  }
-
-  public static requiredString(
-    value: unknown,
-    context: string,
-    regex: RegExp = rxNonEmpty,
-  ): void {
-    this.assertXdbc(DEFINED.checkAlgorithm(value), context);
-    this.assertXdbc(TYPE.checkAlgorithm(value, "string"), context);
-    this.assertXdbc(REGEX.checkAlgorithm(value, regex), context);
-  }
-
-  public static optionalBoolean(value: unknown, context: string): void {
-    if (value === undefined) return;
-    this.assertXdbc(TYPE.checkAlgorithm(value, "boolean"), context);
-  }
-
-  public static optionalPositiveNumber(value: unknown, context: string): void {
-    if (value === undefined) return;
-
-    this.assertXdbc(TYPE.checkAlgorithm(value, "number"), context);
-    if ((value as number) <= 0) {
-      throw new Error(`[XDBC Boundary] ${context}: must be a positive number.`);
+        return value as Record<string, unknown>;
     }
-  }
-
-  public static optionalUrlOrRelative(value: unknown, context: string): void {
-    if (value === undefined) return;
-
-    this.assertXdbc(TYPE.checkAlgorithm(value, "string"), context);
-    const composed = OR.checkAlgorithm(
-      [new REGEX(REGEX.stdExp.url), new REGEX(rxRelativePath)],
-      value,
-    );
-    this.assertXdbc(composed, context);
-  }
 }
 
 abstract class BaseProviderConfigValidator {
-  protected readonly prefix: string;
+    protected readonly prefix: string;
+    @TYPE.INVARIANT("object", undefined, "Did you pass a provider config object?", VALIDATION_DBC_PATH)
+    @TYPE.INVARIANT("boolean", "enabled", "Did you set providers.<id>.enabled as true or false?", VALIDATION_DBC_PATH)
+    @TYPE.INVARIANT("string", "popupFeatures", "Did you set providers.<id>.popupFeatures as a string?", VALIDATION_DBC_PATH)
+    @REGEX.INVARIANT(rxNonEmpty, "popupFeatures", "Did you leave providers.<id>.popupFeatures empty by mistake?", VALIDATION_DBC_PATH)
+    @TYPE.INVARIANT("number", "timeoutMs", "Did you set providers.<id>.timeoutMs as a number?", VALIDATION_DBC_PATH)
+    @GREATER.INVARIANT(0, false, false, "timeoutMs", "Did you set providers.<id>.timeoutMs greater than 0?", VALIDATION_DBC_PATH)
+    @OR.INVARIANT(
+        [new REGEX(REGEX.stdExp.url), new REGEX(rxRelativePath)],
+        "pickerUrl::redirectUri",
+        "Did you set providers.<id>.pickerUrl or providers.<id>.redirectUri to a valid URL or relative path?",
+        VALIDATION_DBC_PATH,
+    )
+    @TYPE.INVARIANT("string", "clientId::apiKey::appKey", "Did you set clientId/apiKey/appKey as strings?", VALIDATION_DBC_PATH)
+    @REGEX.INVARIANT(rxApiKeyLike, "clientId::apiKey::appKey", "Did you provide a complete clientId/apiKey/appKey value?", VALIDATION_DBC_PATH)
+    protected readonly config: Record<string, unknown>;
 
-  public constructor(
-    protected readonly providerId: CloudProviderId,
-    protected readonly config: Record<string, unknown>,
-  ) {
-    this.prefix = `providers.${providerId}`;
-  }
-
-  public validate(): ProviderRuntimeConfig {
-    this.validateCommonLeafValues();
-
-    const enabled = this.config.enabled !== false;
-    const hasPopupOverride = Boolean(this.config.pickerUrl);
-
-    if (enabled && !hasPopupOverride) {
-      this.validateSdkModeRequirements();
+    public constructor(
+        protected readonly providerId: CloudProviderId,
+        config: Record<string, unknown>,
+    ) {
+        this.config = config;
+        this.prefix = `providers.${providerId}`;
     }
 
-    return this.config as ProviderRuntimeConfig;
-  }
+    public validate(): ProviderRuntimeConfig {
+        const enabled = this.config.enabled !== false;
+        const hasPopupOverride = Boolean(this.config.pickerUrl);
 
-  protected validateCommonLeafValues(): void {
-    XdbcBoundary.optionalBoolean(this.config.enabled, `${this.prefix}.enabled`);
-    XdbcBoundary.optionalString(this.config.popupFeatures, `${this.prefix}.popupFeatures`);
-    XdbcBoundary.optionalPositiveNumber(this.config.timeoutMs, `${this.prefix}.timeoutMs`);
-    XdbcBoundary.optionalUrlOrRelative(this.config.pickerUrl, `${this.prefix}.pickerUrl`);
+        if (enabled && !hasPopupOverride) {
+            this.validateSdkModeRequirements(this.config, this.prefix);
+        }
 
-    XdbcBoundary.optionalString(this.config.clientId, `${this.prefix}.clientId`, rxApiKeyLike);
-    XdbcBoundary.optionalString(this.config.apiKey, `${this.prefix}.apiKey`, rxApiKeyLike);
-    XdbcBoundary.optionalString(this.config.appKey, `${this.prefix}.appKey`, rxApiKeyLike);
-
-    if (this.config.redirectUri !== undefined) {
-      XdbcBoundary.optionalUrlOrRelative(this.config.redirectUri, `${this.prefix}.redirectUri`);
+        return this.config as ProviderRuntimeConfig;
     }
-  }
 
-  protected abstract validateSdkModeRequirements(): void;
+    protected abstract validateSdkModeRequirements(
+        config: Record<string, unknown>,
+        context: string,
+    ): void;
 }
 
 class GenericProviderConfigValidator extends BaseProviderConfigValidator {
-  protected validateSdkModeRequirements(): void {
-    // Generic providers only use common validation.
-  }
+    protected validateSdkModeRequirements(
+        config: Record<string, unknown>,
+        context: string,
+    ): void {
+        void config;
+        void context;
+        // Generic providers only use common validation.
+    }
 }
 
 class GoogleDriveConfigValidator extends BaseProviderConfigValidator {
-  protected validateSdkModeRequirements(): void {
-    XdbcBoundary.requiredString(this.config.clientId, `${this.prefix}.clientId`, rxApiKeyLike);
-    XdbcBoundary.requiredString(this.config.apiKey, `${this.prefix}.apiKey`, rxApiKeyLike);
-  }
+    @DBC.ParamvalueProvider
+    protected validateSdkModeRequirements(
+        @DEFINED.PRE("clientId::apiKey", "Did you set Google Drive clientId and apiKey?", VALIDATION_DBC_PATH)
+        @TYPE.PRE("string", "clientId::apiKey", "Did you set Google Drive clientId and apiKey as strings?", VALIDATION_DBC_PATH)
+        @REGEX.PRE(rxApiKeyLike, "clientId::apiKey", "Did you provide valid Google Drive clientId and apiKey values?", VALIDATION_DBC_PATH)
+        config: Record<string, unknown>,
+        context: string,
+    ): void {
+        void config;
+        void context;
+    }
 }
 
 class OneDriveConfigValidator extends BaseProviderConfigValidator {
-  protected validateSdkModeRequirements(): void {
-    XdbcBoundary.requiredString(this.config.clientId, `${this.prefix}.clientId`, rxApiKeyLike);
-  }
+    @DBC.ParamvalueProvider
+    protected validateSdkModeRequirements(
+        @DEFINED.PRE("clientId", "Did you set OneDrive clientId?", VALIDATION_DBC_PATH)
+        @TYPE.PRE("string", "clientId", "Did you set OneDrive clientId as a string?", VALIDATION_DBC_PATH)
+        @REGEX.PRE(rxApiKeyLike, "clientId", "Did you provide a valid OneDrive clientId?", VALIDATION_DBC_PATH)
+        config: Record<string, unknown>,
+        context: string,
+    ): void {
+        void config;
+        void context;
+    }
 }
 
 class DropboxConfigValidator extends BaseProviderConfigValidator {
-  protected validateSdkModeRequirements(): void {
-    XdbcBoundary.requiredString(this.config.appKey, `${this.prefix}.appKey`, rxApiKeyLike);
-  }
+    @DBC.ParamvalueProvider
+    protected validateSdkModeRequirements(
+        @DEFINED.PRE("appKey", "Did you set Dropbox appKey?", VALIDATION_DBC_PATH)
+        @TYPE.PRE("string", "appKey", "Did you set Dropbox appKey as a string?", VALIDATION_DBC_PATH)
+        @REGEX.PRE(rxApiKeyLike, "appKey", "Did you provide a valid Dropbox appKey?", VALIDATION_DBC_PATH)
+        config: Record<string, unknown>,
+        context: string,
+    ): void {
+        void config;
+        void context;
+    }
 }
 
 class BayernCloudConfigValidator extends BaseProviderConfigValidator {
-  protected validateSdkModeRequirements(): void {
-    XdbcBoundary.requiredString(this.config.baseUrl, `${this.prefix}.baseUrl`, REGEX.stdExp.url);
-    XdbcBoundary.requiredString(this.config.username, `${this.prefix}.username`);
+    @DBC.ParamvalueProvider
+    protected validateSdkModeRequirements(
+        @DEFINED.PRE("baseUrl::username", "Did you set BayernCloud baseUrl and username?", VALIDATION_DBC_PATH)
+        @TYPE.PRE("string", "baseUrl::username", "Did you set BayernCloud baseUrl and username as strings?", VALIDATION_DBC_PATH)
+        @REGEX.PRE(REGEX.stdExp.url, "baseUrl", "Did you set BayernCloud baseUrl to a valid URL?", VALIDATION_DBC_PATH)
+        @REGEX.PRE(rxNonEmpty, "username::password::bearerToken", "Did you leave BayernCloud credentials empty?", VALIDATION_DBC_PATH)
+        config: Record<string, unknown>,
+        context: string,
+    ): void {
+        void context;
 
-    const authRule = OR.checkAlgorithm(
-      [
-        { check: (v) => DEFINED.checkAlgorithm((v as Record<string, unknown>)?.password) },
-        { check: (v) => DEFINED.checkAlgorithm((v as Record<string, unknown>)?.bearerToken) },
-      ],
-      this.config,
-    );
-    XdbcBoundary.assertXdbc(authRule, `${this.prefix}.password|bearerToken`);
-
-    if (this.config.password !== undefined) {
-      XdbcBoundary.requiredString(this.config.password, `${this.prefix}.password`);
+        const authRule = OR.checkAlgorithm(
+            [
+                { check: (v) => DEFINED.checkAlgorithm((v as Record<string, unknown>)?.password) },
+                { check: (v) => DEFINED.checkAlgorithm((v as Record<string, unknown>)?.bearerToken) },
+            ],
+            config,
+        );
+        XdbcBoundary.assertXdbc(authRule, `${this.prefix}.password|bearerToken`);
     }
-
-    if (this.config.bearerToken !== undefined) {
-      XdbcBoundary.requiredString(this.config.bearerToken, `${this.prefix}.bearerToken`);
-    }
-  }
 }
 
 const createProviderValidator = (
-  providerId: CloudProviderId,
-  config: Record<string, unknown>,
+    providerId: CloudProviderId,
+    config: Record<string, unknown>,
 ): BaseProviderConfigValidator => {
-  if (providerId === "googleDrive") return new GoogleDriveConfigValidator(providerId, config);
-  if (providerId === "oneDrive") return new OneDriveConfigValidator(providerId, config);
-  if (providerId === "dropbox") return new DropboxConfigValidator(providerId, config);
-  if (providerId === "bayerncloud") return new BayernCloudConfigValidator(providerId, config);
+    if (providerId === "googleDrive") return new GoogleDriveConfigValidator(providerId, config);
+    if (providerId === "oneDrive") return new OneDriveConfigValidator(providerId, config);
+    if (providerId === "dropbox") return new DropboxConfigValidator(providerId, config);
+    if (providerId === "bayerncloud") return new BayernCloudConfigValidator(providerId, config);
 
-  return new GenericProviderConfigValidator(providerId, config);
+    return new GenericProviderConfigValidator(providerId, config);
 };
 
 export class PluginOptionsValidator {
-  public validate(options: unknown): MultiCloudPluginOptions {
-    const raw = XdbcBoundary.ensurePlainObject(options, "plugin options");
-    const providersRaw =
-      raw.providers === undefined
-        ? {}
-        : XdbcBoundary.ensurePlainObject(raw.providers, "plugin options.providers");
+    @TYPE.INVARIANT("object", undefined, "Did you pass a plugin options object?", VALIDATION_DBC_PATH)
+    @TYPE.INVARIANT("object", "providers", "Did you set plugin options.providers as an object?", VALIDATION_DBC_PATH)
+    @TYPE.INVARIANT("string", "defaultProvider::dialogTitle", "Did you set defaultProvider/dialogTitle as strings?", VALIDATION_DBC_PATH)
+    @REGEX.INVARIANT(rxNonEmpty, "defaultProvider::dialogTitle", "Did you leave defaultProvider or dialogTitle empty?", VALIDATION_DBC_PATH)
+    @TYPE.INVARIANT("number", "popupTimeoutMs", "Did you set popupTimeoutMs as a number?", VALIDATION_DBC_PATH)
+    @GREATER.INVARIANT(0, false, false, "popupTimeoutMs", "Did you set popupTimeoutMs greater than 0?", VALIDATION_DBC_PATH)
+    @OR.INVARIANT(
+        [
+            {
+                check: (v) =>
+                    v === undefined || v === "link" || v === "image" || v === "embed"
+                        ? true
+                        : "Value has to be one of: link, image, embed",
+            },
+        ],
+        "defaultInsertMode",
+        "Did you set defaultInsertMode to link, image, or embed?",
+        VALIDATION_DBC_PATH,
+    )
+    @OR.INVARIANT(
+        [
+            {
+                check: (v) => {
+                    if (v === null || typeof v !== "object" || Array.isArray(v)) {
+                        return "Value has to be an object";
+                    }
 
-    const providers: Partial<Record<CloudProviderId, ProviderRuntimeConfig>> = {};
+                    const raw = v as Record<string, unknown>;
+                    const defaultProvider = raw.defaultProvider;
+                    if (defaultProvider === undefined) {
+                        return true;
+                    }
 
-    for (const [providerId, value] of Object.entries(providersRaw)) {
-      const config = XdbcBoundary.ensurePlainObject(
-        value,
-        `plugin options.providers.${providerId}`,
-      );
+                    if (typeof defaultProvider !== "string") {
+                        return "defaultProvider must be a string";
+                    }
 
-      providers[providerId as CloudProviderId] = createProviderValidator(
-        providerId as CloudProviderId,
-        config,
-      ).validate();
+                    const providers = raw.providers;
+                    if (providers === undefined || providers === null || typeof providers !== "object") {
+                        return "provider not configured in providers map";
+                    }
+
+                    return Object.prototype.hasOwnProperty.call(providers, defaultProvider)
+                        ? true
+                        : "provider not configured in providers map";
+                },
+            },
+        ],
+        undefined,
+        "Did you configure defaultProvider inside providers map?",
+        VALIDATION_DBC_PATH,
+    )
+    private boundaryOptions: Record<string, unknown> = {};
+
+    public validate(options: unknown): MultiCloudPluginOptions {
+        const raw = XdbcBoundary.ensurePlainObject(options, "plugin options");
+        this.boundaryOptions = raw;
+
+        const providersRaw =
+            raw.providers === undefined
+                ? {}
+                : XdbcBoundary.ensurePlainObject(raw.providers, "plugin options.providers");
+
+        const providers: Partial<Record<CloudProviderId, ProviderRuntimeConfig>> = {};
+
+        for (const [providerId, value] of Object.entries(providersRaw)) {
+            const config = XdbcBoundary.ensurePlainObject(
+                value,
+                `plugin options.providers.${providerId}`,
+            );
+
+            providers[providerId as CloudProviderId] = createProviderValidator(
+                providerId as CloudProviderId,
+                config,
+            ).validate();
+        }
+
+        return {
+            providers,
+            defaultProvider: raw.defaultProvider as CloudProviderId | undefined,
+            defaultInsertMode: raw.defaultInsertMode as MultiCloudPluginOptions["defaultInsertMode"],
+            dialogTitle: raw.dialogTitle as string | undefined,
+            popupTimeoutMs: raw.popupTimeoutMs as number | undefined,
+        };
     }
-
-    if (raw.defaultProvider !== undefined) {
-      XdbcBoundary.requiredString(raw.defaultProvider, "plugin options.defaultProvider");
-    }
-
-    if (raw.defaultInsertMode !== undefined) {
-      const mode = raw.defaultInsertMode;
-      const isValidMode = mode === "link" || mode === "image" || mode === "embed";
-      if (!isValidMode) {
-        throw new Error(
-          "[XDBC Boundary] plugin options.defaultInsertMode: must be link, image or embed.",
-        );
-      }
-    }
-
-    XdbcBoundary.optionalString(raw.dialogTitle, "plugin options.dialogTitle");
-    XdbcBoundary.optionalPositiveNumber(raw.popupTimeoutMs, "plugin options.popupTimeoutMs");
-
-    if (
-      raw.defaultProvider !== undefined &&
-      providers[raw.defaultProvider as CloudProviderId] === undefined
-    ) {
-      throw new Error(
-        "[XDBC Boundary] plugin options.defaultProvider: provider not configured in providers map.",
-      );
-    }
-
-    return {
-      providers,
-      defaultProvider: raw.defaultProvider as CloudProviderId | undefined,
-      defaultInsertMode: raw.defaultInsertMode as MultiCloudPluginOptions["defaultInsertMode"],
-      dialogTitle: raw.dialogTitle as string | undefined,
-      popupTimeoutMs: raw.popupTimeoutMs as number | undefined,
-    };
-  }
 }
