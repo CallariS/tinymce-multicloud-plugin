@@ -348,52 +348,16 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
     }
 };
 
-const getEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string> => {
-    const mimeType = item.file?.mimeType || "";
-    
-    // For PDFs and Office documents, create an embed link
-    if (mimeType === "application/pdf" || 
-        mimeType.includes("word") || 
-        mimeType.includes("excel") || 
-        mimeType.includes("powerpoint") ||
-        mimeType.includes("officedocument")) {
-        
-        try {
-            console.log("[OneDrive] Creating embed link for:", item.name);
-            
-            // Create a sharing link with embed permission
-            const response = await fetch(
-                `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/createLink`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${accessToken}`,
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        type: "embed",
-                        scope: "anonymous",
-                    }),
-                }
-            );
-
-            if (response.ok) {
-                const data = await response.json();
-                const embedUrl = data.link?.webUrl;
-                if (embedUrl) {
-                    console.log("[OneDrive] Got embed URL:", embedUrl);
-                    return embedUrl;
-                }
-            } else {
-                console.warn("[OneDrive] Could not create embed link:", response.status);
-            }
-        } catch (err) {
-            console.error("[OneDrive] Error creating embed link:", err);
-        }
+const getEmbedUrl = (item: GraphDriveItem): string => {
+    const downloadUrl = item["@microsoft.graph.downloadUrl"];
+    if (!downloadUrl) {
+        return item.webUrl || "";
     }
-    
-    // Fallback to webUrl
-    return item.webUrl || "";
+
+    // Use Office Online Viewer for PDFs and Office documents
+    // This is Microsoft's public viewer that works with any publicly accessible URL
+    const encodedUrl = encodeURIComponent(downloadUrl);
+    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}`;
 };
 
 const openOneDrivePicker = async (
@@ -436,16 +400,16 @@ const openOneDrivePicker = async (
         }
     }
     // For documents that should be embedded, get embed URL
-    else if (mimeType === "application/pdf" || 
-             mimeType.includes("word") || 
-             mimeType.includes("excel") || 
-             mimeType.includes("powerpoint") ||
-             mimeType.includes("officedocument")) {
-        console.log("[OneDrive] Detected embeddable document, getting embed URL...");
-        const embedUrl = await getEmbedUrl(accessToken, validated);
+    else if (mimeType === "application/pdf" ||
+        mimeType.includes("word") ||
+        mimeType.includes("excel") ||
+        mimeType.includes("powerpoint") ||
+        mimeType.includes("officedocument")) {
+        console.log("[OneDrive] Detected embeddable document, getting Office Online viewer URL...");
+        const embedUrl = getEmbedUrl(validated);
         if (embedUrl) {
             url = embedUrl;
-            console.log("[OneDrive] Using embed URL for document");
+            console.log("[OneDrive] Using Office Online viewer URL:", embedUrl);
         }
     }
 
