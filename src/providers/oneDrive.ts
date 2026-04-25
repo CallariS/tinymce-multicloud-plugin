@@ -348,23 +348,6 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
     }
 };
 
-const getEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string | null> => {
-    const mimeType = item.file?.mimeType || "";
-    
-    // For PDFs, use Office Online Viewer with the direct download URL
-    if (mimeType === "application/pdf" && item["@microsoft.graph.downloadUrl"]) {
-        const downloadUrl = item["@microsoft.graph.downloadUrl"];
-        const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(downloadUrl)}`;
-        console.log("[OneDrive] Using Office Online Viewer with download URL");
-        return viewerUrl;
-    }
-
-    // For other Office documents, we can't reliably embed them due to CSP
-    // Return null to trigger link mode instead
-    console.log("[OneDrive] No embeddable URL available for this file type, will use link mode");
-    return null;
-};
-
 const openOneDrivePicker = async (
     config: OneDriveProviderConfig,
 ): Promise<PickerResult | null> => {
@@ -404,40 +387,13 @@ const openOneDrivePicker = async (
             console.warn("[OneDrive] Could not get thumbnail, using webUrl");
         }
     }
-    // For documents that should be embedded, try to get embed URL
-    else if (mimeType === "application/pdf" ||
-        mimeType.includes("word") ||
-        mimeType.includes("excel") ||
-        mimeType.includes("powerpoint") ||
-        mimeType.includes("officedocument")) {
-        console.log("[OneDrive] Detected embeddable document, creating public sharing link...");
-        const embedUrl = await getEmbedUrl(accessToken, validated);
-        if (embedUrl) {
-            url = embedUrl;
-            console.log("[OneDrive] Using embed/share URL:", embedUrl);
-        } else {
-            console.warn("[OneDrive] Could not create sharing link, will use webUrl as link");
-        }
-    }
 
-    // Determine insert mode based on file type and available URL
-    let insertMode = detectInsertMode({
-        id: validated.id || validated.name,
-        name: validated.name || validated.id,
-        url,
-        mimeType: validated.file?.mimeType,
-    });
-
-    // If we have a document but couldn't get a proper embed URL, use link mode
-    if (insertMode === "embed" && url === validated.webUrl && (
-        mimeType === "application/pdf" ||
-        mimeType.includes("word") ||
-        mimeType.includes("excel") ||
-        mimeType.includes("powerpoint") ||
-        mimeType.includes("officedocument")
-    )) {
-        console.log("[OneDrive] Using link mode instead of embed (no embeddable URL available)");
-        insertMode = "link";
+    // For documents/PDFs, use webUrl (will be inserted as clickable link)
+    // Embedding OneDrive documents has CSP and authentication issues
+    const insertMode = mimeType.startsWith("image/") ? "image" : "link";
+    
+    if (!mimeType.startsWith("image/")) {
+        console.log("[OneDrive] Document will be inserted as clickable link (embedding not supported due to CSP restrictions)");
     }
 
     const result: PickerResult = {
