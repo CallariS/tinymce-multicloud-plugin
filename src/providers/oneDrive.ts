@@ -30,10 +30,10 @@ let msalInstance: any = null;
 
 const ensureMsal = async (): Promise<void> => {
     if (msalInstance) return;
-    
+
     console.log("[OneDrive] Loading MSAL from:", MSAL_SDK);
     await loadScript(MSAL_SDK);
-    
+
     if (!window.msal?.PublicClientApplication) {
         throw new Error("MSAL library failed to load");
     }
@@ -42,11 +42,14 @@ const ensureMsal = async (): Promise<void> => {
 
 const getAccessToken = async (clientId: string): Promise<string> => {
     if (!msalInstance) {
+        const redirectUri = window.location.origin + window.location.pathname;
+        console.log("[OneDrive] Initializing MSAL with redirectUri:", redirectUri);
+        
         msalInstance = new window.msal.PublicClientApplication({
             auth: {
                 clientId: clientId,
                 authority: "https://login.microsoftonline.com/common",
-                redirectUri: window.location.origin + window.location.pathname,
+                redirectUri: redirectUri,
             },
             cache: {
                 cacheLocation: "localStorage",
@@ -140,7 +143,7 @@ const showFilePicker = (items: GraphDriveItem[]): Promise<GraphDriveItem | null>
         fileList.style.cssText = "list-style: none; padding: 0; margin: 0;";
 
         const files = items.filter(item => item.file && !item.folder);
-        
+
         if (files.length === 0) {
             const emptyMsg = document.createElement("li");
             emptyMsg.textContent = "No files found in your OneDrive root folder";
@@ -156,20 +159,20 @@ const showFilePicker = (items: GraphDriveItem[]): Promise<GraphDriveItem | null>
                     transition: background 0.2s;
                 `;
                 li.textContent = item.name;
-                
+
                 li.addEventListener("mouseenter", () => {
                     li.style.background = "#f5f5f5";
                 });
-                
+
                 li.addEventListener("mouseleave", () => {
                     li.style.background = "white";
                 });
-                
+
                 li.addEventListener("click", () => {
                     document.body.removeChild(overlay);
                     resolve(item);
                 });
-                
+
                 fileList.appendChild(li);
             });
         }
@@ -221,14 +224,14 @@ const openOneDrivePicker = async (
 
     console.log("[OneDrive] Getting access token...");
     const accessToken = await getAccessToken(config.clientId);
-    
+
     console.log("[OneDrive] Fetching drive items...");
     const items = await listDriveItems(accessToken);
     console.log(`[OneDrive] Found ${items.length} items`);
-    
+
     console.log("[OneDrive] Showing file picker...");
     const selected = await showFilePicker(items);
-    
+
     if (!selected) {
         console.log("[OneDrive] User cancelled");
         return null;
