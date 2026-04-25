@@ -120,6 +120,14 @@ const launchPicker = async (
     accessToken: string,
 ): Promise<PickerResult | null> =>
     new Promise((resolve) => {
+        // Inject CSS to ensure picker appears above TinyMCE
+        if (!document.getElementById("google-picker-z-index-fix")) {
+            const style = document.createElement("style");
+            style.id = "google-picker-z-index-fix";
+            style.textContent = `.picker-dialog { z-index: 100000 !important; }`;
+            document.head.appendChild(style);
+        }
+
         const view = new window.google.picker.DocsView(window.google.picker.ViewId.DOCS)
             .setIncludeFolders(true)
             .setSelectFolderEnabled(false);
@@ -133,7 +141,6 @@ const launchPicker = async (
             .setDeveloperKey(config.apiKey)
             .setLocale(config.pickerLocale || "en")
             .setTitle("Select a Google Drive file")
-            .setZIndex(100000)
             .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
             .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
             .addView(view)
