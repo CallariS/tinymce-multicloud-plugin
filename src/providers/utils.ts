@@ -65,20 +65,21 @@ const EMBEDDABLE_MIMES = [
 
 export const detectInsertMode = (item: CloudItem): InsertMode => {
     const mime = item.mimeType?.toLowerCase() || "";
-    const source = `${item.name} ${item.url}`;
+    const name = item.name || "";
+    const url = item.url || "";
 
     // Images
-    if (mime.startsWith("image/") || imagePattern.test(source)) {
+    if (mime.startsWith("image/") || imagePattern.test(name) || imagePattern.test(url)) {
         return "image";
     }
 
     // Videos
-    if (mime.startsWith("video/") || videoPattern.test(source)) {
+    if (mime.startsWith("video/") || videoPattern.test(name) || videoPattern.test(url)) {
         return "embed";
     }
 
     // Embeddable documents (check MIME and file extension)
-    if (EMBEDDABLE_MIMES.includes(mime) || pdfPattern.test(source) || officePattern.test(source) || archivePattern.test(source)) {
+    if (EMBEDDABLE_MIMES.includes(mime) || pdfPattern.test(name) || officePattern.test(name) || archivePattern.test(name)) {
         return "embed";
     }
 
