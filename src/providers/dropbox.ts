@@ -290,10 +290,12 @@ const uploadFile = async (
                 ];
                 const archiveTypes = [
                     "application/zip",
+                    "application/x-zip-compressed",
                     "application/x-rar-compressed",
                     "application/x-7z-compressed",
                     "application/x-tar",
                     "application/gzip",
+                    "application/x-gzip",
                 ];
 
                 // For images, PDFs, Office docs, and archives, convert to raw content URL for proper embedding
@@ -339,10 +341,12 @@ const uploadFile = async (
                                 ];
                                 const archiveTypes = [
                                     "application/zip",
+                                    "application/x-zip-compressed",
                                     "application/x-rar-compressed",
                                     "application/x-7z-compressed",
                                     "application/x-tar",
                                     "application/gzip",
+                                    "application/x-gzip",
                                 ];
                                 if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type)) {
                                     sharedUrl = existingLink.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
@@ -373,12 +377,14 @@ const uploadFile = async (
         let embedUrl: string | undefined;
         const archiveTypes = [
             "application/zip",
+            "application/x-zip-compressed",
             "application/x-rar-compressed",
             "application/x-7z-compressed",
             "application/x-tar",
             "application/gzip",
+            "application/x-gzip",
         ];
-        
+
         if (mimeType === "application/pdf" || archiveTypes.includes(mimeType)) {
             // Google viewer can display PDFs and archives from any public URL
             embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;

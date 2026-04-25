@@ -57,10 +57,12 @@ const EMBEDDABLE_MIMES = [
     "application/vnd.ms-excel", // .xls
     "application/vnd.ms-powerpoint", // .ppt
     "application/zip", // .zip
+    "application/x-zip-compressed", // .zip (alternate)
     "application/x-rar-compressed", // .rar
     "application/x-7z-compressed", // .7z
     "application/x-tar", // .tar
     "application/gzip", // .gz
+    "application/x-gzip", // .gz (alternate)
 ];
 
 export const detectInsertMode = (item: CloudItem): InsertMode => {

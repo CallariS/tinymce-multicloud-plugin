@@ -423,6 +423,51 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
     }
 };
 
+const getPublicDownloadUrl = async (accessToken: string, item: GraphDriveItem): Promise<string | null> => {
+    try {
+        console.log("[OneDrive] Creating public anonymous download link for:", item.name);
+
+        // Create an anonymous view link (download link type doesn't work for archives)
+        const response = await fetch(
+            `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/createLink`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    type: "view",
+                    scope: "anonymous",
+                }),
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.warn("[OneDrive] createLink for download failed:", response.status, errorText);
+            return null;
+        }
+
+        const data = await response.json();
+        const shareUrl = data.link?.webUrl;
+        
+        if (shareUrl) {
+            console.log("[OneDrive] Got public sharing URL:", shareUrl);
+            // Convert 1drv.ms short link to direct download URL
+            // Add ?download=1 to force direct download
+            const downloadUrl = shareUrl.replace('/view/', '/download/').replace('1drv.ms', 'onedrive.live.com');
+            return downloadUrl + (downloadUrl.includes('?') ? '&download=1' : '?download=1');
+        }
+
+        console.warn("[OneDrive] Could not get public download URL");
+        return null;
+    } catch (err) {
+        console.error("[OneDrive] Error creating public download URL:", err);
+        return null;
+    }
+};
+
 const openOneDrivePicker = async (
     config: OneDriveProviderConfig,
 ): Promise<PickerResult | null> => {
@@ -477,20 +522,22 @@ const openOneDrivePicker = async (
             console.log("[OneDrive] Could not get embeddable URL, will insert as link");
         }
     }
-    // For archives, use Google viewer with anonymous download URL
+    // For archives, use Google viewer with public anonymous download URL
     else if (mimeType === "application/zip" ||
+        mimeType === "application/x-zip-compressed" ||
         mimeType === "application/x-rar-compressed" ||
         mimeType === "application/x-7z-compressed" ||
         mimeType === "application/x-tar" ||
-        mimeType === "application/gzip") {
-        console.log("[OneDrive] Detected archive, using Google viewer with download URL...");
-        const downloadUrl = validated["@microsoft.graph.downloadUrl"];
+        mimeType === "application/gzip" ||
+        mimeType === "application/x-gzip") {
+        console.log("[OneDrive] Detected archive, creating public download link for Google viewer...");
+        const downloadUrl = await getPublicDownloadUrl(accessToken, validated);
         if (downloadUrl) {
             // Use Google viewer which can display archives
             url = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
-            console.log("[OneDrive] Using Google viewer for archive");
+            console.log("[OneDrive] Using Google viewer for archive with public URL");
         } else {
-            console.warn("[OneDrive] No download URL available for archive");
+            console.warn("[OneDrive] Could not create public download URL for archive");
         }
     }
 
@@ -581,17 +628,19 @@ const uploadFile = async (
                 console.log("[OneDrive] Got embeddable URL for uploaded document");
             }
         }
-        // For archives, use Google viewer with download URL
+        // For archives, use Google viewer with public download URL
         else if (mimeType === "application/zip" ||
+            mimeType === "application/x-zip-compressed" ||
             mimeType === "application/x-rar-compressed" ||
             mimeType === "application/x-7z-compressed" ||
             mimeType === "application/x-tar" ||
-            mimeType === "application/gzip") {
-            console.log("[OneDrive] Using Google viewer for uploaded archive...");
-            const downloadUrl = uploadedItem["@microsoft.graph.downloadUrl"];
+            mimeType === "application/gzip" ||
+            mimeType === "application/x-gzip") {
+            console.log("[OneDrive] Creating public download link for uploaded archive...");
+            const downloadUrl = await getPublicDownloadUrl(accessToken, uploadedItem);
             if (downloadUrl) {
                 url = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
-                console.log("[OneDrive] Using Google viewer for archive");
+                console.log("[OneDrive] Using Google viewer for uploaded archive");
             }
         }
 
