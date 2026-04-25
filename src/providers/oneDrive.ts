@@ -36,11 +36,11 @@ const openOneDrivePicker = async (
         }
 
         console.log("[OneDrive] Opening picker with clientId:", config.clientId);
-        
+
         try {
             window.OneDrive.open({
                 clientId: config.clientId,
-                action: config.action || "query",
+                action: config.action || "share",
                 multiSelect: config.multiSelect || false,
                 advanced: {
                     ...(config.redirectUri ? { redirectUri: config.redirectUri } : {}),
