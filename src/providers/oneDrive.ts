@@ -58,7 +58,7 @@ const getAccessToken = async (clientId: string): Promise<string> => {
         await msalInstance.initialize();
     }
 
-    const scopes = ["Files.Read", "Files.Read.All", "Files.ReadWrite.All"];
+    const scopes = ["Files.Read", "Files.Read.All"];
 
     try {
         // Try silent token acquisition first
@@ -349,57 +349,19 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
 };
 
 const getEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string | null> => {
-    try {
-        console.log("[OneDrive] Creating public view link for:", item.name);
-
-        // Create an anonymous view link
-        const response = await fetch(
-            `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/createLink`,
-            {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    type: "view",
-                    scope: "anonymous",
-                }),
-            }
-        );
-
-        if (response.ok) {
-            const data = await response.json();
-            const shareUrl = data.link?.webUrl;
-            
-            if (shareUrl) {
-                console.log("[OneDrive] Got sharing URL:", shareUrl);
-                
-                // For PDFs, try to use Office Online Viewer with the share URL
-                // Extract the sharing parameters from the OneDrive URL
-                const url = new URL(shareUrl);
-                const resid = url.searchParams.get('resid') || url.searchParams.get('id');
-                
-                if (resid && item.file?.mimeType === 'application/pdf') {
-                    // Use Office Online Viewer for PDFs
-                    const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(shareUrl)}`;
-                    console.log("[OneDrive] Using Office Online Viewer URL:", viewerUrl);
-                    return viewerUrl;
-                }
-                
-                // For other Office documents, return the share URL
-                // (will be inserted as a link, not embedded, due to CSP)
-                console.log("[OneDrive] Returning share URL (will insert as link)");
-                return shareUrl;
-            }
-        } else {
-            const errorText = await response.text();
-            console.warn("[OneDrive] Could not create sharing link:", response.status, errorText);
-        }
-    } catch (err) {
-        console.error("[OneDrive] Error creating sharing link:", err);
+    const mimeType = item.file?.mimeType || "";
+    
+    // For PDFs, use Office Online Viewer with the direct download URL
+    if (mimeType === "application/pdf" && item["@microsoft.graph.downloadUrl"]) {
+        const downloadUrl = item["@microsoft.graph.downloadUrl"];
+        const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(downloadUrl)}`;
+        console.log("[OneDrive] Using Office Online Viewer with download URL");
+        return viewerUrl;
     }
 
+    // For other Office documents, we can't reliably embed them due to CSP
+    // Return null to trigger link mode instead
+    console.log("[OneDrive] No embeddable URL available for this file type, will use link mode");
     return null;
 };
 
@@ -465,7 +427,7 @@ const openOneDrivePicker = async (
         url,
         mimeType: validated.file?.mimeType,
     });
-    
+
     // If we have a document but couldn't get a proper embed URL, use link mode
     if (insertMode === "embed" && url === validated.webUrl && (
         mimeType === "application/pdf" ||
