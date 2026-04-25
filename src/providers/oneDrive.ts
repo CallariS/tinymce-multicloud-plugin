@@ -575,8 +575,8 @@ const uploadFile = async (
         });
 
         // If we tried to embed but still have the original webUrl, fall back to link
-        if (insertMode === "embed" && 
-            url === uploadedItem.webUrl && 
+        if (insertMode === "embed" &&
+            url === uploadedItem.webUrl &&
             !mimeType.startsWith("image/")) {
             console.log("[OneDrive] Falling back to link mode for uploaded document");
             insertMode = "link";

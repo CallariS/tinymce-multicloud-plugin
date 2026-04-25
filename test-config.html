@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+    <script src="dist/index.global.js"></script>
+</head>
+<body>
+    <script>
+        // Test the exact config from the demo
+        const testConfig = {
+            providers: {
+                googleDrive: { enabled: true, pickerUrl: "./pickers/google-drive.html" },
+            },
+            defaultProvider: "googleDrive",
+        };
+
+        try {
+            const validator = new TinyMceMultiCloudPlugin.PluginOptionsValidator();
+            const result = validator.validate(testConfig);
+            console.log("✓ Validation passed:", result);
+        } catch (error) {
+            console.error("✗ Validation failed:", error.message);
+            console.error("Full error:", error);
+        }
+    </script>
+</body>
+</html>

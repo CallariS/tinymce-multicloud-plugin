@@ -56,17 +56,32 @@ const openDropboxChooser = async (
 
                 const validated = validateDropboxFileBoundary(first);
 
+                // Convert URL to raw content for embeddable files (images, PDFs)
+                let fileUrl = validated.link;
+                const fileName = validated.name || "";
+                const isImage = /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(fileName);
+                const isPdf = /\.pdf$/i.test(fileName);
+
+                if ((isImage || isPdf) && fileUrl.includes("dropbox.com")) {
+                    // Convert to raw content URL for proper embedding
+                    fileUrl = fileUrl
+                        .replace("www.dropbox.com", "dl.dropboxusercontent.com")
+                        .replace("?dl=0", "?raw=1")
+                        .replace("?dl=1", "?raw=1");
+                    console.log("[Dropbox] Converted to raw content URL:", fileUrl);
+                }
+
                 const result: PickerResult = {
                     item: {
                         id: validated.id || validated.name || "dropbox-file",
                         name: validated.name || "Dropbox file",
-                        url: validated.link,
+                        url: fileUrl,
                         thumbnailUrl: validated.thumbnailLink,
                     },
                     mode: detectInsertMode({
                         id: validated.id || validated.name || "dropbox-file",
                         name: validated.name || "Dropbox file",
-                        url: validated.link,
+                        url: fileUrl,
                     }),
                 };
 
@@ -252,11 +267,11 @@ const uploadFile = async (
                 const sharingData = await sharingResponse.json();
                 const baseUrl = sharingData.url;
 
-                // For images, convert to raw content URL for proper embedding
-                if (file.type.startsWith("image/")) {
+                // For images and PDFs, convert to raw content URL for proper embedding
+                if (file.type.startsWith("image/") || file.type === "application/pdf") {
                     // Convert www.dropbox.com to dl.dropboxusercontent.com and add ?raw=1
                     sharedUrl = baseUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
-                    console.log("[Dropbox] Created raw image URL:", sharedUrl);
+                    console.log("[Dropbox] Created raw content URL:", sharedUrl);
                 } else {
                     // For other files, use direct download link
                     sharedUrl = baseUrl.replace("?dl=0", "?dl=1");
@@ -285,7 +300,7 @@ const uploadFile = async (
                             const linksData = await getLinksResponse.json();
                             if (linksData.links && linksData.links.length > 0) {
                                 const existingLink = linksData.links[0].url;
-                                if (file.type.startsWith("image/")) {
+                                if (file.type.startsWith("image/") || file.type === "application/pdf") {
                                     sharedUrl = existingLink.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
                                 } else {
                                     sharedUrl = existingLink.replace("?dl=0", "?dl=1");

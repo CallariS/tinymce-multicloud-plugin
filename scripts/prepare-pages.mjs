@@ -5,13 +5,13 @@ const root = process.cwd();
 const outDir = join(root, "site");
 
 const ensureExists = (path, hint) => {
-  if (!existsSync(path)) {
-    throw new Error(`${hint} not found: ${path}`);
-  }
+    if (!existsSync(path)) {
+        throw new Error(`${hint} not found: ${path}`);
+    }
 };
 
 const copyDir = (from, to) => {
-  cpSync(from, to, { recursive: true });
+    cpSync(from, to, { recursive: true });
 };
 
 rmSync(outDir, { recursive: true, force: true });
@@ -30,8 +30,8 @@ copyDir(demoDir, join(outDir, "demo"));
 copyDir(docsDir, join(outDir, "docs"));
 
 writeFileSync(
-  join(outDir, "index.html"),
-  `<!doctype html>
+    join(outDir, "index.html"),
+    `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -56,7 +56,7 @@ writeFileSync(
   </body>
 </html>
 `,
-  "utf8",
+    "utf8",
 );
 
 writeFileSync(join(outDir, ".nojekyll"), "", "utf8");
