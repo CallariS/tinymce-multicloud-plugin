@@ -98,7 +98,8 @@ const getAccessToken = async (appKey: string): Promise<string> => {
     // Start OAuth flow
     console.log("[Dropbox] Starting OAuth flow...");
     const redirectUri = window.location.origin + window.location.pathname;
-    const authUrl = `${DROPBOX_AUTH_URL}?client_id=${appKey}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    const scopes = "files.metadata.read files.content.read files.content.write sharing.write";
+    const authUrl = `${DROPBOX_AUTH_URL}?client_id=${appKey}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
 
     // Open auth popup
     const popup = window.open(authUrl, "Dropbox Auth", "width=600,height=700,scrollbars=yes");
@@ -141,7 +142,7 @@ const getAccessToken = async (appKey: string): Promise<string> => {
                         resolved = true;
                         clearInterval(checkInterval);
                         window.removeEventListener('message', messageHandler);
-                        
+
                         // Check if token was stored during redirect
                         const storedToken = localStorage.getItem('dropbox_access_token');
                         if (storedToken) {
@@ -363,11 +364,11 @@ if (typeof window !== 'undefined') {
         if (match && match[1]) {
             const token = match[1];
             console.log("[Dropbox] Captured OAuth token from URL");
-            
+
             // Store token
             localStorage.setItem('dropbox_access_token', token);
             cachedAccessToken = token;
-            
+
             // If we're in a popup, send token to opener
             if (window.opener && !window.opener.closed) {
                 try {
@@ -382,7 +383,7 @@ if (typeof window !== 'undefined') {
                     console.error("[Dropbox] Failed to send token to opener:", e);
                 }
             }
-            
+
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
         }
