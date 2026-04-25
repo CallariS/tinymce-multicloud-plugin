@@ -2,3 +2,6 @@ node_modules/
 dist/
 site/
 *.log
+
+# Local development config with credentials
+demo/multicloud.config.local.js

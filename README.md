@@ -19,6 +19,12 @@ npm install
 npm run build
 ```
 
+## Demo
+
+**Public demo** (uses mock pickers): https://callaris.github.io/tinymce-multicloud-plugin/demo/tinymce-demo.html
+
+For **local testing with real cloud provider SDKs**, see [DEVELOPER_SETUP.md](./DEVELOPER_SETUP.md).
+
 ## Production quickstart
 
 1. Copy `demo/multicloud.config.example.js` to `demo/multicloud.config.js`.
