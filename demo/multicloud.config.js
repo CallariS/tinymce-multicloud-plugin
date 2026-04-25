@@ -15,7 +15,15 @@ window.MULTICLOUD_CONFIG = {
             enabled: true,
             clientId: "a50f6dc0-3dee-484b-862b-3b5010889b87"
         },
-        dropbox: { enabled: true, pickerUrl: "./pickers/dropbox.html" },
+        dropbox: {
+            enabled: true,
+            // To use Dropbox, create an app at https://www.dropbox.com/developers/apps
+            // and add your App Key here:
+            appKey: "YOUR_DROPBOX_APP_KEY_HERE",
+            linkType: "direct", // "direct" for downloads, "preview" for viewing
+            multiselect: false,
+            extensions: [] // Empty array allows all file types
+        },
         bayerncloud: { enabled: true, pickerUrl: "./pickers/bayerncloud.html" }
     },
     defaultProvider: "googleDrive",

@@ -7,6 +7,16 @@
     <script src="../node_modules/tinymce/tinymce.min.js"></script>
     <script src="../dist/index.global.js?v=20260424-1920"></script>
     <script src="./multicloud.config.js"></script>
+    <style>
+      body {
+        margin: 20px;
+        height: calc(100vh - 40px);
+        overflow: hidden;
+      }
+      #editor {
+        height: 100%;
+      }
+    </style>
   </head>
   <body>
     <textarea id="editor">Select "Insert From Cloud" in the toolbar.</textarea>
@@ -27,9 +37,14 @@
 
       const config = window.MULTICLOUD_CONFIG || fallbackConfig;
 
+      // Calculate editor height based on window size with margins
+      const calculateEditorHeight = () => {
+        return window.innerHeight - 40; // 20px margin top + 20px margin bottom
+      };
+
       tinymce.init({
         selector: "#editor",
-        height: 540,
+        height: calculateEditorHeight(),
         plugins: "link image media multicloud",
         toolbar:
           "undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload",
@@ -38,6 +53,13 @@
         multicloud_default_insert_mode: config.defaultInsertMode,
         multicloud_dialog_title: config.dialogTitle,
         multicloud_popup_timeout_ms: config.popupTimeoutMs,
+        setup: (editor) => {
+          // Handle window resize
+          window.addEventListener('resize', () => {
+            const newHeight = calculateEditorHeight();
+            editor.theme.resizeTo(null, newHeight);
+          });
+        },
       });
     </script>
   </body>
