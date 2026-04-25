@@ -109,6 +109,7 @@ const launchPicker = async (
             .setDeveloperKey(config.apiKey)
             .setLocale(config.pickerLocale || "en")
             .setTitle("Select a Google Drive file")
+            .setZIndex(100000)
             .enableFeature(window.google.picker.Feature.SUPPORT_DRIVES)
             .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
             .addView(view)
@@ -148,7 +149,7 @@ const launchPicker = async (
                         // For images, use high-res thumbnail; for others use direct download link
                         let directUrl: string;
                         const isImage = validatedDoc.mimeType?.startsWith("image/");
-                        
+
                         if (isImage && metadata?.thumbnailLink) {
                             // Replace thumbnail size parameter (e.g., =s220) with high-res (=s2000)
                             directUrl = metadata.thumbnailLink.replace(/=s\d+$/, "=s2000");
