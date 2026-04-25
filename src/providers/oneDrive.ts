@@ -82,9 +82,13 @@ const getAccessToken = async (clientId: string): Promise<string> => {
     return response.accessToken;
 };
 
-const listDriveItems = async (accessToken: string): Promise<GraphDriveItem[]> => {
-    console.log("[OneDrive] Fetching items from /me/drive/root/children");
-    const response = await fetch("https://graph.microsoft.com/v1.0/me/drive/root/children", {
+const listFolderItems = async (accessToken: string, folderId?: string): Promise<GraphDriveItem[]> => {
+    const endpoint = folderId
+        ? `https://graph.microsoft.com/v1.0/me/drive/items/${folderId}/children`
+        : "https://graph.microsoft.com/v1.0/me/drive/root/children";
+    
+    console.log("[OneDrive] Fetching items from:", endpoint);
+    const response = await fetch(endpoint, {
         headers: {
             Authorization: `Bearer ${accessToken}`,
         },
@@ -102,7 +106,13 @@ const listDriveItems = async (accessToken: string): Promise<GraphDriveItem[]> =>
     return data.value || [];
 };
 
-const showFilePicker = (items: GraphDriveItem[]): Promise<GraphDriveItem | null> => {
+const showNavigablePicker = async (
+    accessToken: string,
+    currentPath: string[] = [],
+    folderId?: string
+): Promise<GraphDriveItem | null> => {
+    const items = await listFolderItems(accessToken, folderId);
+    
     return new Promise((resolve) => {
         const overlay = document.createElement("div");
         overlay.style.cssText = `
@@ -132,8 +142,13 @@ const showFilePicker = (items: GraphDriveItem[]): Promise<GraphDriveItem | null>
         `;
 
         const title = document.createElement("h2");
-        title.textContent = "Select a file from OneDrive";
-        title.style.cssText = "margin: 0 0 16px 0; font-size: 20px; font-weight: 600;";
+        title.textContent = "Select from OneDrive";
+        title.style.cssText = "margin: 0 0 8px 0; font-size: 20px; font-weight: 600;";
+
+        // Breadcrumb
+        const breadcrumb = document.createElement("div");
+        breadcrumb.style.cssText = "margin-bottom: 12px; font-size: 14px; color: #666;";
+        breadcrumb.textContent = currentPath.length > 0 ? currentPath.join(" / ") : "Root";
 
         const listContainer = document.createElement("div");
         listContainer.style.cssText = `
@@ -147,50 +162,121 @@ const showFilePicker = (items: GraphDriveItem[]): Promise<GraphDriveItem | null>
         const fileList = document.createElement("ul");
         fileList.style.cssText = "list-style: none; padding: 0; margin: 0;";
 
-        const files = items.filter(item => item.file && !item.folder);
+        const folders = items.filter(item => item.folder);
+        const files = items.filter(item => item.file);
 
-        console.log("[OneDrive] Total items:", items.length);
-        console.log("[OneDrive] Files:", files.length);
-        console.log("[OneDrive] Folders:", items.filter(item => item.folder).length);
-        console.log("[OneDrive] Items detail:", items);
+        console.log("[OneDrive] Folders:", folders.length, "Files:", files.length);
 
-        if (files.length === 0) {
+        // Show folders first
+        folders.forEach(folder => {
+            const li = document.createElement("li");
+            li.style.cssText = `
+                padding: 12px;
+                border-bottom: 1px solid #eee;
+                cursor: pointer;
+                transition: background 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            
+            const icon = document.createElement("span");
+            icon.textContent = "📁";
+            icon.style.cssText = "font-size: 18px;";
+            
+            const name = document.createElement("span");
+            name.textContent = folder.name;
+            name.style.cssText = "font-weight: 500;";
+            
+            li.appendChild(icon);
+            li.appendChild(name);
+
+            li.addEventListener("mouseenter", () => li.style.background = "#f5f5f5");
+            li.addEventListener("mouseleave", () => li.style.background = "white");
+
+            li.addEventListener("click", async () => {
+                document.body.removeChild(overlay);
+                const newPath = [...currentPath, folder.name];
+                const result = await showNavigablePicker(accessToken, newPath, folder.id);
+                resolve(result);
+            });
+
+            fileList.appendChild(li);
+        });
+
+        // Show files
+        files.forEach(file => {
+            const li = document.createElement("li");
+            li.style.cssText = `
+                padding: 12px;
+                border-bottom: 1px solid #eee;
+                cursor: pointer;
+                transition: background 0.2s;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            
+            const icon = document.createElement("span");
+            icon.textContent = "📄";
+            icon.style.cssText = "font-size: 18px;";
+            
+            const name = document.createElement("span");
+            name.textContent = file.name;
+            
+            li.appendChild(icon);
+            li.appendChild(name);
+
+            li.addEventListener("mouseenter", () => li.style.background = "#f5f5f5");
+            li.addEventListener("mouseleave", () => li.style.background = "white");
+
+            li.addEventListener("click", () => {
+                document.body.removeChild(overlay);
+                resolve(file);
+            });
+
+            fileList.appendChild(li);
+        });
+
+        if (folders.length === 0 && files.length === 0) {
             const emptyMsg = document.createElement("li");
-            emptyMsg.textContent = "No files found in your OneDrive root folder";
+            emptyMsg.textContent = "This folder is empty";
             emptyMsg.style.cssText = "padding: 20px; text-align: center; color: #666;";
             fileList.appendChild(emptyMsg);
-        } else {
-            files.forEach(item => {
-                const li = document.createElement("li");
-                li.style.cssText = `
-                    padding: 12px;
-                    border-bottom: 1px solid #eee;
-                    cursor: pointer;
-                    transition: background 0.2s;
-                `;
-                li.textContent = item.name;
-
-                li.addEventListener("mouseenter", () => {
-                    li.style.background = "#f5f5f5";
-                });
-
-                li.addEventListener("mouseleave", () => {
-                    li.style.background = "white";
-                });
-
-                li.addEventListener("click", () => {
-                    document.body.removeChild(overlay);
-                    resolve(item);
-                });
-
-                fileList.appendChild(li);
-            });
         }
 
         listContainer.appendChild(fileList);
 
         const buttonContainer = document.createElement("div");
-        buttonContainer.style.cssText = "display: flex; justify-content: flex-end; gap: 8px;";
+        buttonContainer.style.cssText = "display: flex; justify-content: space-between; gap: 8px;";
+
+        const leftButtons = document.createElement("div");
+        leftButtons.style.cssText = "display: flex; gap: 8px;";
+
+        // Back button (if not at root)
+        if (currentPath.length > 0) {
+            const backBtn = document.createElement("button");
+            backBtn.textContent = "← Back";
+            backBtn.style.cssText = `
+                padding: 8px 16px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                background: white;
+                cursor: pointer;
+                font-size: 14px;
+            `;
+            backBtn.addEventListener("click", async () => {
+                document.body.removeChild(overlay);
+                const newPath = currentPath.slice(0, -1);
+                // Need to get parent folder ID - for now, restart from root
+                const result = await showNavigablePicker(accessToken, []);
+                resolve(result);
+            });
+            leftButtons.appendChild(backBtn);
+        }
+
+        const rightButtons = document.createElement("div");
+        rightButtons.style.cssText = "display: flex; gap: 8px;";
 
         const cancelBtn = document.createElement("button");
         cancelBtn.textContent = "Cancel";
@@ -207,9 +293,12 @@ const showFilePicker = (items: GraphDriveItem[]): Promise<GraphDriveItem | null>
             resolve(null);
         });
 
-        buttonContainer.appendChild(cancelBtn);
+        rightButtons.appendChild(cancelBtn);
+        buttonContainer.appendChild(leftButtons);
+        buttonContainer.appendChild(rightButtons);
 
         dialog.appendChild(title);
+        dialog.appendChild(breadcrumb);
         dialog.appendChild(listContainer);
         dialog.appendChild(buttonContainer);
         overlay.appendChild(dialog);
@@ -235,12 +324,8 @@ const openOneDrivePicker = async (
     console.log("[OneDrive] Getting access token...");
     const accessToken = await getAccessToken(config.clientId);
 
-    console.log("[OneDrive] Fetching drive items...");
-    const items = await listDriveItems(accessToken);
-    console.log(`[OneDrive] Found ${items.length} items`);
-
-    console.log("[OneDrive] Showing file picker...");
-    const selected = await showFilePicker(items);
+    console.log("[OneDrive] Showing navigable file picker...");
+    const selected = await showNavigablePicker(accessToken);
 
     if (!selected) {
         console.log("[OneDrive] User cancelled");
