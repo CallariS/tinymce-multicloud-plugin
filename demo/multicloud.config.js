@@ -6,7 +6,11 @@
 
 window.MULTICLOUD_CONFIG = {
     providers: {
-        googleDrive: { enabled: true, pickerUrl: "./pickers/google-drive.html" },
+        googleDrive: {
+            enabled: true,
+            apiKey: "AIzaSyDQwZY5cgDsUIh490pFrlNvoROn4UAoFO8",
+            clientId: "506225751213-ukmgqs8l1rbj6qma54a0frv89cph16gs.apps.googleusercontent.com"
+        },
         oneDrive: { enabled: true, pickerUrl: "./pickers/onedrive.html" },
         dropbox: { enabled: true, pickerUrl: "./pickers/dropbox.html" },
         bayerncloud: { enabled: true, pickerUrl: "./pickers/bayerncloud.html" }
