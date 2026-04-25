@@ -384,13 +384,13 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
             if (srcMatch && srcMatch[1]) {
                 const embedSrc = srcMatch[1];
                 console.log("[OneDrive] Extracted embed src:", embedSrc);
-                
+
                 // If it's an officeapps.live.com URL, use it directly (CSP allows these)
                 if (embedSrc.includes('officeapps.live.com')) {
                     console.log("[OneDrive] Found Office Apps embed URL (CSP-friendly)");
                     return embedSrc;
                 }
-                
+
                 // If it's still onedrive.live.com, try to convert to Office Online Viewer
                 if (embedSrc.includes('onedrive.live.com')) {
                     console.log("[OneDrive] Got onedrive.live.com URL, trying Office Online Viewer conversion...");
@@ -402,7 +402,7 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
                         return viewerUrl;
                     }
                 }
-                
+
                 return embedSrc;
             }
         }
@@ -423,7 +423,7 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
     }
 };
 
-const openOneDrivePicker = async(
+const openOneDrivePicker = async (
     config: OneDriveProviderConfig,
 ): Promise<PickerResult | null> => {
     if (!config.clientId) {
@@ -487,8 +487,8 @@ const openOneDrivePicker = async(
     });
 
     // If we tried to embed a document but still have the original webUrl, fall back to link
-    if (insertMode === "embed" && 
-        url === validated.webUrl && 
+    if (insertMode === "embed" &&
+        url === validated.webUrl &&
         !mimeType.startsWith("image/")) {
         console.log("[OneDrive] Falling back to link mode (embed URL unavailable)");
         insertMode = "link";
@@ -509,6 +509,98 @@ const openOneDrivePicker = async(
     return result;
 };
 
+const uploadFile = async (
+    config: OneDriveProviderConfig,
+    file: File,
+): Promise<PickerResult | null> => {
+    try {
+        console.log("[OneDrive] Uploading file:", file.name);
+
+        const accessToken = await getAccessToken(config.clientId!);
+
+        // Upload the file using Microsoft Graph API
+        // PUT /me/drive/root:/{filename}:/content
+        const encodedFilename = encodeURIComponent(file.name);
+        const uploadUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${encodedFilename}:/content`;
+
+        const uploadResponse = await fetch(uploadUrl, {
+            method: "PUT",
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                "Content-Type": file.type || "application/octet-stream",
+            },
+            body: file,
+        });
+
+        if (!uploadResponse.ok) {
+            const errorText = await uploadResponse.text();
+            throw new Error(`Upload failed: ${uploadResponse.status} ${errorText}`);
+        }
+
+        const uploadedItem: GraphDriveItem = await uploadResponse.json();
+        console.log("[OneDrive] File uploaded successfully:", uploadedItem.name);
+
+        const mimeType = uploadedItem.file?.mimeType || file.type;
+        let url = uploadedItem.webUrl;
+
+        // For images, get thumbnail URL
+        if (mimeType.startsWith("image/")) {
+            console.log("[OneDrive] Fetching thumbnail for uploaded image...");
+            const thumbnailUrl = await getThumbnailUrl(accessToken, uploadedItem.id);
+            if (thumbnailUrl) {
+                url = thumbnailUrl;
+                console.log("[OneDrive] Using thumbnail URL for uploaded image");
+            }
+        }
+        // For documents, try to get embeddable URL
+        else if (mimeType === "application/pdf" ||
+            mimeType.includes("word") ||
+            mimeType.includes("excel") ||
+            mimeType.includes("powerpoint") ||
+            mimeType.includes("officedocument")) {
+            console.log("[OneDrive] Creating embeddable URL for uploaded document...");
+            const embedUrl = await getPublicEmbedUrl(accessToken, uploadedItem);
+            if (embedUrl) {
+                url = embedUrl;
+                console.log("[OneDrive] Got embeddable URL for uploaded document");
+            }
+        }
+
+        // Determine insert mode
+        let insertMode = detectInsertMode({
+            id: uploadedItem.id,
+            name: uploadedItem.name,
+            url,
+            mimeType,
+        });
+
+        // If we tried to embed but still have the original webUrl, fall back to link
+        if (insertMode === "embed" && 
+            url === uploadedItem.webUrl && 
+            !mimeType.startsWith("image/")) {
+            console.log("[OneDrive] Falling back to link mode for uploaded document");
+            insertMode = "link";
+        }
+
+        const result: PickerResult = {
+            item: {
+                id: uploadedItem.id,
+                name: uploadedItem.name,
+                url,
+                mimeType,
+                downloadUrl: uploadedItem["@microsoft.graph.downloadUrl"],
+            },
+            mode: insertMode,
+        };
+
+        console.log("[OneDrive] Returning upload result:", result);
+        return result;
+    } catch (error) {
+        console.error("[OneDrive] Upload error:", error);
+        throw error;
+    }
+};
+
 export const oneDriveProvider = (): CloudProvider => ({
     id: "oneDrive",
     label: "OneDrive",
@@ -526,5 +618,13 @@ export const oneDriveProvider = (): CloudProvider => ({
         await ensureMsal();
         console.log("[OneDrive] MSAL loaded, starting picker flow...");
         return await openOneDrivePicker(config);
+    },
+    upload: async (context, file) => {
+        const config = context.providerConfig as OneDriveProviderConfig;
+
+        console.log("[OneDrive] upload() called for file:", file.name);
+
+        await ensureMsal();
+        return await uploadFile(config, file);
     },
 });
