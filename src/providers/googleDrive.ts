@@ -144,10 +144,22 @@ const launchPicker = async (
 
                         const validatedDoc = validateGoogleDocBoundary(doc);
                         const fallbackUrl = `https://drive.google.com/file/d/${doc.id}/view`;
+
+                        // For images, use high-res thumbnail; for others use direct download link
+                        let directUrl: string;
+                        const isImage = validatedDoc.mimeType?.startsWith("image/");
                         
-                        // Use webContentLink for direct download (works for public files)
-                        // or thumbnailLink for image preview
-                        const directUrl = metadata?.webContentLink || metadata?.thumbnailLink || validatedDoc.url || fallbackUrl;
+                        if (isImage && metadata?.thumbnailLink) {
+                            // Replace thumbnail size parameter (e.g., =s220) with high-res (=s2000)
+                            directUrl = metadata.thumbnailLink.replace(/=s\d+$/, "=s2000");
+                            console.log("Using high-res thumbnail for image:", directUrl);
+                        } else if (metadata?.webContentLink) {
+                            directUrl = metadata.webContentLink;
+                            console.log("Using webContentLink:", directUrl);
+                        } else {
+                            directUrl = validatedDoc.url || fallbackUrl;
+                            console.log("Using fallback URL:", directUrl);
+                        }
 
                         const result = {
                             item: {
