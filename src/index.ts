@@ -119,6 +119,146 @@ const pickAndInsert = async (
     }
 };
 
+const uploadAndInsert = async (
+    editor: any,
+    provider: CloudProvider,
+    pluginUrl: string,
+    file: File,
+): Promise<void> => {
+    if (!provider.upload) {
+        editor.notificationManager.open({
+            type: "warning",
+            text: `${provider.label} does not support file uploads.`,
+        });
+        return;
+    }
+
+    const options = getOptions(editor);
+    const providerConfig = options.providers?.[provider.id] || {};
+
+    try {
+        console.log("Uploading file:", file.name);
+        const result = await provider.upload({
+            editor,
+            pluginUrl,
+            options,
+            providerConfig,
+        }, file);
+
+        console.log("Upload returned:", result);
+
+        if (!result) {
+            console.log("No result from upload, aborting");
+            return;
+        }
+
+        // Only show progress state when actually processing/inserting
+        editor.setProgressState(true);
+
+        console.log("Validating result...");
+        const validatedResult = validatePickerResultBoundary(provider.id, result);
+        console.log("Validated result:", validatedResult);
+
+        console.log("Inserting into editor...");
+        insertResult(editor, validatedResult, options.defaultInsertMode || "link");
+        console.log("Insert complete");
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Cloud upload failed unexpectedly.";
+
+        editor.notificationManager.open({
+            type: "error",
+            text: message,
+        });
+    } finally {
+        editor.setProgressState(false);
+    }
+};
+
+const openUploadDialog = (
+    editor: any,
+    providers: CloudProvider[],
+    pluginUrl: string,
+): void => {
+    const options = getOptions(editor);
+    const uploadProviders = providers.filter((p) => p.upload);
+
+    if (uploadProviders.length === 0) {
+        editor.notificationManager.open({
+            type: "warning",
+            text: "No cloud providers support file uploads.",
+        });
+        return;
+    }
+
+    const initialProvider =
+        options.defaultProvider && uploadProviders.some((provider) => provider.id === options.defaultProvider)
+            ? options.defaultProvider
+            : uploadProviders[0].id;
+
+    const dialogApi = editor.windowManager.open({
+        title: "Upload to Cloud",
+        body: {
+            type: "panel",
+            items: [
+                {
+                    type: "selectbox",
+                    name: "provider",
+                    label: "Provider",
+                    items: uploadProviders.map((provider) => ({
+                        text: provider.label,
+                        value: provider.id,
+                    })),
+                },
+                {
+                    type: "htmlpanel",
+                    html: '<input type="file" id="multicloud-file-input" style="width: 100%; padding: 8px; box-sizing: border-box;" />',
+                },
+            ],
+        },
+        initialData: {
+            provider: initialProvider,
+        },
+        buttons: [
+            { type: "cancel", text: "Cancel" },
+            { type: "submit", text: "Upload", primary: true },
+        ],
+        onSubmit: (api: any) => {
+            const data = api.getData();
+            const selectedProvider = uploadProviders.find(
+                (provider) => provider.id === data.provider,
+            );
+
+            const fileInput = document.getElementById("multicloud-file-input") as HTMLInputElement;
+            const file = fileInput?.files?.[0];
+
+            api.close();
+
+            if (!file) {
+                editor.notificationManager.open({
+                    type: "warning",
+                    text: "No file selected.",
+                });
+                return;
+            }
+
+            if (!selectedProvider) {
+                editor.notificationManager.open({
+                    type: "warning",
+                    text: "No provider selected.",
+                });
+                return;
+            }
+
+            void uploadAndInsert(editor, selectedProvider, pluginUrl, file);
+        },
+    });
+
+    dialogApi.focus("provider");
+};
+
 const openProviderDialog = (
     editor: any,
     providers: CloudProvider[],
@@ -225,6 +365,18 @@ const register = (): void => {
             openProviderDialog(editor, providers, pluginUrl);
         };
 
+        const runUpload = () => {
+            if (providers.length === 0) {
+                editor.notificationManager.open({
+                    type: "warning",
+                    text: "No cloud providers are enabled.",
+                });
+                return;
+            }
+
+            openUploadDialog(editor, providers, pluginUrl);
+        };
+
         editor.ui.registry.addButton("multicloud", {
             icon: "browse",
             tooltip: "Insert From Cloud",
@@ -235,6 +387,18 @@ const register = (): void => {
             icon: "browse",
             text: "Insert From Cloud",
             onAction: runPicker,
+        });
+
+        editor.ui.registry.addButton("multicloud_upload", {
+            icon: "upload",
+            tooltip: "Upload to Cloud",
+            onAction: runUpload,
+        });
+
+        editor.ui.registry.addMenuItem("multicloud_upload", {
+            icon: "upload",
+            text: "Upload to Cloud",
+            onAction: runUpload,
         });
 
         return {

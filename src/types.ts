@@ -87,6 +87,7 @@ export interface CloudProvider {
     id: CloudProviderId;
     label: string;
     pick: (context: CloudProviderContext) => Promise<PickerResult | null>;
+    upload?: (context: CloudProviderContext, file: File) => Promise<PickerResult | null>;
 }
 
 export interface PickerMessage {

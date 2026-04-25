@@ -230,6 +230,79 @@ const launchPicker = async (
         picker.setVisible(true);
     });
 
+const uploadFile = async (
+    config: GoogleDriveProviderConfig,
+    file: File,
+): Promise<PickerResult | null> => {
+    try {
+        console.log("Uploading file to Google Drive:", file.name);
+
+        // Create metadata
+        const metadata = {
+            name: file.name,
+            mimeType: file.type,
+        };
+
+        // Use multipart upload
+        const form = new FormData();
+        form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
+        form.append("file", file);
+
+        const accessToken = window.gapi.client.getToken()?.access_token;
+        if (!accessToken) {
+            throw new Error("No access token available");
+        }
+
+        const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webContentLink,thumbnailLink,iconLink", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+            body: form,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Upload failed: ${response.statusText}`);
+        }
+
+        const uploadedFile = await response.json();
+        console.log("File uploaded successfully:", uploadedFile);
+
+        // Fetch full metadata
+        const metadata2 = await getFileMetadata(uploadedFile.id);
+        const isImage = file.type.startsWith("image/");
+
+        let directUrl: string;
+        if (isImage && metadata2?.thumbnailLink) {
+            directUrl = metadata2.thumbnailLink.replace(/=s\d+$/, "=s2000");
+        } else if (metadata2?.webContentLink) {
+            directUrl = metadata2.webContentLink;
+        } else {
+            directUrl = `https://drive.google.com/file/d/${uploadedFile.id}/view`;
+        }
+
+        return {
+            item: {
+                id: uploadedFile.id,
+                name: uploadedFile.name,
+                url: directUrl,
+                mimeType: uploadedFile.mimeType,
+                thumbnailUrl: metadata2?.thumbnailLink,
+                embedUrl: getEmbedUrl(uploadedFile.id, uploadedFile.mimeType),
+            },
+            mode: detectInsertMode({
+                id: uploadedFile.id,
+                name: uploadedFile.name,
+                url: directUrl,
+                mimeType: uploadedFile.mimeType,
+            }),
+        };
+    } catch (error) {
+        console.error("Upload error:", error);
+        throw error;
+    }
+};
+
 export const googleDriveProvider = (): CloudProvider => ({
     id: "googleDrive",
     label: "Google Drive",
@@ -243,5 +316,12 @@ export const googleDriveProvider = (): CloudProvider => ({
         await ensureGoogleApis(config);
         const accessToken = await requestToken();
         return await launchPicker(config, accessToken);
+    },
+    upload: async (context, file) => {
+        const config = context.providerConfig as GoogleDriveProviderConfig;
+
+        await ensureGoogleApis(config);
+        await requestToken(); // Ensure we have a valid token
+        return await uploadFile(config, file);
     },
 });
