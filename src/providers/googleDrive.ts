@@ -54,7 +54,10 @@ const ensureGoogleApis = async (config: GoogleDriveProviderConfig): Promise<void
     if (!tokenClient) {
         tokenClient = window.google.accounts.oauth2.initTokenClient({
             client_id: config.clientId,
-            scope: (config.scopes || ["https://www.googleapis.com/auth/drive.file"]).join(" "),
+            scope: (config.scopes || [
+                "https://www.googleapis.com/auth/drive.readonly",
+                "https://www.googleapis.com/auth/drive.file",
+            ]).join(" "),
             callback: () => undefined,
         });
     }
@@ -74,6 +77,19 @@ const requestToken = async (): Promise<string> =>
         const existingToken = window.gapi.client.getToken();
         tokenClient.requestAccessToken({ prompt: existingToken ? "" : "consent" });
     });
+
+const getFileMetadata = async (fileId: string): Promise<any> => {
+    try {
+        const response = await window.gapi.client.drive.files.get({
+            fileId,
+            fields: "id,name,mimeType,webContentLink,thumbnailLink,iconLink",
+        });
+        return response.result;
+    } catch (error) {
+        console.warn("Failed to fetch file metadata:", error);
+        return null;
+    }
+};
 
 const launchPicker = async (
     config: GoogleDriveProviderConfig,
@@ -120,28 +136,43 @@ const launchPicker = async (
                 const doc = data.docs[0];
                 console.log("Selected document:", doc);
 
-                const validatedDoc = validateGoogleDocBoundary(doc);
-                const fallbackUrl = `https://drive.google.com/file/d/${doc.id}/view`;
+                // Fetch file metadata asynchronously and resolve
+                (async () => {
+                    try {
+                        const metadata = await getFileMetadata(doc.id);
+                        console.log("File metadata from Drive API:", metadata);
 
-                const result = {
-                    item: {
-                        id: validatedDoc.id,
-                        name: validatedDoc.name || validatedDoc.id,
-                        url: validatedDoc.url || fallbackUrl,
-                        mimeType: validatedDoc.mimeType,
-                        thumbnailUrl: validatedDoc.thumbnails?.[0]?.url,
-                        embedUrl: `https://drive.google.com/file/d/${validatedDoc.id}/preview`,
-                    },
-                    mode: detectInsertMode({
-                        id: validatedDoc.id,
-                        name: validatedDoc.name || validatedDoc.id,
-                        url: validatedDoc.url || fallbackUrl,
-                        mimeType: validatedDoc.mimeType,
-                    }),
-                };
+                        const validatedDoc = validateGoogleDocBoundary(doc);
+                        const fallbackUrl = `https://drive.google.com/file/d/${doc.id}/view`;
+                        
+                        // Use webContentLink for direct download (works for public files)
+                        // or thumbnailLink for image preview
+                        const directUrl = metadata?.webContentLink || metadata?.thumbnailLink || validatedDoc.url || fallbackUrl;
 
-                console.log("Returning picker result:", result);
-                resolve(result);
+                        const result = {
+                            item: {
+                                id: validatedDoc.id,
+                                name: validatedDoc.name || validatedDoc.id,
+                                url: directUrl,
+                                mimeType: validatedDoc.mimeType,
+                                thumbnailUrl: metadata?.thumbnailLink || validatedDoc.thumbnails?.[0]?.url,
+                                embedUrl: `https://drive.google.com/file/d/${validatedDoc.id}/preview`,
+                            },
+                            mode: detectInsertMode({
+                                id: validatedDoc.id,
+                                name: validatedDoc.name || validatedDoc.id,
+                                url: directUrl,
+                                mimeType: validatedDoc.mimeType,
+                            }),
+                        };
+
+                        console.log("Returning picker result:", result);
+                        resolve(result);
+                    } catch (error) {
+                        console.error("Error processing picker result:", error);
+                        resolve(null);
+                    }
+                })();
             })
             .build();
 
