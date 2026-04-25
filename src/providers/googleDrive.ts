@@ -268,6 +268,24 @@ const uploadFile = async (
         const uploadedFile = await response.json();
         console.log("File uploaded successfully:", uploadedFile);
 
+        // Make the file publicly accessible
+        try {
+            await fetch(`https://www.googleapis.com/drive/v3/files/${uploadedFile.id}/permissions`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    role: "reader",
+                    type: "anyone",
+                }),
+            });
+            console.log("File set to public sharing");
+        } catch (error) {
+            console.warn("Failed to set public sharing (file remains private):", error);
+        }
+
         // Fetch full metadata
         const metadata2 = await getFileMetadata(uploadedFile.id);
         const isImage = file.type.startsWith("image/");
