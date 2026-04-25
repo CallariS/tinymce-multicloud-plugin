@@ -86,7 +86,7 @@ const listFolderItems = async (accessToken: string, folderId?: string): Promise<
     const endpoint = folderId
         ? `https://graph.microsoft.com/v1.0/me/drive/items/${folderId}/children`
         : "https://graph.microsoft.com/v1.0/me/drive/root/children";
-    
+
     console.log("[OneDrive] Fetching items from:", endpoint);
     const response = await fetch(endpoint, {
         headers: {
@@ -112,7 +112,7 @@ const showNavigablePicker = async (
     folderId?: string
 ): Promise<GraphDriveItem | null> => {
     const items = await listFolderItems(accessToken, folderId);
-    
+
     return new Promise((resolve) => {
         const overlay = document.createElement("div");
         overlay.style.cssText = `
@@ -179,15 +179,15 @@ const showNavigablePicker = async (
                 align-items: center;
                 gap: 8px;
             `;
-            
+
             const icon = document.createElement("span");
             icon.textContent = "📁";
             icon.style.cssText = "font-size: 18px;";
-            
+
             const name = document.createElement("span");
             name.textContent = folder.name;
             name.style.cssText = "font-weight: 500;";
-            
+
             li.appendChild(icon);
             li.appendChild(name);
 
@@ -216,14 +216,14 @@ const showNavigablePicker = async (
                 align-items: center;
                 gap: 8px;
             `;
-            
+
             const icon = document.createElement("span");
             icon.textContent = "📄";
             icon.style.cssText = "font-size: 18px;";
-            
+
             const name = document.createElement("span");
             name.textContent = file.name;
-            
+
             li.appendChild(icon);
             li.appendChild(name);
 
@@ -314,6 +314,40 @@ const showNavigablePicker = async (
     });
 };
 
+const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<string | null> => {
+    try {
+        console.log("[OneDrive] Fetching thumbnail for item:", itemId);
+        const response = await fetch(
+            `https://graph.microsoft.com/v1.0/me/drive/items/${itemId}/thumbnails`,
+            {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            console.warn("[OneDrive] Thumbnail fetch failed:", response.status);
+            return null;
+        }
+
+        const data = await response.json();
+        // Get the largest thumbnail available (large > medium > small)
+        const thumbnail = data.value?.[0];
+        const largeUrl = thumbnail?.large?.url || thumbnail?.medium?.url || thumbnail?.small?.url;
+        
+        if (largeUrl) {
+            console.log("[OneDrive] Got thumbnail URL:", largeUrl);
+            return largeUrl;
+        }
+        
+        return null;
+    } catch (err) {
+        console.error("[OneDrive] Error fetching thumbnail:", err);
+        return null;
+    }
+};
+
 const openOneDrivePicker = async (
     config: OneDriveProviderConfig,
 ): Promise<PickerResult | null> => {
@@ -336,9 +370,22 @@ const openOneDrivePicker = async (
 
     const validated = validateOneDriveFileBoundary(selected);
 
-    const url = validated.webUrl || validated["@microsoft.graph.downloadUrl"] || "";
+    let url = validated.webUrl || validated["@microsoft.graph.downloadUrl"] || "";
     if (!url) {
         throw new Error("OneDrive file does not have a usable URL.");
+    }
+
+    // For images, try to get a high-res thumbnail URL
+    const mimeType = validated.file?.mimeType || "";
+    if (mimeType.startsWith("image/")) {
+        console.log("[OneDrive] Detected image, fetching thumbnail...");
+        const thumbnailUrl = await getThumbnailUrl(accessToken, validated.id);
+        if (thumbnailUrl) {
+            url = thumbnailUrl;
+            console.log("[OneDrive] Using thumbnail URL for image");
+        } else {
+            console.warn("[OneDrive] Could not get thumbnail, using webUrl");
+        }
     }
 
     const result: PickerResult = {
