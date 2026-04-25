@@ -254,8 +254,6 @@ const openUploadDialog = (
             const fileInput = document.getElementById("multicloud-file-input") as HTMLInputElement;
             const file = fileInput?.files?.[0];
 
-            api.close();
-
             if (!file) {
                 editor.notificationManager.open({
                     type: "warning",
@@ -271,6 +269,8 @@ const openUploadDialog = (
                 });
                 return;
             }
+
+            api.close();
 
             void uploadAndInsert(editor, selectedProvider, pluginUrl, file, data.insertAsLink);
         },
