@@ -58,7 +58,7 @@ const getAccessToken = async (clientId: string): Promise<string> => {
         await msalInstance.initialize();
     }
 
-    const scopes = ["Files.Read", "Files.Read.All"];
+    const scopes = ["Files.Read", "Files.Read.All", "Files.ReadWrite.All"];
 
     try {
         // Try silent token acquisition first
@@ -348,7 +348,82 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
     }
 };
 
-const openOneDrivePicker = async (
+const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string | null> => {
+    try {
+        console.log("[OneDrive] Creating public anonymous sharing link for:", item.name);
+
+        // Create an anonymous sharing link
+        const response = await fetch(
+            `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/createLink`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    type: "embed",
+                    scope: "anonymous",
+                }),
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.warn("[OneDrive] createLink failed:", response.status, errorText);
+            return null;
+        }
+
+        const data = await response.json();
+        console.log("[OneDrive] Sharing link created:", data.link?.webUrl);
+
+        // Try to extract embeddable URL from the webHtml
+        if (data.link?.webHtml) {
+            // Microsoft provides embed HTML like: <iframe src="..." />
+            const srcMatch = data.link.webHtml.match(/src=["']([^"']+)["']/i);
+            if (srcMatch && srcMatch[1]) {
+                const embedSrc = srcMatch[1];
+                console.log("[OneDrive] Extracted embed src:", embedSrc);
+                
+                // If it's an officeapps.live.com URL, use it directly (CSP allows these)
+                if (embedSrc.includes('officeapps.live.com')) {
+                    console.log("[OneDrive] Found Office Apps embed URL (CSP-friendly)");
+                    return embedSrc;
+                }
+                
+                // If it's still onedrive.live.com, try to convert to Office Online Viewer
+                if (embedSrc.includes('onedrive.live.com')) {
+                    console.log("[OneDrive] Got onedrive.live.com URL, trying Office Online Viewer conversion...");
+                    // Try using the sharing URL with Office Online Viewer
+                    const shareUrl = data.link?.webUrl;
+                    if (shareUrl) {
+                        const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(shareUrl)}`;
+                        console.log("[OneDrive] Converted to Office Online Viewer URL");
+                        return viewerUrl;
+                    }
+                }
+                
+                return embedSrc;
+            }
+        }
+
+        // Fallback: try Office Online Viewer with the sharing URL
+        if (data.link?.webUrl) {
+            const shareUrl = data.link.webUrl;
+            const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(shareUrl)}`;
+            console.log("[OneDrive] Using Office Online Viewer with sharing URL");
+            return viewerUrl;
+        }
+
+        console.warn("[OneDrive] Could not extract embeddable URL from sharing link");
+        return null;
+    } catch (err) {
+        console.error("[OneDrive] Error creating public embed URL:", err);
+        return null;
+    }
+};
+
+const openOneDrivePicker = async(
     config: OneDriveProviderConfig,
 ): Promise<PickerResult | null> => {
     if (!config.clientId) {
@@ -387,13 +462,36 @@ const openOneDrivePicker = async (
             console.warn("[OneDrive] Could not get thumbnail, using webUrl");
         }
     }
+    // For documents/PDFs, try to get an embeddable public URL
+    else if (mimeType === "application/pdf" ||
+        mimeType.includes("word") ||
+        mimeType.includes("excel") ||
+        mimeType.includes("powerpoint") ||
+        mimeType.includes("officedocument")) {
+        console.log("[OneDrive] Detected document, attempting to create embeddable URL...");
+        const embedUrl = await getPublicEmbedUrl(accessToken, validated);
+        if (embedUrl) {
+            url = embedUrl;
+            console.log("[OneDrive] Got embeddable URL, will try to embed");
+        } else {
+            console.log("[OneDrive] Could not get embeddable URL, will insert as link");
+        }
+    }
 
-    // For documents/PDFs, use webUrl (will be inserted as clickable link)
-    // Embedding OneDrive documents has CSP and authentication issues
-    const insertMode = mimeType.startsWith("image/") ? "image" : "link";
-    
-    if (!mimeType.startsWith("image/")) {
-        console.log("[OneDrive] Document will be inserted as clickable link (embedding not supported due to CSP restrictions)");
+    // Determine insert mode
+    let insertMode = detectInsertMode({
+        id: validated.id || validated.name,
+        name: validated.name || validated.id,
+        url,
+        mimeType: validated.file?.mimeType,
+    });
+
+    // If we tried to embed a document but still have the original webUrl, fall back to link
+    if (insertMode === "embed" && 
+        url === validated.webUrl && 
+        !mimeType.startsWith("image/")) {
+        console.log("[OneDrive] Falling back to link mode (embed URL unavailable)");
+        insertMode = "link";
     }
 
     const result: PickerResult = {
