@@ -17,9 +17,7 @@ window.MULTICLOUD_CONFIG = {
         },
         dropbox: {
             enabled: true,
-            // To use Dropbox, create an app at https://www.dropbox.com/developers/apps
-            // and add your App Key here:
-            appKey: "YOUR_DROPBOX_APP_KEY_HERE",
+            appKey: "wsmhxdkuobogtt3",
             linkType: "direct", // "direct" for downloads, "preview" for viewing
             multiselect: false,
             extensions: [] // Empty array allows all file types
