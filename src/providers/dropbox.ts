@@ -71,11 +71,17 @@ const openDropboxChooser = async (
                     console.log("[Dropbox] Converted to raw content URL:", fileUrl);
                 }
 
+                // For PDFs, use Google PDF viewer as embedUrl (Dropbox forces download with raw URLs)
+                const embedUrl = isPdf 
+                    ? `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
+                    : undefined;
+
                 const result: PickerResult = {
                     item: {
                         id: validated.id || validated.name || "dropbox-file",
                         name: validated.name || "Dropbox file",
                         url: fileUrl,
+                        embedUrl,
                         thumbnailUrl: validated.thumbnailLink,
                     },
                     mode: detectInsertMode({
@@ -325,11 +331,17 @@ const uploadFile = async (
         // Determine MIME type
         const mimeType = file.type || "application/octet-stream";
 
+        // For PDFs, use Google PDF viewer as embedUrl (Dropbox forces download with raw URLs)
+        const embedUrl = mimeType === "application/pdf"
+            ? `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`
+            : undefined;
+
         const result: PickerResult = {
             item: {
                 id: uploadData.id,
                 name: uploadData.name,
                 url: sharedUrl,
+                embedUrl,
                 mimeType,
             },
             mode: detectInsertMode({
