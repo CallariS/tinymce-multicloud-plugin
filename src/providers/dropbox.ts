@@ -107,7 +107,7 @@ const getAccessToken = async (appKey: string): Promise<string> => {
 
     // Open auth popup
     const popup = window.open(authUrl, "Dropbox Auth", "width=600,height=700");
-    
+
     if (!popup) {
         throw new Error("Failed to open Dropbox auth popup. Please allow popups for this site.");
     }
@@ -207,12 +207,57 @@ const uploadFile = async (
 
             if (sharingResponse.ok) {
                 const sharingData = await sharingResponse.json();
-                // Convert preview link to direct link by changing ?dl=0 to ?dl=1
-                sharedUrl = sharingData.url.replace("?dl=0", "?dl=1");
-                console.log("[Dropbox] Created shared link:", sharedUrl);
+                const baseUrl = sharingData.url;
+                
+                // For images, convert to raw content URL for proper embedding
+                if (file.type.startsWith("image/")) {
+                    // Convert www.dropbox.com to dl.dropboxusercontent.com and add ?raw=1
+                    sharedUrl = baseUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
+                    console.log("[Dropbox] Created raw image URL:", sharedUrl);
+                } else {
+                    // For other files, use direct download link
+                    sharedUrl = baseUrl.replace("?dl=0", "?dl=1");
+                    console.log("[Dropbox] Created direct download link:", sharedUrl);
+                }
             } else {
-                console.warn("[Dropbox] Failed to create shared link, using file path");
-                sharedUrl = `https://www.dropbox.com/home${uploadData.path_display}`;
+                const errorText = await sharingResponse.text();
+                console.warn("[Dropbox] Failed to create shared link:", sharingResponse.status, errorText);
+                
+                // Check if link already exists
+                if (errorText.includes("shared_link_already_exists")) {
+                    console.log("[Dropbox] Shared link already exists, trying to get existing link...");
+                    try {
+                        const getLinksResponse = await fetch("https://api.dropboxapi.com/2/sharing/list_shared_links", {
+                            method: "POST",
+                            headers: {
+                                Authorization: `Bearer ${accessToken}`,
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                path: uploadData.path_display,
+                            }),
+                        });
+                        
+                        if (getLinksResponse.ok) {
+                            const linksData = await getLinksResponse.json();
+                            if (linksData.links && linksData.links.length > 0) {
+                                const existingLink = linksData.links[0].url;
+                                if (file.type.startsWith("image/")) {
+                                    sharedUrl = existingLink.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
+                                } else {
+                                    sharedUrl = existingLink.replace("?dl=0", "?dl=1");
+                                }
+                                console.log("[Dropbox] Using existing shared link:", sharedUrl);
+                            }
+                        }
+                    } catch (e) {
+                        console.error("[Dropbox] Failed to get existing link:", e);
+                    }
+                }
+                
+                if (!sharedUrl) {
+                    sharedUrl = `https://www.dropbox.com/home${uploadData.path_display}`;
+                }
             }
         } catch (error) {
             console.warn("[Dropbox] Error creating shared link:", error);
