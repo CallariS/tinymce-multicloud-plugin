@@ -40,6 +40,7 @@ const imagePattern = /\.(apng|avif|gif|jpe?g|png|svg|webp|bmp|tiff?)$/i;
 const videoPattern = /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i;
 const pdfPattern = /\.pdf$/i;
 const officePattern = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i;
+const archivePattern = /\.(zip|rar|7z|tar|gz|bz2|xz)$/i;
 
 // MIME types that should be embedded
 const EMBEDDABLE_MIMES = [
@@ -55,6 +56,11 @@ const EMBEDDABLE_MIMES = [
     "application/msword", // .doc
     "application/vnd.ms-excel", // .xls
     "application/vnd.ms-powerpoint", // .ppt
+    "application/zip", // .zip
+    "application/x-rar-compressed", // .rar
+    "application/x-7z-compressed", // .7z
+    "application/x-tar", // .tar
+    "application/gzip", // .gz
 ];
 
 export const detectInsertMode = (item: CloudItem): InsertMode => {
@@ -72,7 +78,7 @@ export const detectInsertMode = (item: CloudItem): InsertMode => {
     }
 
     // Embeddable documents (check MIME and file extension)
-    if (EMBEDDABLE_MIMES.includes(mime) || pdfPattern.test(source) || officePattern.test(source)) {
+    if (EMBEDDABLE_MIMES.includes(mime) || pdfPattern.test(source) || officePattern.test(source) || archivePattern.test(source)) {
         return "embed";
     }
 
