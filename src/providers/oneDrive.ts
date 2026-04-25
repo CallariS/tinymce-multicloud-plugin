@@ -451,7 +451,7 @@ const getPublicDownloadUrl = async (accessToken: string, item: GraphDriveItem): 
 
         const data = await response.json();
         const shareUrl = data.link?.webUrl;
-        
+
         if (shareUrl) {
             console.log("[OneDrive] Got public sharing URL:", shareUrl);
             // Convert 1drv.ms short link to direct download URL
@@ -522,24 +522,8 @@ const openOneDrivePicker = async (
             console.log("[OneDrive] Could not get embeddable URL, will insert as link");
         }
     }
-    // For archives, use Google viewer with public anonymous download URL
-    else if (mimeType === "application/zip" ||
-        mimeType === "application/x-zip-compressed" ||
-        mimeType === "application/x-rar-compressed" ||
-        mimeType === "application/x-7z-compressed" ||
-        mimeType === "application/x-tar" ||
-        mimeType === "application/gzip" ||
-        mimeType === "application/x-gzip") {
-        console.log("[OneDrive] Detected archive, creating public download link for Google viewer...");
-        const downloadUrl = await getPublicDownloadUrl(accessToken, validated);
-        if (downloadUrl) {
-            // Use Google viewer which can display archives
-            url = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
-            console.log("[OneDrive] Using Google viewer for archive with public URL");
-        } else {
-            console.warn("[OneDrive] Could not create public download URL for archive");
-        }
-    }
+    // Note: Archives are NOT embedded for OneDrive due to Google Viewer access restrictions  
+    // They will be inserted as download links instead
 
     // Determine insert mode
     let insertMode = detectInsertMode({
@@ -628,21 +612,8 @@ const uploadFile = async (
                 console.log("[OneDrive] Got embeddable URL for uploaded document");
             }
         }
-        // For archives, use Google viewer with public download URL
-        else if (mimeType === "application/zip" ||
-            mimeType === "application/x-zip-compressed" ||
-            mimeType === "application/x-rar-compressed" ||
-            mimeType === "application/x-7z-compressed" ||
-            mimeType === "application/x-tar" ||
-            mimeType === "application/gzip" ||
-            mimeType === "application/x-gzip") {
-            console.log("[OneDrive] Creating public download link for uploaded archive...");
-            const downloadUrl = await getPublicDownloadUrl(accessToken, uploadedItem);
-            if (downloadUrl) {
-                url = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
-                console.log("[OneDrive] Using Google viewer for uploaded archive");
-            }
-        }
+        // Note: Archives are NOT embedded for OneDrive due to Google Viewer access restrictions
+        // They will be inserted as download links instead
 
         // Determine insert mode
         let insertMode = detectInsertMode({
