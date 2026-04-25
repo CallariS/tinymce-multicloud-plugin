@@ -81,6 +81,7 @@ const pickAndInsert = async (
     editor.setProgressState(true);
 
     try {
+        console.log("Calling provider.pick for:", provider.id);
         const result = await provider.pick({
             editor,
             pluginUrl,
@@ -88,12 +89,20 @@ const pickAndInsert = async (
             providerConfig,
         });
 
+        console.log("Provider.pick returned:", result);
+
         if (!result) {
+            console.log("No result from picker, aborting");
             return;
         }
 
+        console.log("Validating result...");
         const validatedResult = validatePickerResultBoundary(provider.id, result);
+        console.log("Validated result:", validatedResult);
+        
+        console.log("Inserting into editor...");
         insertResult(editor, validatedResult, options.defaultInsertMode || "link");
+        console.log("Insert complete");
     } catch (error) {
         const message =
             error instanceof Error
@@ -134,41 +143,41 @@ const openProviderDialog = (
                 {
                     type: "selectbox",
                     name: "provider",
-    label: "Provider",
-        items: providers.map((provider) => ({
-            text: provider.label,
-            value: provider.id,
-        })),
+                    label: "Provider",
+                    items: providers.map((provider) => ({
+                        text: provider.label,
+                        value: provider.id,
+                    })),
                 },
             ],
         },
-initialData: {
-    provider: initialProvider,
+        initialData: {
+            provider: initialProvider,
         },
-buttons: [
-    { type: "cancel", text: "Cancel" },
-    { type: "submit", text: "Browse", primary: true },
-],
-    onSubmit: (api: any) => {
-        const data = api.getData();
-        const selectedProvider = providers.find(
-            (provider) => provider.id === data.provider,
-        );
-        api.close();
+        buttons: [
+            { type: "cancel", text: "Cancel" },
+            { type: "submit", text: "Browse", primary: true },
+        ],
+        onSubmit: (api: any) => {
+            const data = api.getData();
+            const selectedProvider = providers.find(
+                (provider) => provider.id === data.provider,
+            );
+            api.close();
 
-        if (!selectedProvider) {
-            editor.notificationManager.open({
-                type: "warning",
-                text: "No provider selected.",
-            });
-            return;
-        }
+            if (!selectedProvider) {
+                editor.notificationManager.open({
+                    type: "warning",
+                    text: "No provider selected.",
+                });
+                return;
+            }
 
-        void pickAndInsert(editor, selectedProvider, pluginUrl);
-    },
+            void pickAndInsert(editor, selectedProvider, pluginUrl);
+        },
     });
 
-dialogApi.focus("provider");
+    dialogApi.focus("provider");
 };
 
 const register = (): void => {

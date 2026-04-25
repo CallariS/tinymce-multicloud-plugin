@@ -97,21 +97,27 @@ const launchPicker = async (
             .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
             .addView(view)
             .setCallback((data: any) => {
+                console.log("Google Picker callback:", data);
+                
                 if (data.action === window.google.picker.Action.CANCEL) {
+                    console.log("Picker cancelled");
                     resolve(null);
                     return;
                 }
 
                 if (data.action !== window.google.picker.Action.PICKED || !data.docs?.length) {
+                    console.log("No files picked");
                     resolve(null);
                     return;
                 }
 
                 const doc = data.docs[0];
+                console.log("Selected document:", doc);
+                
                 const validatedDoc = validateGoogleDocBoundary(doc);
                 const fallbackUrl = `https://drive.google.com/file/d/${doc.id}/view`;
 
-                resolve({
+                const result = {
                     item: {
                         id: validatedDoc.id,
                         name: validatedDoc.name || validatedDoc.id,
@@ -126,7 +132,10 @@ const launchPicker = async (
                         url: validatedDoc.url || fallbackUrl,
                         mimeType: validatedDoc.mimeType,
                     }),
-                });
+                };
+                
+                console.log("Returning picker result:", result);
+                resolve(result);
             })
             .build();
 
