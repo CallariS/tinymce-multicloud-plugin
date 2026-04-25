@@ -124,7 +124,14 @@ const launchPicker = async (
         if (!document.getElementById("google-picker-z-index-fix")) {
             const style = document.createElement("style");
             style.id = "google-picker-z-index-fix";
-            style.textContent = `.picker-dialog { z-index: 100000 !important; }`;
+            style.textContent = `
+                .picker-dialog, .picker.modal-dialog { 
+                    z-index: 100000 !important; 
+                }
+                .picker-dialog-bg { 
+                    z-index: 99999 !important; 
+                }
+            `;
             document.head.appendChild(style);
         }
 
