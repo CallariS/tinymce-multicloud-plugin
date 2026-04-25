@@ -8,7 +8,7 @@ window.MULTICLOUD_CONFIG = {
     providers: {
         googleDrive: {
             enabled: true,
-            apiKey: "AIzaSyDQwZY5cgDsUIh490pFrlNvoROn4UAoFO8",
+            apiKey: "AIzaSyBJl9SdoCsODgTJSrj_97qcKTPy2iYH6YQ",
             clientId: "506225751213-ukmgqs8l1rbj6qma54a0frv89cph16gs.apps.googleusercontent.com"
         },
         oneDrive: { enabled: true, pickerUrl: "./pickers/onedrive.html" },
