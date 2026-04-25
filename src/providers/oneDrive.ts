@@ -58,7 +58,7 @@ const getAccessToken = async (clientId: string): Promise<string> => {
         await msalInstance.initialize();
     }
 
-    const scopes = ["Files.Read", "Files.Read.All"];
+    const scopes = ["Files.Read", "Files.Read.All", "Files.ReadWrite.All"];
 
     try {
         // Try silent token acquisition first
@@ -348,11 +348,11 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
     }
 };
 
-const getEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string> => {
+const getEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string | null> => {
     try {
-        console.log("[OneDrive] Creating public sharing link for:", item.name);
+        console.log("[OneDrive] Creating public view link for:", item.name);
 
-        // Create an anonymous sharing link that can be embedded
+        // Create an anonymous view link
         const response = await fetch(
             `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/createLink`,
             {
@@ -362,7 +362,7 @@ const getEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<s
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    type: "embed",
+                    type: "view",
                     scope: "anonymous",
                 }),
             }
@@ -370,31 +370,37 @@ const getEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<s
 
         if (response.ok) {
             const data = await response.json();
+            const shareUrl = data.link?.webUrl;
             
-            // Extract iframe src from webHtml if available
-            if (data.link?.webHtml) {
-                console.log("[OneDrive] Got embed HTML:", data.link.webHtml.substring(0, 100));
-                const srcMatch = data.link.webHtml.match(/src=["']([^"']+)["']/);
-                if (srcMatch && srcMatch[1]) {
-                    console.log("[OneDrive] Extracted embed URL from HTML:", srcMatch[1]);
-                    return srcMatch[1];
+            if (shareUrl) {
+                console.log("[OneDrive] Got sharing URL:", shareUrl);
+                
+                // For PDFs, try to use Office Online Viewer with the share URL
+                // Extract the sharing parameters from the OneDrive URL
+                const url = new URL(shareUrl);
+                const resid = url.searchParams.get('resid') || url.searchParams.get('id');
+                
+                if (resid && item.file?.mimeType === 'application/pdf') {
+                    // Use Office Online Viewer for PDFs
+                    const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(shareUrl)}`;
+                    console.log("[OneDrive] Using Office Online Viewer URL:", viewerUrl);
+                    return viewerUrl;
                 }
-            }
-            
-            // Fallback to webUrl if available
-            if (data.link?.webUrl) {
-                console.log("[OneDrive] Using sharing link URL:", data.link.webUrl);
-                return data.link.webUrl;
+                
+                // For other Office documents, return the share URL
+                // (will be inserted as a link, not embedded, due to CSP)
+                console.log("[OneDrive] Returning share URL (will insert as link)");
+                return shareUrl;
             }
         } else {
-            console.warn("[OneDrive] Could not create sharing link:", response.status);
+            const errorText = await response.text();
+            console.warn("[OneDrive] Could not create sharing link:", response.status, errorText);
         }
     } catch (err) {
         console.error("[OneDrive] Error creating sharing link:", err);
     }
 
-    // Final fallback to item webUrl
-    return item.webUrl || "";
+    return null;
 };
 
 const openOneDrivePicker = async (
@@ -436,7 +442,7 @@ const openOneDrivePicker = async (
             console.warn("[OneDrive] Could not get thumbnail, using webUrl");
         }
     }
-    // For documents that should be embedded, get embed URL
+    // For documents that should be embedded, try to get embed URL
     else if (mimeType === "application/pdf" ||
         mimeType.includes("word") ||
         mimeType.includes("excel") ||
@@ -446,8 +452,30 @@ const openOneDrivePicker = async (
         const embedUrl = await getEmbedUrl(accessToken, validated);
         if (embedUrl) {
             url = embedUrl;
-            console.log("[OneDrive] Using embed URL:", embedUrl);
+            console.log("[OneDrive] Using embed/share URL:", embedUrl);
+        } else {
+            console.warn("[OneDrive] Could not create sharing link, will use webUrl as link");
         }
+    }
+
+    // Determine insert mode based on file type and available URL
+    let insertMode = detectInsertMode({
+        id: validated.id || validated.name,
+        name: validated.name || validated.id,
+        url,
+        mimeType: validated.file?.mimeType,
+    });
+    
+    // If we have a document but couldn't get a proper embed URL, use link mode
+    if (insertMode === "embed" && url === validated.webUrl && (
+        mimeType === "application/pdf" ||
+        mimeType.includes("word") ||
+        mimeType.includes("excel") ||
+        mimeType.includes("powerpoint") ||
+        mimeType.includes("officedocument")
+    )) {
+        console.log("[OneDrive] Using link mode instead of embed (no embeddable URL available)");
+        insertMode = "link";
     }
 
     const result: PickerResult = {
@@ -458,12 +486,7 @@ const openOneDrivePicker = async (
             mimeType: validated.file?.mimeType,
             downloadUrl: validated["@microsoft.graph.downloadUrl"],
         },
-        mode: detectInsertMode({
-            id: validated.id || validated.name,
-            name: validated.name || validated.id,
-            url,
-            mimeType: validated.file?.mimeType,
-        }),
+        mode: insertMode,
     };
 
     console.log("[OneDrive] Returning result:", result);
