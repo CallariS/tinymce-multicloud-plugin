@@ -348,16 +348,53 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
     }
 };
 
-const getEmbedUrl = (item: GraphDriveItem): string => {
-    const downloadUrl = item["@microsoft.graph.downloadUrl"];
-    if (!downloadUrl) {
-        return item.webUrl || "";
+const getEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string> => {
+    try {
+        console.log("[OneDrive] Creating public sharing link for:", item.name);
+
+        // Create an anonymous sharing link that can be embedded
+        const response = await fetch(
+            `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/createLink`,
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    type: "embed",
+                    scope: "anonymous",
+                }),
+            }
+        );
+
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Extract iframe src from webHtml if available
+            if (data.link?.webHtml) {
+                console.log("[OneDrive] Got embed HTML:", data.link.webHtml.substring(0, 100));
+                const srcMatch = data.link.webHtml.match(/src=["']([^"']+)["']/);
+                if (srcMatch && srcMatch[1]) {
+                    console.log("[OneDrive] Extracted embed URL from HTML:", srcMatch[1]);
+                    return srcMatch[1];
+                }
+            }
+            
+            // Fallback to webUrl if available
+            if (data.link?.webUrl) {
+                console.log("[OneDrive] Using sharing link URL:", data.link.webUrl);
+                return data.link.webUrl;
+            }
+        } else {
+            console.warn("[OneDrive] Could not create sharing link:", response.status);
+        }
+    } catch (err) {
+        console.error("[OneDrive] Error creating sharing link:", err);
     }
 
-    // Use Office Online Viewer for PDFs and Office documents
-    // This is Microsoft's public viewer that works with any publicly accessible URL
-    const encodedUrl = encodeURIComponent(downloadUrl);
-    return `https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}`;
+    // Final fallback to item webUrl
+    return item.webUrl || "";
 };
 
 const openOneDrivePicker = async (
@@ -405,11 +442,11 @@ const openOneDrivePicker = async (
         mimeType.includes("excel") ||
         mimeType.includes("powerpoint") ||
         mimeType.includes("officedocument")) {
-        console.log("[OneDrive] Detected embeddable document, getting Office Online viewer URL...");
-        const embedUrl = getEmbedUrl(validated);
+        console.log("[OneDrive] Detected embeddable document, creating public sharing link...");
+        const embedUrl = await getEmbedUrl(accessToken, validated);
         if (embedUrl) {
             url = embedUrl;
-            console.log("[OneDrive] Using Office Online viewer URL:", embedUrl);
+            console.log("[OneDrive] Using embed URL:", embedUrl);
         }
     }
 
