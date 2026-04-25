@@ -13,8 +13,7 @@ window.MULTICLOUD_CONFIG = {
         },
         oneDrive: {
             enabled: true,
-            clientId: "a50f6dc0-3dee-484b-862b-3b5010889b87",
-            redirectUri: "https://callaris.github.io/tinymce-multicloud-plugin/demo/tinymce-demo.html"
+            clientId: "a50f6dc0-3dee-484b-862b-3b5010889b87"
         },
         dropbox: { enabled: true, pickerUrl: "./pickers/dropbox.html" },
         bayerncloud: { enabled: true, pickerUrl: "./pickers/bayerncloud.html" }
