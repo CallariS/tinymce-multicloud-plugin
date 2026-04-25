@@ -9,94 +9,259 @@ import { validateOneDriveFileBoundary } from "../validation/boundary";
 
 declare global {
     interface Window {
-        OneDrive: any;
+        msal: any;
     }
 }
 
-const ONEDRIVE_SDK = "https://js.live.net/v7.2/OneDrive.js";
+const MSAL_SDK = "https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js";
 
-const ensureOneDriveSdk = async (): Promise<void> => {
-    console.log("[OneDrive] ensureOneDriveSdk() loading from:", ONEDRIVE_SDK);
-    await loadScript(ONEDRIVE_SDK);
-    console.log("[OneDrive] Script loaded, checking window.OneDrive...");
-    if (!window.OneDrive?.open) {
-        console.error("[OneDrive] window.OneDrive or window.OneDrive.open is undefined!");
-        throw new Error("OneDrive picker SDK is unavailable.");
+interface GraphDriveItem {
+    id: string;
+    name: string;
+    webUrl: string;
+    "@microsoft.graph.downloadUrl"?: string;
+    file?: {
+        mimeType: string;
+    };
+    folder?: any;
+}
+
+let msalInstance: any = null;
+
+const ensureMsal = async (): Promise<void> => {
+    if (msalInstance) return;
+    
+    console.log("[OneDrive] Loading MSAL from:", MSAL_SDK);
+    await loadScript(MSAL_SDK);
+    
+    if (!window.msal?.PublicClientApplication) {
+        throw new Error("MSAL library failed to load");
     }
-    console.log("[OneDrive] window.OneDrive.open available");
+    console.log("[OneDrive] MSAL loaded successfully");
+};
+
+const getAccessToken = async (clientId: string): Promise<string> => {
+    if (!msalInstance) {
+        msalInstance = new window.msal.PublicClientApplication({
+            auth: {
+                clientId: clientId,
+                authority: "https://login.microsoftonline.com/common",
+                redirectUri: window.location.origin + window.location.pathname,
+            },
+            cache: {
+                cacheLocation: "localStorage",
+            },
+        });
+        await msalInstance.initialize();
+    }
+
+    const scopes = ["Files.Read", "Files.Read.All"];
+
+    try {
+        // Try silent token acquisition first
+        const accounts = msalInstance.getAllAccounts();
+        if (accounts.length > 0) {
+            const response = await msalInstance.acquireTokenSilent({
+                scopes,
+                account: accounts[0],
+            });
+            console.log("[OneDrive] Got token silently");
+            return response.accessToken;
+        }
+    } catch (err) {
+        console.log("[OneDrive] Silent token acquisition failed, will use popup");
+    }
+
+    // Fall back to popup
+    console.log("[OneDrive] Opening auth popup...");
+    const response = await msalInstance.acquireTokenPopup({ scopes });
+    console.log("[OneDrive] Auth successful");
+    return response.accessToken;
+};
+
+const listDriveItems = async (accessToken: string): Promise<GraphDriveItem[]> => {
+    const response = await fetch("https://graph.microsoft.com/v1.0/me/drive/root/children", {
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Graph API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.value || [];
+};
+
+const showFilePicker = (items: GraphDriveItem[]): Promise<GraphDriveItem | null> => {
+    return new Promise((resolve) => {
+        const overlay = document.createElement("div");
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100000;
+        `;
+
+        const dialog = document.createElement("div");
+        dialog.style.cssText = `
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        `;
+
+        const title = document.createElement("h2");
+        title.textContent = "Select a file from OneDrive";
+        title.style.cssText = "margin: 0 0 16px 0; font-size: 20px; font-weight: 600;";
+
+        const listContainer = document.createElement("div");
+        listContainer.style.cssText = `
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        `;
+
+        const fileList = document.createElement("ul");
+        fileList.style.cssText = "list-style: none; padding: 0; margin: 0;";
+
+        const files = items.filter(item => item.file && !item.folder);
+        
+        if (files.length === 0) {
+            const emptyMsg = document.createElement("li");
+            emptyMsg.textContent = "No files found in your OneDrive root folder";
+            emptyMsg.style.cssText = "padding: 20px; text-align: center; color: #666;";
+            fileList.appendChild(emptyMsg);
+        } else {
+            files.forEach(item => {
+                const li = document.createElement("li");
+                li.style.cssText = `
+                    padding: 12px;
+                    border-bottom: 1px solid #eee;
+                    cursor: pointer;
+                    transition: background 0.2s;
+                `;
+                li.textContent = item.name;
+                
+                li.addEventListener("mouseenter", () => {
+                    li.style.background = "#f5f5f5";
+                });
+                
+                li.addEventListener("mouseleave", () => {
+                    li.style.background = "white";
+                });
+                
+                li.addEventListener("click", () => {
+                    document.body.removeChild(overlay);
+                    resolve(item);
+                });
+                
+                fileList.appendChild(li);
+            });
+        }
+
+        listContainer.appendChild(fileList);
+
+        const buttonContainer = document.createElement("div");
+        buttonContainer.style.cssText = "display: flex; justify-content: flex-end; gap: 8px;";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.textContent = "Cancel";
+        cancelBtn.style.cssText = `
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        `;
+        cancelBtn.addEventListener("click", () => {
+            document.body.removeChild(overlay);
+            resolve(null);
+        });
+
+        buttonContainer.appendChild(cancelBtn);
+
+        dialog.appendChild(title);
+        dialog.appendChild(listContainer);
+        dialog.appendChild(buttonContainer);
+        overlay.appendChild(dialog);
+
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) {
+                document.body.removeChild(overlay);
+                resolve(null);
+            }
+        });
+    });
 };
 
 const openOneDrivePicker = async (
     config: OneDriveProviderConfig,
-): Promise<PickerResult | null> =>
-    new Promise((resolve, reject) => {
-        if (!config.clientId) {
-            reject(new Error("OneDrive requires clientId."));
-            return;
-        }
+): Promise<PickerResult | null> => {
+    if (!config.clientId) {
+        throw new Error("OneDrive requires clientId.");
+    }
 
-        console.log("[OneDrive] Opening picker with clientId:", config.clientId);
+    console.log("[OneDrive] Getting access token...");
+    const accessToken = await getAccessToken(config.clientId);
+    
+    console.log("[OneDrive] Fetching drive items...");
+    const items = await listDriveItems(accessToken);
+    console.log(`[OneDrive] Found ${items.length} items`);
+    
+    console.log("[OneDrive] Showing file picker...");
+    const selected = await showFilePicker(items);
+    
+    if (!selected) {
+        console.log("[OneDrive] User cancelled");
+        return null;
+    }
 
-        try {
-            window.OneDrive.open({
-                clientId: config.clientId,
-                action: config.action || "share",
-                multiSelect: config.multiSelect || false,
-                advanced: {
-                    ...(config.redirectUri ? { redirectUri: config.redirectUri } : {}),
-                    ...(config.advanced || {}),
-                },
-                success: (selection: any) => {
-                    console.log("[OneDrive] Success callback fired:", selection);
-                    const first = selection?.value?.[0];
-                    if (!first) {
-                        console.log("[OneDrive] No file selected, resolving null");
-                        resolve(null);
-                        return;
-                    }
+    console.log("[OneDrive] User selected:", selected.name);
 
-                    const validated = validateOneDriveFileBoundary(first);
+    const validated = validateOneDriveFileBoundary(selected);
 
-                    const url = validated.webUrl || validated["@microsoft.graph.downloadUrl"] || "";
-                    if (!url) {
-                        reject(new Error("OneDrive picker did not return a usable URL."));
-                        return;
-                    }
+    const url = validated.webUrl || validated["@microsoft.graph.downloadUrl"] || "";
+    if (!url) {
+        throw new Error("OneDrive file does not have a usable URL.");
+    }
 
-                    const result: PickerResult = {
-                        item: {
-                            id: validated.id || validated.name,
-                            name: validated.name || validated.id,
-                            url,
-                            mimeType: validated.file?.mimeType,
-                            downloadUrl: validated["@microsoft.graph.downloadUrl"],
-                        },
-                        mode: detectInsertMode({
-                            id: validated.id || validated.name,
-                            name: validated.name || validated.id,
-                            url,
-                            mimeType: validated.file?.mimeType,
-                        }),
-                    };
+    const result: PickerResult = {
+        item: {
+            id: validated.id || validated.name,
+            name: validated.name || validated.id,
+            url,
+            mimeType: validated.file?.mimeType,
+            downloadUrl: validated["@microsoft.graph.downloadUrl"],
+        },
+        mode: detectInsertMode({
+            id: validated.id || validated.name,
+            name: validated.name || validated.id,
+            url,
+            mimeType: validated.file?.mimeType,
+        }),
+    };
 
-                    console.log("[OneDrive] Resolving result:", result);
-                    resolve(result);
-                },
-                cancel: () => {
-                    console.log("[OneDrive] Cancel callback fired");
-                    resolve(null);
-                },
-                error: (error: any) => {
-                    console.error("[OneDrive] Error callback fired:", error);
-                    reject(new Error(error?.message || "OneDrive picker failed."));
-                },
-            });
-            console.log("[OneDrive] window.OneDrive.open() called successfully");
-        } catch (err) {
-            console.error("[OneDrive] Exception calling window.OneDrive.open():", err);
-            reject(err);
-        }
-    });
+    console.log("[OneDrive] Returning result:", result);
+    return result;
+};
 
 export const oneDriveProvider = (): CloudProvider => ({
     id: "oneDrive",
@@ -111,9 +276,9 @@ export const oneDriveProvider = (): CloudProvider => ({
             return await createPopupProvider("oneDrive", "OneDrive", "/pickers/onedrive.html").pick(context);
         }
 
-        console.log("[OneDrive] Loading OneDrive SDK...");
-        await ensureOneDriveSdk();
-        console.log("[OneDrive] SDK loaded, opening picker...");
+        console.log("[OneDrive] Loading MSAL library...");
+        await ensureMsal();
+        console.log("[OneDrive] MSAL loaded, starting picker flow...");
         return await openOneDrivePicker(config);
     },
 });
