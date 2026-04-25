@@ -81,23 +81,18 @@ const openDropboxChooser = async (
     });
 
 const getAccessToken = async (appKey: string): Promise<string> => {
-    // Check if we already have a token in cache
+    // Check if we already have a token in cache or localStorage
     if (cachedAccessToken) {
         console.log("[Dropbox] Using cached access token");
         return cachedAccessToken;
     }
 
-    // Check if we have a token in URL hash (OAuth redirect)
-    const hash = window.location.hash;
-    if (hash.includes("access_token=")) {
-        const match = hash.match(/access_token=([^&]+)/);
-        if (match && match[1]) {
-            cachedAccessToken = match[1];
-            console.log("[Dropbox] Got access token from OAuth redirect");
-            // Clean up URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-            return cachedAccessToken;
-        }
+    // Check localStorage for persisted token
+    const storedToken = localStorage.getItem('dropbox_access_token');
+    if (storedToken) {
+        cachedAccessToken = storedToken;
+        console.log("[Dropbox] Using stored access token");
+        return cachedAccessToken;
     }
 
     // Start OAuth flow
@@ -106,37 +101,80 @@ const getAccessToken = async (appKey: string): Promise<string> => {
     const authUrl = `${DROPBOX_AUTH_URL}?client_id=${appKey}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}`;
 
     // Open auth popup
-    const popup = window.open(authUrl, "Dropbox Auth", "width=600,height=700");
+    const popup = window.open(authUrl, "Dropbox Auth", "width=600,height=700,scrollbars=yes");
 
     if (!popup) {
         throw new Error("Failed to open Dropbox auth popup. Please allow popups for this site.");
     }
 
-    // Wait for OAuth callback
+    // Wait for OAuth callback via postMessage or by checking URL after redirect
     return new Promise((resolve, reject) => {
+        let resolved = false;
+
+        // Listen for postMessage from popup
+        const messageHandler = (event: MessageEvent) => {
+            // Check origin for security
+            if (event.origin !== window.location.origin) {
+                return;
+            }
+
+            if (event.data && event.data.type === 'dropbox_oauth_token') {
+                if (!resolved) {
+                    resolved = true;
+                    cachedAccessToken = event.data.token;
+                    localStorage.setItem('dropbox_access_token', cachedAccessToken);
+                    window.removeEventListener('message', messageHandler);
+                    popup.close();
+                    console.log("[Dropbox] OAuth successful via postMessage");
+                    resolve(cachedAccessToken);
+                }
+            }
+        };
+
+        window.addEventListener('message', messageHandler);
+
+        // Also check popup URL periodically (fallback)
         const checkInterval = setInterval(() => {
             try {
                 if (popup.closed) {
-                    clearInterval(checkInterval);
-                    reject(new Error("Dropbox auth popup was closed"));
+                    if (!resolved) {
+                        resolved = true;
+                        clearInterval(checkInterval);
+                        window.removeEventListener('message', messageHandler);
+                        
+                        // Check if token was stored during redirect
+                        const storedToken = localStorage.getItem('dropbox_access_token');
+                        if (storedToken) {
+                            cachedAccessToken = storedToken;
+                            console.log("[Dropbox] OAuth successful (token found in localStorage)");
+                            resolve(cachedAccessToken);
+                        } else {
+                            reject(new Error("Dropbox auth popup was closed without authorization"));
+                        }
+                    }
                     return;
                 }
 
-                // Check if popup redirected back with token
+                // Try to check if popup has been redirected back to our domain
                 try {
-                    const popupHash = popup.location.hash;
-                    if (popupHash && popupHash.includes("access_token=")) {
-                        const match = popupHash.match(/access_token=([^&]+)/);
-                        if (match && match[1]) {
-                            cachedAccessToken = match[1];
-                            clearInterval(checkInterval);
-                            popup.close();
-                            console.log("[Dropbox] OAuth successful");
-                            resolve(cachedAccessToken);
+                    if (popup.location.href.startsWith(window.location.origin)) {
+                        const popupHash = popup.location.hash;
+                        if (popupHash && popupHash.includes("access_token=")) {
+                            const match = popupHash.match(/access_token=([^&]+)/);
+                            if (match && match[1] && !resolved) {
+                                resolved = true;
+                                cachedAccessToken = match[1];
+                                localStorage.setItem('dropbox_access_token', cachedAccessToken);
+                                clearInterval(checkInterval);
+                                window.removeEventListener('message', messageHandler);
+                                popup.close();
+                                console.log("[Dropbox] OAuth successful (token from popup URL)");
+                                resolve(cachedAccessToken);
+                            }
                         }
                     }
                 } catch (e) {
-                    // Cross-origin error, popup not redirected yet
+                    // Cross-origin error, popup still on dropbox.com - this is expected
                 }
             } catch (e) {
                 // Ignore errors
@@ -145,11 +183,15 @@ const getAccessToken = async (appKey: string): Promise<string> => {
 
         // Timeout after 5 minutes
         setTimeout(() => {
-            clearInterval(checkInterval);
-            if (!popup.closed) {
-                popup.close();
+            if (!resolved) {
+                resolved = true;
+                clearInterval(checkInterval);
+                window.removeEventListener('message', messageHandler);
+                if (!popup.closed) {
+                    popup.close();
+                }
+                reject(new Error("Dropbox auth timeout"));
             }
-            reject(new Error("Dropbox auth timeout"));
         }, 300000);
     });
 };
@@ -208,7 +250,7 @@ const uploadFile = async (
             if (sharingResponse.ok) {
                 const sharingData = await sharingResponse.json();
                 const baseUrl = sharingData.url;
-                
+
                 // For images, convert to raw content URL for proper embedding
                 if (file.type.startsWith("image/")) {
                     // Convert www.dropbox.com to dl.dropboxusercontent.com and add ?raw=1
@@ -222,7 +264,7 @@ const uploadFile = async (
             } else {
                 const errorText = await sharingResponse.text();
                 console.warn("[Dropbox] Failed to create shared link:", sharingResponse.status, errorText);
-                
+
                 // Check if link already exists
                 if (errorText.includes("shared_link_already_exists")) {
                     console.log("[Dropbox] Shared link already exists, trying to get existing link...");
@@ -237,7 +279,7 @@ const uploadFile = async (
                                 path: uploadData.path_display,
                             }),
                         });
-                        
+
                         if (getLinksResponse.ok) {
                             const linksData = await getLinksResponse.json();
                             if (linksData.links && linksData.links.length > 0) {
@@ -254,7 +296,7 @@ const uploadFile = async (
                         console.error("[Dropbox] Failed to get existing link:", e);
                     }
                 }
-                
+
                 if (!sharedUrl) {
                     sharedUrl = `https://www.dropbox.com/home${uploadData.path_display}`;
                 }
@@ -311,3 +353,38 @@ export const dropboxProvider = (): CloudProvider => ({
         return await uploadFile(config, file);
     },
 });
+
+// Handle OAuth callback when page loads
+if (typeof window !== 'undefined') {
+    // Check if we're returning from Dropbox OAuth
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token=')) {
+        const match = hash.match(/access_token=([^&]+)/);
+        if (match && match[1]) {
+            const token = match[1];
+            console.log("[Dropbox] Captured OAuth token from URL");
+            
+            // Store token
+            localStorage.setItem('dropbox_access_token', token);
+            cachedAccessToken = token;
+            
+            // If we're in a popup, send token to opener
+            if (window.opener && !window.opener.closed) {
+                try {
+                    window.opener.postMessage({
+                        type: 'dropbox_oauth_token',
+                        token: token
+                    }, window.location.origin);
+                    console.log("[Dropbox] Sent token to opener via postMessage");
+                    // Close popup after a short delay
+                    setTimeout(() => window.close(), 500);
+                } catch (e) {
+                    console.error("[Dropbox] Failed to send token to opener:", e);
+                }
+            }
+            
+            // Clean up URL
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+        }
+    }
+}
