@@ -74,6 +74,7 @@ const pickAndInsert = async (
     editor: any,
     provider: CloudProvider,
     pluginUrl: string,
+    forceLinkMode: boolean = false,
 ): Promise<void> => {
     const options = getOptions(editor);
     const providerConfig = options.providers?.[provider.id] || {};
@@ -101,6 +102,12 @@ const pickAndInsert = async (
         const validatedResult = validatePickerResultBoundary(provider.id, result);
         console.log("Validated result:", validatedResult);
 
+        // Override mode to "link" if user requested it
+        if (forceLinkMode) {
+            validatedResult.mode = "link";
+            console.log("Forcing link mode as requested");
+        }
+
         console.log("Inserting into editor...");
         insertResult(editor, validatedResult, options.defaultInsertMode || "link");
         console.log("Insert complete");
@@ -124,6 +131,7 @@ const uploadAndInsert = async (
     provider: CloudProvider,
     pluginUrl: string,
     file: File,
+    forceLinkMode: boolean = false,
 ): Promise<void> => {
     if (!provider.upload) {
         editor.notificationManager.open({
@@ -158,6 +166,12 @@ const uploadAndInsert = async (
         console.log("Validating result...");
         const validatedResult = validatePickerResultBoundary(provider.id, result);
         console.log("Validated result:", validatedResult);
+
+        // Override mode to "link" if user requested it
+        if (forceLinkMode) {
+            validatedResult.mode = "link";
+            console.log("Forcing link mode as requested");
+        }
 
         console.log("Inserting into editor...");
         insertResult(editor, validatedResult, options.defaultInsertMode || "link");
@@ -216,10 +230,16 @@ const openUploadDialog = (
                     type: "htmlpanel",
                     html: '<input type="file" id="multicloud-file-input" style="width: 100%; padding: 8px; box-sizing: border-box;" />',
                 },
+                {
+                    type: "checkbox",
+                    name: "insertAsLink",
+                    label: "Insert as link only (don't embed images/documents)",
+                },
             ],
         },
         initialData: {
             provider: initialProvider,
+            insertAsLink: false,
         },
         buttons: [
             { type: "cancel", text: "Cancel" },
@@ -252,7 +272,7 @@ const openUploadDialog = (
                 return;
             }
 
-            void uploadAndInsert(editor, selectedProvider, pluginUrl, file);
+            void uploadAndInsert(editor, selectedProvider, pluginUrl, file, data.insertAsLink);
         },
     });
 
@@ -290,10 +310,16 @@ const openProviderDialog = (
                         value: provider.id,
                     })),
                 },
+                {
+                    type: "checkbox",
+                    name: "insertAsLink",
+                    label: "Insert as link only (don't embed images/documents)",
+                },
             ],
         },
         initialData: {
             provider: initialProvider,
+            insertAsLink: false,
         },
         buttons: [
             { type: "cancel", text: "Cancel" },
@@ -314,7 +340,7 @@ const openProviderDialog = (
                 return;
             }
 
-            void pickAndInsert(editor, selectedProvider, pluginUrl);
+            void pickAndInsert(editor, selectedProvider, pluginUrl, data.insertAsLink);
         },
     });
 
