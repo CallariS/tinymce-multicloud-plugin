@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - TinyMCE MultiCloud Plugin</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        .last-updated {
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        .contact {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Privacy Policy</h1>
+    <p class="last-updated">Last Updated: April 25, 2026</p>
+
+    <h2>Overview</h2>
+    <p>
+        The TinyMCE MultiCloud Plugin ("the Plugin") is an open-source browser extension for the TinyMCE editor 
+        that enables users to select files from cloud storage providers (Google Drive, OneDrive, Dropbox, etc.) 
+        and insert them into editor content.
+    </p>
+
+    <h2>Data Collection and Usage</h2>
+    <p>
+        <strong>We do not collect, store, or transmit any personal data.</strong>
+    </p>
+    <ul>
+        <li>The Plugin runs entirely in your browser (client-side)</li>
+        <li>No data is sent to our servers (we don't have any servers)</li>
+        <li>No analytics, tracking, or telemetry is performed</li>
+        <li>No cookies are set by the Plugin</li>
+    </ul>
+
+    <h2>Cloud Provider Integration</h2>
+    <p>
+        When you use the Plugin to access files from cloud providers:
+    </p>
+    <ul>
+        <li><strong>OAuth Authentication:</strong> You authenticate directly with the cloud provider (Google, Microsoft, Dropbox, etc.) 
+            using their official OAuth flow. The Plugin never sees your password.</li>
+        <li><strong>Access Tokens:</strong> OAuth tokens are stored temporarily in your browser's memory and are not persisted.</li>
+        <li><strong>File Selection:</strong> When you select a file, only the file metadata (name, URL, thumbnail) 
+            is passed to the TinyMCE editor. The actual file content is not accessed.</li>
+        <li><strong>Direct Communication:</strong> Your browser communicates directly with the cloud provider's APIs. 
+            No data passes through our servers.</li>
+    </ul>
+
+    <h2>Permissions Requested</h2>
+    <p>
+        The Plugin requests the following permissions from cloud providers:
+    </p>
+    <ul>
+        <li><strong>Google Drive:</strong> Read-only access to view and select files from your Drive</li>
+        <li><strong>OneDrive:</strong> Read-only access via the OneDrive Picker API</li>
+        <li><strong>Dropbox:</strong> Read-only access via the Dropbox Chooser API</li>
+    </ul>
+    <p>
+        These permissions are used <strong>only</strong> to display the file picker and retrieve public URLs for selected files. 
+        The Plugin cannot modify, delete, or download your files.
+    </p>
+
+    <h2>Third-Party Services</h2>
+    <p>
+        The Plugin integrates with third-party cloud storage providers. Each provider has their own privacy policy:
+    </p>
+    <ul>
+        <li><a href="https://policies.google.com/privacy">Google Privacy Policy</a></li>
+        <li><a href="https://privacy.microsoft.com/privacystatement">Microsoft Privacy Statement</a></li>
+        <li><a href="https://www.dropbox.com/privacy">Dropbox Privacy Policy</a></li>
+    </ul>
+
+    <h2>Open Source</h2>
+    <p>
+        The Plugin is open source and available on GitHub: 
+        <a href="https://github.com/CallariS/tinymce-multicloud-plugin">github.com/CallariS/tinymce-multicloud-plugin</a>
+    </p>
+    <p>
+        You can review the source code to verify that no data collection occurs.
+    </p>
+
+    <h2>Children's Privacy</h2>
+    <p>
+        The Plugin does not knowingly collect any personal information from anyone, including children under 13.
+    </p>
+
+    <h2>Changes to This Privacy Policy</h2>
+    <p>
+        We may update this Privacy Policy from time to time. Updates will be posted on this page with a new "Last Updated" date.
+    </p>
+
+    <h2>Your Data Rights</h2>
+    <p>
+        Since we don't collect any data, there is no data to access, export, or delete. All interactions happen 
+        directly between your browser and the cloud provider you choose.
+    </p>
+
+    <div class="contact">
+        <h2>Contact</h2>
+        <p>
+            If you have questions about this Privacy Policy, please open an issue on GitHub:<br>
+            <a href="https://github.com/CallariS/tinymce-multicloud-plugin/issues">github.com/CallariS/tinymce-multicloud-plugin/issues</a>
+        </p>
+    </div>
+</body>
+</html>
