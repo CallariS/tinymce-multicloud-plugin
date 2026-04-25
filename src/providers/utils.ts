@@ -37,15 +37,44 @@ export const loadScript = async (
     });
 
 const imagePattern = /\.(apng|avif|gif|jpe?g|png|svg|webp|bmp|tiff?)$/i;
+const videoPattern = /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i;
+
+// MIME types that should be embedded
+const EMBEDDABLE_MIMES = [
+    "application/pdf",
+    "application/vnd.google-apps.document",
+    "application/vnd.google-apps.spreadsheet",
+    "application/vnd.google-apps.presentation",
+    "application/vnd.google-apps.form",
+    "application/vnd.google-apps.drawing",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
+    "application/msword", // .doc
+    "application/vnd.ms-excel", // .xls
+    "application/vnd.ms-powerpoint", // .ppt
+];
 
 export const detectInsertMode = (item: CloudItem): InsertMode => {
     const mime = item.mimeType?.toLowerCase() || "";
     const source = `${item.name} ${item.url}`;
 
+    // Images
     if (mime.startsWith("image/") || imagePattern.test(source)) {
         return "image";
     }
 
+    // Videos
+    if (mime.startsWith("video/") || videoPattern.test(source)) {
+        return "embed";
+    }
+
+    // Embeddable documents
+    if (EMBEDDABLE_MIMES.includes(mime)) {
+        return "embed";
+    }
+
+    // Default to link
     return "link";
 };
 

@@ -91,6 +91,30 @@ const getFileMetadata = async (fileId: string): Promise<any> => {
     }
 };
 
+const getEmbedUrl = (fileId: string, mimeType: string | undefined): string => {
+    const mime = mimeType?.toLowerCase() || "";
+
+    // Google Workspace files have specific viewer URLs
+    if (mime === "application/vnd.google-apps.document") {
+        return `https://docs.google.com/document/d/${fileId}/preview`;
+    }
+    if (mime === "application/vnd.google-apps.spreadsheet") {
+        return `https://docs.google.com/spreadsheets/d/${fileId}/preview`;
+    }
+    if (mime === "application/vnd.google-apps.presentation") {
+        return `https://docs.google.com/presentation/d/${fileId}/preview`;
+    }
+    if (mime === "application/vnd.google-apps.form") {
+        return `https://docs.google.com/forms/d/${fileId}/viewform?embedded=true`;
+    }
+    if (mime === "application/vnd.google-apps.drawing") {
+        return `https://docs.google.com/drawings/d/${fileId}/preview`;
+    }
+
+    // PDFs and other files use the generic Drive viewer
+    return `https://drive.google.com/file/d/${fileId}/preview`;
+};
+
 const launchPicker = async (
     config: GoogleDriveProviderConfig,
     accessToken: string,
@@ -169,7 +193,7 @@ const launchPicker = async (
                                 url: directUrl,
                                 mimeType: validatedDoc.mimeType,
                                 thumbnailUrl: metadata?.thumbnailLink || validatedDoc.thumbnails?.[0]?.url,
-                                embedUrl: `https://drive.google.com/file/d/${validatedDoc.id}/preview`,
+                                embedUrl: getEmbedUrl(validatedDoc.id, validatedDoc.mimeType),
                             },
                             mode: detectInsertMode({
                                 id: validatedDoc.id,

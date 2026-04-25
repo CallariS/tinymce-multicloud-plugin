@@ -54,7 +54,7 @@ const insertResult = (
 
     if (mode === "embed") {
         editor.insertContent(
-            `<iframe src="${safeEmbed}" title="${safeName}" loading="lazy"></iframe>`,
+            `<iframe src="${safeEmbed}" title="${safeName}" width="100%" height="600" frameborder="0" loading="lazy" allowfullscreen></iframe>`,
         );
         return;
     }
