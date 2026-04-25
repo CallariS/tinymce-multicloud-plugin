@@ -335,17 +335,65 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
         // Get the largest thumbnail available (large > medium > small)
         const thumbnail = data.value?.[0];
         const largeUrl = thumbnail?.large?.url || thumbnail?.medium?.url || thumbnail?.small?.url;
-        
+
         if (largeUrl) {
             console.log("[OneDrive] Got thumbnail URL:", largeUrl);
             return largeUrl;
         }
-        
+
         return null;
     } catch (err) {
         console.error("[OneDrive] Error fetching thumbnail:", err);
         return null;
     }
+};
+
+const getEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string> => {
+    const mimeType = item.file?.mimeType || "";
+    
+    // For PDFs and Office documents, create an embed link
+    if (mimeType === "application/pdf" || 
+        mimeType.includes("word") || 
+        mimeType.includes("excel") || 
+        mimeType.includes("powerpoint") ||
+        mimeType.includes("officedocument")) {
+        
+        try {
+            console.log("[OneDrive] Creating embed link for:", item.name);
+            
+            // Create a sharing link with embed permission
+            const response = await fetch(
+                `https://graph.microsoft.com/v1.0/me/drive/items/${item.id}/createLink`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        type: "embed",
+                        scope: "anonymous",
+                    }),
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                const embedUrl = data.link?.webUrl;
+                if (embedUrl) {
+                    console.log("[OneDrive] Got embed URL:", embedUrl);
+                    return embedUrl;
+                }
+            } else {
+                console.warn("[OneDrive] Could not create embed link:", response.status);
+            }
+        } catch (err) {
+            console.error("[OneDrive] Error creating embed link:", err);
+        }
+    }
+    
+    // Fallback to webUrl
+    return item.webUrl || "";
 };
 
 const openOneDrivePicker = async (
@@ -369,6 +417,7 @@ const openOneDrivePicker = async (
     console.log("[OneDrive] User selected:", selected.name);
 
     const validated = validateOneDriveFileBoundary(selected);
+    const mimeType = validated.file?.mimeType || "";
 
     let url = validated.webUrl || validated["@microsoft.graph.downloadUrl"] || "";
     if (!url) {
@@ -376,7 +425,6 @@ const openOneDrivePicker = async (
     }
 
     // For images, try to get a high-res thumbnail URL
-    const mimeType = validated.file?.mimeType || "";
     if (mimeType.startsWith("image/")) {
         console.log("[OneDrive] Detected image, fetching thumbnail...");
         const thumbnailUrl = await getThumbnailUrl(accessToken, validated.id);
@@ -385,6 +433,19 @@ const openOneDrivePicker = async (
             console.log("[OneDrive] Using thumbnail URL for image");
         } else {
             console.warn("[OneDrive] Could not get thumbnail, using webUrl");
+        }
+    }
+    // For documents that should be embedded, get embed URL
+    else if (mimeType === "application/pdf" || 
+             mimeType.includes("word") || 
+             mimeType.includes("excel") || 
+             mimeType.includes("powerpoint") ||
+             mimeType.includes("officedocument")) {
+        console.log("[OneDrive] Detected embeddable document, getting embed URL...");
+        const embedUrl = await getEmbedUrl(accessToken, validated);
+        if (embedUrl) {
+            url = embedUrl;
+            console.log("[OneDrive] Using embed URL for document");
         }
     }
 
