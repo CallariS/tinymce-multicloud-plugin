@@ -44,7 +44,7 @@ const getAccessToken = async (clientId: string): Promise<string> => {
     if (!msalInstance) {
         const redirectUri = window.location.origin + window.location.pathname;
         console.log("[OneDrive] Initializing MSAL with redirectUri:", redirectUri);
-        
+
         msalInstance = new window.msal.PublicClientApplication({
             auth: {
                 clientId: clientId,
@@ -83,6 +83,7 @@ const getAccessToken = async (clientId: string): Promise<string> => {
 };
 
 const listDriveItems = async (accessToken: string): Promise<GraphDriveItem[]> => {
+    console.log("[OneDrive] Fetching items from /me/drive/root/children");
     const response = await fetch("https://graph.microsoft.com/v1.0/me/drive/root/children", {
         headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -90,10 +91,14 @@ const listDriveItems = async (accessToken: string): Promise<GraphDriveItem[]> =>
     });
 
     if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[OneDrive] Graph API error:", response.status, errorText);
         throw new Error(`Graph API error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log("[OneDrive] API returned:", data);
+    console.log("[OneDrive] Items count:", data.value?.length || 0);
     return data.value || [];
 };
 
@@ -143,6 +148,11 @@ const showFilePicker = (items: GraphDriveItem[]): Promise<GraphDriveItem | null>
         fileList.style.cssText = "list-style: none; padding: 0; margin: 0;";
 
         const files = items.filter(item => item.file && !item.folder);
+
+        console.log("[OneDrive] Total items:", items.length);
+        console.log("[OneDrive] Files:", files.length);
+        console.log("[OneDrive] Folders:", items.filter(item => item.folder).length);
+        console.log("[OneDrive] Items detail:", items);
 
         if (files.length === 0) {
             const emptyMsg = document.createElement("li");
