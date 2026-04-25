@@ -477,6 +477,22 @@ const openOneDrivePicker = async (
             console.log("[OneDrive] Could not get embeddable URL, will insert as link");
         }
     }
+    // For archives, use Google viewer with anonymous download URL
+    else if (mimeType === "application/zip" ||
+        mimeType === "application/x-rar-compressed" ||
+        mimeType === "application/x-7z-compressed" ||
+        mimeType === "application/x-tar" ||
+        mimeType === "application/gzip") {
+        console.log("[OneDrive] Detected archive, using Google viewer with download URL...");
+        const downloadUrl = validated["@microsoft.graph.downloadUrl"];
+        if (downloadUrl) {
+            // Use Google viewer which can display archives
+            url = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
+            console.log("[OneDrive] Using Google viewer for archive");
+        } else {
+            console.warn("[OneDrive] No download URL available for archive");
+        }
+    }
 
     // Determine insert mode
     let insertMode = detectInsertMode({
@@ -563,6 +579,19 @@ const uploadFile = async (
             if (embedUrl) {
                 url = embedUrl;
                 console.log("[OneDrive] Got embeddable URL for uploaded document");
+            }
+        }
+        // For archives, use Google viewer with download URL
+        else if (mimeType === "application/zip" ||
+            mimeType === "application/x-rar-compressed" ||
+            mimeType === "application/x-7z-compressed" ||
+            mimeType === "application/x-tar" ||
+            mimeType === "application/gzip") {
+            console.log("[OneDrive] Using Google viewer for uploaded archive...");
+            const downloadUrl = uploadedItem["@microsoft.graph.downloadUrl"];
+            if (downloadUrl) {
+                url = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
+                console.log("[OneDrive] Using Google viewer for archive");
             }
         }
 

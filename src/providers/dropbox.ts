@@ -56,14 +56,15 @@ const openDropboxChooser = async (
 
                 const validated = validateDropboxFileBoundary(first);
 
-                // Convert URL to raw content for embeddable files (images, PDFs, Office docs)
+                // Convert URL to raw content for embeddable files (images, PDFs, Office docs, archives)
                 let fileUrl = validated.link;
                 const fileName = validated.name || "";
                 const isImage = /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(fileName);
                 const isPdf = /\.pdf$/i.test(fileName);
                 const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
+                const isArchive = /\.(zip|rar|7z|tar|gz|bz2|xz)$/i.test(fileName);
 
-                if ((isImage || isPdf || isOfficeDoc) && fileUrl.includes("dropbox.com")) {
+                if ((isImage || isPdf || isOfficeDoc || isArchive) && fileUrl.includes("dropbox.com")) {
                     // Convert to raw content URL for proper embedding
                     fileUrl = fileUrl
                         .replace("www.dropbox.com", "dl.dropboxusercontent.com")
@@ -74,7 +75,8 @@ const openDropboxChooser = async (
 
                 // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
                 let embedUrl: string | undefined;
-                if (isPdf) {
+                if (isPdf || isArchive) {
+                    // Google viewer can display PDFs and archives from any public URL
                     embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
                 } else if (isOfficeDoc) {
                     embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
@@ -286,9 +288,16 @@ const uploadFile = async (
                     "application/vnd.ms-excel", // .xls
                     "application/vnd.ms-powerpoint", // .ppt
                 ];
+                const archiveTypes = [
+                    "application/zip",
+                    "application/x-rar-compressed",
+                    "application/x-7z-compressed",
+                    "application/x-tar",
+                    "application/gzip",
+                ];
 
-                // For images, PDFs, and Office docs, convert to raw content URL for proper embedding
-                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type)) {
+                // For images, PDFs, Office docs, and archives, convert to raw content URL for proper embedding
+                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type)) {
                     // Convert www.dropbox.com to dl.dropboxusercontent.com and add ?raw=1
                     sharedUrl = baseUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
                     console.log("[Dropbox] Created raw content URL:", sharedUrl);
@@ -328,7 +337,14 @@ const uploadFile = async (
                                     "application/vnd.ms-excel",
                                     "application/vnd.ms-powerpoint",
                                 ];
-                                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type)) {
+                                const archiveTypes = [
+                                    "application/zip",
+                                    "application/x-rar-compressed",
+                                    "application/x-7z-compressed",
+                                    "application/x-tar",
+                                    "application/gzip",
+                                ];
+                                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type)) {
                                     sharedUrl = existingLink.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
                                 } else {
                                     sharedUrl = existingLink.replace("?dl=0", "?dl=1");
@@ -355,7 +371,16 @@ const uploadFile = async (
 
         // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
         let embedUrl: string | undefined;
-        if (mimeType === "application/pdf") {
+        const archiveTypes = [
+            "application/zip",
+            "application/x-rar-compressed",
+            "application/x-7z-compressed",
+            "application/x-tar",
+            "application/gzip",
+        ];
+        
+        if (mimeType === "application/pdf" || archiveTypes.includes(mimeType)) {
+            // Google viewer can display PDFs and archives from any public URL
             embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
         } else if (
             mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || // .docx
