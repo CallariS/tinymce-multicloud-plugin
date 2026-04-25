@@ -78,8 +78,6 @@ const pickAndInsert = async (
     const options = getOptions(editor);
     const providerConfig = options.providers?.[provider.id] || {};
 
-    editor.setProgressState(true);
-
     try {
         console.log("Calling provider.pick for:", provider.id);
         const result = await provider.pick({
@@ -96,10 +94,13 @@ const pickAndInsert = async (
             return;
         }
 
+        // Only show progress state when actually processing/inserting
+        editor.setProgressState(true);
+
         console.log("Validating result...");
         const validatedResult = validatePickerResultBoundary(provider.id, result);
         console.log("Validated result:", validatedResult);
-        
+
         console.log("Inserting into editor...");
         insertResult(editor, validatedResult, options.defaultInsertMode || "link");
         console.log("Insert complete");
