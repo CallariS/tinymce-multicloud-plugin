@@ -45,7 +45,7 @@ const openDropboxChooser = async (
         window.Dropbox.choose({
             linkType: config.linkType || "preview",
             multiselect: config.multiselect || false,
-            extensions: config.extensions || [".png", ".jpg", ".jpeg", ".gif", ".pdf", ".doc", ".docx"],
+            extensions: config.extensions || [".png", ".jpg", ".jpeg", ".gif", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"],
             success: (files: any[]) => {
                 const first = files?.[0];
                 if (!first?.link) {
@@ -56,13 +56,14 @@ const openDropboxChooser = async (
 
                 const validated = validateDropboxFileBoundary(first);
 
-                // Convert URL to raw content for embeddable files (images, PDFs)
+                // Convert URL to raw content for embeddable files (images, PDFs, Office docs)
                 let fileUrl = validated.link;
                 const fileName = validated.name || "";
                 const isImage = /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(fileName);
                 const isPdf = /\.pdf$/i.test(fileName);
+                const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
 
-                if ((isImage || isPdf) && fileUrl.includes("dropbox.com")) {
+                if ((isImage || isPdf || isOfficeDoc) && fileUrl.includes("dropbox.com")) {
                     // Convert to raw content URL for proper embedding
                     fileUrl = fileUrl
                         .replace("www.dropbox.com", "dl.dropboxusercontent.com")
@@ -71,10 +72,13 @@ const openDropboxChooser = async (
                     console.log("[Dropbox] Converted to raw content URL:", fileUrl);
                 }
 
-                // For PDFs, use Google PDF viewer as embedUrl (Dropbox forces download with raw URLs)
-                const embedUrl = isPdf 
-                    ? `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
-                    : undefined;
+                // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
+                let embedUrl: string | undefined;
+                if (isPdf) {
+                    embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+                } else if (isOfficeDoc) {
+                    embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+                }
 
                 const result: PickerResult = {
                     item: {
@@ -273,8 +277,18 @@ const uploadFile = async (
                 const sharingData = await sharingResponse.json();
                 const baseUrl = sharingData.url;
 
-                // For images and PDFs, convert to raw content URL for proper embedding
-                if (file.type.startsWith("image/") || file.type === "application/pdf") {
+                // Office document MIME types
+                const officeTypes = [
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
+                    "application/msword", // .doc
+                    "application/vnd.ms-excel", // .xls
+                    "application/vnd.ms-powerpoint", // .ppt
+                ];
+
+                // For images, PDFs, and Office docs, convert to raw content URL for proper embedding
+                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type)) {
                     // Convert www.dropbox.com to dl.dropboxusercontent.com and add ?raw=1
                     sharedUrl = baseUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
                     console.log("[Dropbox] Created raw content URL:", sharedUrl);
@@ -306,7 +320,15 @@ const uploadFile = async (
                             const linksData = await getLinksResponse.json();
                             if (linksData.links && linksData.links.length > 0) {
                                 const existingLink = linksData.links[0].url;
-                                if (file.type.startsWith("image/") || file.type === "application/pdf") {
+                                const officeTypes = [
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                                    "application/msword",
+                                    "application/vnd.ms-excel",
+                                    "application/vnd.ms-powerpoint",
+                                ];
+                                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type)) {
                                     sharedUrl = existingLink.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
                                 } else {
                                     sharedUrl = existingLink.replace("?dl=0", "?dl=1");
@@ -331,10 +353,20 @@ const uploadFile = async (
         // Determine MIME type
         const mimeType = file.type || "application/octet-stream";
 
-        // For PDFs, use Google PDF viewer as embedUrl (Dropbox forces download with raw URLs)
-        const embedUrl = mimeType === "application/pdf"
-            ? `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`
-            : undefined;
+        // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
+        let embedUrl: string | undefined;
+        if (mimeType === "application/pdf") {
+            embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
+        } else if (
+            mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || // .docx
+            mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || // .xlsx
+            mimeType === "application/vnd.openxmlformats-officedocument.presentationml.presentation" || // .pptx
+            mimeType === "application/msword" || // .doc
+            mimeType === "application/vnd.ms-excel" || // .xls
+            mimeType === "application/vnd.ms-powerpoint" // .ppt
+        ) {
+            embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(sharedUrl)}`;
+        }
 
         const result: PickerResult = {
             item: {

@@ -39,6 +39,7 @@ export const loadScript = async (
 const imagePattern = /\.(apng|avif|gif|jpe?g|png|svg|webp|bmp|tiff?)$/i;
 const videoPattern = /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i;
 const pdfPattern = /\.pdf$/i;
+const officePattern = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i;
 
 // MIME types that should be embedded
 const EMBEDDABLE_MIMES = [
@@ -71,7 +72,7 @@ export const detectInsertMode = (item: CloudItem): InsertMode => {
     }
 
     // Embeddable documents (check MIME and file extension)
-    if (EMBEDDABLE_MIMES.includes(mime) || pdfPattern.test(source)) {
+    if (EMBEDDABLE_MIMES.includes(mime) || pdfPattern.test(source) || officePattern.test(source)) {
         return "embed";
     }
 
