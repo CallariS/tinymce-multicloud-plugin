@@ -125,12 +125,13 @@ Some providers support uploading local files directly to the cloud:
 - Creates public sharing link
 - Embeds PDFs and Office documents
 
-**Nextcloud/BayernCloud**: ✅ Upload support in WebDAV mode only
-- Requires `mode: "nextcloud-webdav"` with credentials
-- Not supported in `pickerUrl` mode (interactive picker)
+**Nextcloud/BayernCloud**: ✅ Full upload support (both modes)
+- **Picker mode** (`pickerUrl`): Opens upload UI in picker, uses OAuth authentication
+- **WebDAV mode**: Uses pre-configured credentials for direct upload
 - Uploads via WebDAV PUT request
 - Creates public share links (if `createPublicShare: true`)
 - Embeds PDFs and Office documents
+- Requires CORS proxy for browser deployments (see docs)
 
 **OneDrive**: ❌ Upload not yet implemented
 
