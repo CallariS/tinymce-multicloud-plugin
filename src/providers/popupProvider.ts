@@ -77,9 +77,25 @@ export const createPopupProvider = (
             120000;
         const popupFeatures =
             context.providerConfig.popupFeatures ?? DEFAULT_POPUP_FEATURES;
-        const pickerUrl =
-            context.providerConfig.pickerUrl ??
-            `${context.pluginUrl.replace(/\/$/, "")}${defaultPickerPath}`;
+        
+        // Resolve picker URL
+        let pickerUrl: string;
+        if (context.providerConfig.pickerUrl) {
+            const configUrl = context.providerConfig.pickerUrl;
+            if (configUrl.startsWith("http")) {
+                // Absolute URL
+                pickerUrl = configUrl;
+            } else if (configUrl.startsWith("./") || configUrl.startsWith("../")) {
+                // Relative to current page
+                pickerUrl = new URL(configUrl, window.location.href).toString();
+            } else {
+                // Relative to plugin URL
+                pickerUrl = new URL(configUrl, context.pluginUrl).toString();
+            }
+        } else {
+            // Use default picker path relative to plugin URL
+            pickerUrl = `${context.pluginUrl.replace(/\/$/, "")}${defaultPickerPath}`;
+        }
 
         openPopup(pickerUrl, popupFeatures);
 

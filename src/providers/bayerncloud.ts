@@ -357,14 +357,25 @@ export const bayerncloudProvider = (): CloudProvider => ({
                 120000;
             const popupFeatures =
                 config.popupFeatures ?? "popup=yes,width=1120,height=760,resizable=yes,scrollbars=yes";
-            const pickerUrl =
-                config.pickerUrl.startsWith("http")
-                    ? config.pickerUrl
-                    : new URL(config.pickerUrl, context.pluginUrl).toString();
             
+            // Resolve picker URL
+            // If it starts with http/https, use as-is
+            // If it starts with ./ or ../, resolve relative to current page
+            // Otherwise, resolve relative to plugin URL
+            let pickerUrl: string;
+            if (config.pickerUrl.startsWith("http")) {
+                pickerUrl = config.pickerUrl;
+            } else if (config.pickerUrl.startsWith("./") || config.pickerUrl.startsWith("../")) {
+                // Resolve relative to the current page location
+                pickerUrl = new URL(config.pickerUrl, window.location.href).toString();
+            } else {
+                // Resolve relative to plugin URL
+                pickerUrl = new URL(config.pickerUrl, context.pluginUrl).toString();
+            }
+
             // Add upload mode parameter
-            const uploadUrl = pickerUrl.includes('?') 
-                ? `${pickerUrl}&mode=upload` 
+            const uploadUrl = pickerUrl.includes('?')
+                ? `${pickerUrl}&mode=upload`
                 : `${pickerUrl}?mode=upload`;
 
             const popup = window.open(uploadUrl, "tinymce_multicloud_picker", popupFeatures);
