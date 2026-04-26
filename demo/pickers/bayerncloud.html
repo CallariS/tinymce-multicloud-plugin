@@ -470,6 +470,7 @@
 
       // Create public share link
       const createPublicShare = async (filePath) => {
+        console.log("[Share] Creating share for path:", filePath);
         const sharingUrl = `${config.baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares`;
         
         // Extract relative path from full WebDAV path
@@ -478,6 +479,8 @@
         const relativePath = markerIndex >= 0 
           ? filePath.slice(markerIndex + marker.length)
           : filePath.split("/").pop();
+
+        console.log("[Share] Extracted relative path:", relativePath);
 
         const params = new URLSearchParams({
           path: `/${relativePath}`,
@@ -495,7 +498,8 @@
         });
 
         if (!response.ok) {
-          console.warn("Failed to create share link, using direct URL");
+          const errorText = await response.text();
+          console.warn("[Share] Failed to create share link:", response.status, errorText);
           return null;
         }
 
@@ -503,7 +507,14 @@
         const parser = new DOMParser();
         const doc = parser.parseFromString(xmlText, "application/xml");
         const urlNode = doc.getElementsByTagName("url")[0];
-        return urlNode?.textContent?.trim() || null;
+        const shareUrl = urlNode?.textContent?.trim() || null;
+        
+        if (shareUrl) {
+          console.log("[Share] Created public share:", shareUrl);
+          // Append /download for direct file access (needed for embedding)
+          return shareUrl + "/download";
+        }
+        return null;
       };
 
       // Detect insert mode based on MIME type
@@ -713,12 +724,16 @@
 
         try {
           let fileUrl = selectedFile.url;
+          console.log("[Insert] Original file URL:", fileUrl);
           
           // Try to create public share link if enabled
           if (config.createShare) {
             const shareUrl = await createPublicShare(selectedFile.path);
             if (shareUrl) {
+              console.log("[Insert] Using share URL:", shareUrl);
               fileUrl = shareUrl;
+            } else {
+              console.warn("[Insert] Share creation failed, using original URL");
             }
           }
 
@@ -731,9 +746,11 @@
           if (isPdf) {
             // Use Google Docs Viewer for PDFs
             embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+            console.log("[Insert] Created PDF embedUrl:", embedUrl);
           } else if (isOfficeDoc) {
             // Use Office Online Viewer for Office documents
             embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+            console.log("[Insert] Created Office embedUrl:", embedUrl);
           }
 
           postMessage("picked", {
