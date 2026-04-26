@@ -522,6 +522,16 @@ const openOneDrivePicker = async (
             console.log("[OneDrive] Could not get embeddable URL, will insert as link");
         }
     }
+    // For videos, use the direct download URL for streaming in a <video> tag
+    else if (mimeType.startsWith("video/")) {
+        const directUrl = validated["@microsoft.graph.downloadUrl"];
+        if (directUrl) {
+            url = directUrl;
+            console.log("[OneDrive] Using direct download URL for video streaming");
+        } else {
+            console.warn("[OneDrive] No direct download URL for video, will insert as link");
+        }
+    }
     // Note: Archives are NOT embedded for OneDrive - inserted as links instead
 
     // Determine insert mode
@@ -609,6 +619,16 @@ const uploadFile = async (
             if (embedUrl) {
                 url = embedUrl;
                 console.log("[OneDrive] Got embeddable URL for uploaded document");
+            }
+        }
+        // For videos, use the direct download URL for streaming in a <video> tag
+        else if (mimeType.startsWith("video/")) {
+            const directUrl = uploadedItem["@microsoft.graph.downloadUrl"];
+            if (directUrl) {
+                url = directUrl;
+                console.log("[OneDrive] Using direct download URL for uploaded video streaming");
+            } else {
+                console.warn("[OneDrive] No direct download URL for uploaded video, will insert as link");
             }
         }
         // Note: Archives are NOT embedded for OneDrive - inserted as links instead
