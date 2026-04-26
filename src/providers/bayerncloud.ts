@@ -256,7 +256,7 @@ const uploadFile = async (
 
         // Get the WebDAV path for the uploaded file
         const webdavFilePath = `/remote.php/dav/files/${username}/${uploadPath}`;
-        
+
         // Create public share link if enabled
         let shareUrl: string | null = null;
         if (config.createPublicShare) {
@@ -276,7 +276,7 @@ const uploadFile = async (
         const isPdf = /\.pdf$/i.test(fileName);
         const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
         const isPublicShare = shareUrl !== null;
-        
+
         let embedUrl: string | undefined;
         if ((isPdf || isOfficeDoc) && isPublicShare) {
             // Use Google Docs Viewer for documents with public share links
@@ -349,7 +349,74 @@ export const bayerncloudProvider = (): CloudProvider => ({
         const config = context.providerConfig as BayernCloudNextcloudProviderConfig;
 
         if (config.pickerUrl) {
-            throw new Error("Upload is not supported when using pickerUrl mode. Use WebDAV mode instead.");
+            // For pickerUrl mode, open the picker in upload mode
+            // The picker will handle file selection and upload internally
+            const timeoutMs =
+                config.timeoutMs ??
+                context.options.popupTimeoutMs ??
+                120000;
+            const popupFeatures =
+                config.popupFeatures ?? "popup=yes,width=1120,height=760,resizable=yes,scrollbars=yes";
+            const pickerUrl =
+                config.pickerUrl.startsWith("http")
+                    ? config.pickerUrl
+                    : new URL(config.pickerUrl, context.pluginUrl).toString();
+            
+            // Add upload mode parameter
+            const uploadUrl = pickerUrl.includes('?') 
+                ? `${pickerUrl}&mode=upload` 
+                : `${pickerUrl}?mode=upload`;
+
+            const popup = window.open(uploadUrl, "tinymce_multicloud_picker", popupFeatures);
+
+            if (!popup) {
+                throw new Error("Popup could not be opened. Allow popups for this site.");
+            }
+
+            // Wait for upload result
+            return new Promise((resolve, reject) => {
+                let timeoutRef: number | undefined;
+
+                const cleanup = () => {
+                    window.removeEventListener("message", onMessage);
+                    if (typeof timeoutRef === "number") {
+                        window.clearTimeout(timeoutRef);
+                    }
+                };
+
+                const onMessage = (event: MessageEvent) => {
+                    const message = event.data;
+                    if (!message || message.source !== "tinymce-multicloud-plugin") {
+                        return;
+                    }
+                    if (message.providerId !== "bayerncloud") {
+                        return;
+                    }
+
+                    cleanup();
+                    popup.close();
+
+                    if (message.type === "cancelled") {
+                        resolve(null);
+                        return;
+                    }
+
+                    if (!message.payload?.item?.url) {
+                        reject(new Error("Picker returned no file URL."));
+                        return;
+                    }
+
+                    resolve(message.payload);
+                };
+
+                window.addEventListener("message", onMessage);
+
+                timeoutRef = window.setTimeout(() => {
+                    cleanup();
+                    popup.close();
+                    reject(new Error("Upload timed out."));
+                }, timeoutMs) as unknown as number;
+            });
         }
 
         if ((config.mode || "nextcloud-webdav") !== "nextcloud-webdav") {

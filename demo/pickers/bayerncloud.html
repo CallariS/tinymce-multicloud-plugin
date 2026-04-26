@@ -192,7 +192,7 @@
   </head>
   <body>
     <div class="header">
-      <h1>🌥️ Nextcloud File Picker (OAuth)</h1>
+      <h1 id="headerTitle">🌥️ Nextcloud File Picker (OAuth)</h1>
     </div>
 
     <div class="container">
@@ -239,6 +239,25 @@
           <div class="loading">Loading files...</div>
         </div>
       </div>
+
+      <!-- Upload Panel -->
+      <div class="browse-panel" id="uploadPanel">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="margin-bottom: 20px; color: #333;">Upload File to Nextcloud</h2>
+          
+          <div class="form-group">
+            <label for="uploadFile">Select file to upload</label>
+            <input type="file" id="uploadFile" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+          </div>
+
+          <div style="padding: 12px; background: #e7f3ff; border-radius: 4px; margin-top: 16px; font-size: 13px; color: #004085;">
+            <strong>📤 Upload Process:</strong><br>
+            1. File will be uploaded to your Nextcloud<br>
+            2. Public share link will be created (if enabled)<br>
+            3. File will be inserted into editor
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="footer">
@@ -251,6 +270,15 @@
 
     <script>
       const providerId = "bayerncloud";
+      
+      // Check if we're in upload mode
+      const urlParams = new URLSearchParams(window.location.search);
+      const isUploadMode = urlParams.get('mode') === 'upload';
+      
+      // Update header based on mode
+      if (isUploadMode) {
+        document.getElementById("headerTitle").textContent = "📤 Upload to Nextcloud";
+      }
       
       // CORS Proxy Configuration
       // Set this to your Cloudflare Worker URL to enable CORS proxying
@@ -269,6 +297,7 @@
 
       let selectedFile = null;
       let currentFiles = [];
+      let uploadedFile = null;
 
       // Post message to parent window
       const postMessage = (type, payload) => {
@@ -700,15 +729,25 @@
 
           document.getElementById("connectBtn").textContent = "Loading files...";
 
-          // Load root files
-          currentFiles = await listFiles("");
+          // Load root files (only in browse mode)
+          if (!isUploadMode) {
+            currentFiles = await listFiles("");
+          }
           
           document.getElementById("loginPanel").classList.remove("active");
-          document.getElementById("browsePanel").classList.add("active");
-          document.getElementById("status").textContent = `Connected as ${config.username} - ${currentFiles.length} items`;
           
-          renderBreadcrumb();
-          renderFileList();
+          if (isUploadMode) {
+            document.getElementById("uploadPanel").classList.add("active");
+            document.getElementById("insertBtn").textContent = "Upload";
+            document.getElementById("status").textContent = `Connected as ${config.username} - Ready to upload`;
+            // Enable file input
+            document.getElementById("uploadFile").disabled = false;
+          } else {
+            document.getElementById("browsePanel").classList.add("active");
+            document.getElementById("status").textContent = `Connected as ${config.username} - ${currentFiles.length} items`;
+            renderBreadcrumb();
+            renderFileList();
+          }
 
           // Save for convenience
           localStorage.setItem("bayerncloud_baseUrl", baseUrl);
@@ -790,11 +829,122 @@
         }
       };
 
+      // Upload file to Nextcloud
+      const uploadFile = async () => {
+        if (!uploadedFile) return;
+
+        document.getElementById("insertBtn").disabled = true;
+        document.getElementById("insertBtn").textContent = "Uploading...";
+        document.getElementById("status").textContent = `Uploading ${uploadedFile.name}...`;
+
+        try {
+          // Build WebDAV upload URL
+          const uploadPath = config.currentPath ? `${config.currentPath}/${uploadedFile.name}` : uploadedFile.name;
+          const uploadUrl = `${config.baseUrl}/remote.php/dav/files/${encodeURIComponent(config.username)}/${uploadPath}`;
+          
+          console.log("[Upload] Uploading to:", uploadUrl);
+
+          // Upload file using WebDAV PUT
+          const uploadResponse = await proxyFetch(uploadUrl, {
+            method: "PUT",
+            headers: {
+              "Content-Type": uploadedFile.type || "application/octet-stream",
+              ...getAuthHeader(),
+            },
+            body: uploadedFile,
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+          }
+
+          console.log("[Upload] File uploaded successfully");
+          document.getElementById("status").textContent = "Creating share link...";
+
+          // Get the WebDAV path for the uploaded file
+          const webdavFilePath = `/remote.php/dav/files/${config.username}/${uploadPath}`;
+          
+          // Create public share link if enabled
+          let shareUrl = null;
+          if (config.createShare) {
+            shareUrl = await createPublicShare(webdavFilePath);
+            if (shareUrl) {
+              console.log("[Upload] Created public share:", shareUrl);
+            }
+          }
+
+          // Construct the file URL
+          const fileUrl = shareUrl || uploadUrl;
+
+          // Check if file should be embedded
+          const fileName = uploadedFile.name || "";
+          const isPdf = /\.pdf$/i.test(fileName);
+          const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
+          const isPublicShare = shareUrl !== null;
+          
+          let embedUrl = undefined;
+          if ((isPdf || isOfficeDoc) && isPublicShare) {
+            // Use Google Docs Viewer for documents with public share links
+            embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+            console.log("[Upload] Created embedUrl:", embedUrl);
+          }
+
+          // Detect MIME type from file
+          const mimeType = uploadedFile.type || "application/octet-stream";
+
+          postMessage("picked", {
+            item: {
+              id: webdavFilePath,
+              name: uploadedFile.name,
+              url: fileUrl,
+              embedUrl,
+              mimeType: mimeType,
+            },
+            mode: detectInsertMode({
+              id: webdavFilePath,
+              name: uploadedFile.name,
+              url: fileUrl,
+              mimeType: mimeType,
+            }),
+          });
+        } catch (error) {
+          console.error("[Upload] Error:", error);
+          document.getElementById("status").textContent = `Error: ${error.message}`;
+          document.getElementById("insertBtn").disabled = false;
+          document.getElementById("insertBtn").textContent = "Upload";
+        }
+      };
+
       // Event listeners
       document.getElementById("connectBtn").addEventListener("click", connect);
       document.getElementById("cancelLoginBtn").addEventListener("click", () => postMessage("cancelled"));
-      document.getElementById("insertBtn").addEventListener("click", insertFile);
+      
+      // Handle insert/upload button based on mode
+      document.getElementById("insertBtn").addEventListener("click", () => {
+        if (isUploadMode) {
+          uploadFile();
+        } else {
+          insertFile();
+        }
+      });
+      
       document.getElementById("cancelBtn").addEventListener("click", () => postMessage("cancelled"));
+
+      // Handle file selection for upload mode
+      if (isUploadMode) {
+        document.getElementById("uploadFile").addEventListener("change", (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            uploadedFile = file;
+            document.getElementById("insertBtn").disabled = false;
+            document.getElementById("status").textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+          } else {
+            uploadedFile = null;
+            document.getElementById("insertBtn").disabled = true;
+            document.getElementById("status").textContent = "No file selected";
+          }
+        });
+      }
 
       // Handle Enter key in login form
       document.querySelectorAll("#loginPanel input").forEach(input => {
