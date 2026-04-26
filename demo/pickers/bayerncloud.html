@@ -722,11 +722,26 @@
             }
           }
 
+          // Create embedUrl for documents and PDFs
+          const fileName = selectedFile.name || "";
+          const isPdf = /\.pdf$/i.test(fileName);
+          const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
+          
+          let embedUrl = undefined;
+          if (isPdf) {
+            // Use Google Docs Viewer for PDFs
+            embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+          } else if (isOfficeDoc) {
+            // Use Office Online Viewer for Office documents
+            embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
+          }
+
           postMessage("picked", {
             item: {
               id: selectedFile.id,
               name: selectedFile.name,
               url: fileUrl,
+              embedUrl,
               mimeType: selectedFile.mimeType,
             },
             mode: detectInsertMode(selectedFile),
