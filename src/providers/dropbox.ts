@@ -75,14 +75,12 @@ const openDropboxChooser = async (
 
                 // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
                 let embedUrl: string | undefined;
-                if (isPdf) {
-                    // Google viewer can display PDFs from public URLs
+                if (isPdf || isArchive) {
+                    // Google viewer can display PDFs and archives from public Dropbox raw URLs
                     embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
                 } else if (isOfficeDoc) {
                     embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
                 }
-                // Note: Archives are NOT embedded for Dropbox due to Google Viewer access restrictions
-                // They will be inserted as download links instead
 
                 const result: PickerResult = {
                     item: {
