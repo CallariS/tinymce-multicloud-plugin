@@ -522,19 +522,7 @@ const openOneDrivePicker = async (
             console.log("[OneDrive] Could not get embeddable URL, will insert as link");
         }
     }
-    // For archives, create a public download URL and embed via Google Docs Viewer
-    else if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("7z") ||
-        mimeType.includes("tar") || mimeType.includes("gzip") ||
-        /\.(zip|rar|7z|tar|gz|bz2|xz)$/i.test(validated.name)) {
-        console.log("[OneDrive] Detected archive, creating public download URL for Google Viewer...");
-        const downloadUrl = await getPublicDownloadUrl(accessToken, validated);
-        if (downloadUrl) {
-            url = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
-            console.log("[OneDrive] Using Google Docs Viewer for archive embed");
-        } else {
-            console.log("[OneDrive] Could not get public download URL for archive, will insert as link");
-        }
-    }
+    // Note: Archives are NOT embedded for OneDrive - inserted as links instead
 
     // Determine insert mode
     let insertMode = detectInsertMode({
@@ -623,19 +611,7 @@ const uploadFile = async (
                 console.log("[OneDrive] Got embeddable URL for uploaded document");
             }
         }
-        // For archives, create a public download URL and embed via Google Docs Viewer
-        else if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("7z") ||
-            mimeType.includes("tar") || mimeType.includes("gzip") ||
-            /\.(zip|rar|7z|tar|gz|bz2|xz)$/i.test(uploadedItem.name)) {
-            console.log("[OneDrive] Detected archive, creating public download URL for Google Viewer...");
-            const downloadUrl = await getPublicDownloadUrl(accessToken, uploadedItem);
-            if (downloadUrl) {
-                url = `https://docs.google.com/viewer?url=${encodeURIComponent(downloadUrl)}&embedded=true`;
-                console.log("[OneDrive] Using Google Docs Viewer for archive embed");
-            } else {
-                console.log("[OneDrive] Could not get public download URL for archive, will insert as link");
-            }
-        }
+        // Note: Archives are NOT embedded for OneDrive - inserted as links instead
 
         // Determine insert mode
         let insertMode = detectInsertMode({
