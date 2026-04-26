@@ -470,51 +470,68 @@
 
       // Create public share link
       const createPublicShare = async (filePath) => {
-        console.log("[Share] Creating share for path:", filePath);
-        const sharingUrl = `${config.baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares`;
-        
-        // Extract relative path from full WebDAV path
-        const marker = `/remote.php/dav/files/${config.username}/`;
-        const markerIndex = filePath.indexOf(marker);
-        const relativePath = markerIndex >= 0 
-          ? filePath.slice(markerIndex + marker.length)
-          : filePath.split("/").pop();
+        try {
+          console.log("[Share] Creating share for path:", filePath);
+          const sharingUrl = `${config.baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares`;
+          
+          // Extract relative path from full WebDAV path
+          // filePath format: /remote.php/dav/files/USERNAME/path/to/file.pdf
+          const marker = `/remote.php/dav/files/${config.username}/`;
+          const markerIndex = filePath.indexOf(marker);
+          let relativePath = markerIndex >= 0 
+            ? filePath.slice(markerIndex + marker.length)
+            : filePath.split("/").pop();
 
-        console.log("[Share] Extracted relative path:", relativePath);
+          // Decode URL encoding (e.g., %20 -> space)
+          relativePath = decodeURIComponent(relativePath);
+          
+          console.log("[Share] Extracted relative path:", relativePath);
+          console.log("[Share] Request URL:", sharingUrl);
 
-        const params = new URLSearchParams({
-          path: `/${relativePath}`,
-          shareType: "3", // Public link
-        });
+          const params = new URLSearchParams({
+            path: `/${relativePath}`,
+            shareType: "3", // Public link
+          });
+          
+          console.log("[Share] Request body:", params.toString());
 
-        const response = await proxyFetch(sharingUrl, {
-          method: "POST",
-          headers: {
-            "OCS-APIRequest": "true",
-            "Content-Type": "application/x-www-form-urlencoded",
-            ...getAuthHeader(),
-          },
-          body: params.toString(),
-        });
+          const response = await proxyFetch(sharingUrl, {
+            method: "POST",
+            headers: {
+              "OCS-APIRequest": "true",
+              "Content-Type": "application/x-www-form-urlencoded",
+              ...getAuthHeader(),
+            },
+            body: params.toString(),
+          });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.warn("[Share] Failed to create share link:", response.status, errorText);
+          console.log("[Share] Response status:", response.status);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[Share] Failed to create share link");
+            console.error("[Share] Status:", response.status);
+            console.error("[Share] Error response:", errorText);
+            return null;
+          }
+
+          const xmlText = await response.text();
+          console.log("[Share] Success response:", xmlText);
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(xmlText, "application/xml");
+          const urlNode = doc.getElementsByTagName("url")[0];
+          const shareUrl = urlNode?.textContent?.trim() || null;
+          
+          if (shareUrl) {
+            console.log("[Share] Created public share:", shareUrl);
+            // Append /download for direct file access (needed for embedding)
+            return shareUrl + "/download";
+          }
+          return null;
+        } catch (error) {
+          console.error("[Share] Exception during share creation:", error);
           return null;
         }
-
-        const xmlText = await response.text();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(xmlText, "application/xml");
-        const urlNode = doc.getElementsByTagName("url")[0];
-        const shareUrl = urlNode?.textContent?.trim() || null;
-        
-        if (shareUrl) {
-          console.log("[Share] Created public share:", shareUrl);
-          // Append /download for direct file access (needed for embedding)
-          return shareUrl + "/download";
-        }
-        return null;
       };
 
       // Detect insert mode based on MIME type
@@ -743,14 +760,21 @@
           const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
           
           let embedUrl = undefined;
-          if (isPdf) {
-            // Use Google Docs Viewer for PDFs
+          
+          // Only create embedUrl if we have a public share link (not authenticated WebDAV)
+          const isPublicShare = fileUrl.includes('/s/') || !fileUrl.includes('/remote.php/dav/');
+          
+          if (isPdf && isPublicShare) {
+            // Use Google Docs Viewer for public share links
             embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
             console.log("[Insert] Created PDF embedUrl:", embedUrl);
-          } else if (isOfficeDoc) {
-            // Use Office Online Viewer for Office documents
+          } else if (isOfficeDoc && isPublicShare) {
+            // Use Office Online Viewer for public share links
             embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
             console.log("[Insert] Created Office embedUrl:", embedUrl);
+          } else if ((isPdf || isOfficeDoc) && !isPublicShare) {
+            console.warn("[Insert] Document without public share - inserting as download link instead of embed");
+            console.warn("[Insert] To enable embedding, ensure public sharing is enabled on your Nextcloud instance");
           }
 
           postMessage("picked", {
