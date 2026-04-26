@@ -20,6 +20,12 @@ const DROPBOX_SHARING_URL = "https://api.dropboxapi.com/2/sharing/create_shared_
 
 let cachedAccessToken: string | null = null;
 
+const clearDropboxToken = () => {
+    cachedAccessToken = null;
+    localStorage.removeItem('dropbox_access_token');
+    console.log("[Dropbox] Access token cleared (expired or invalid)");
+};
+
 const ensureDropboxSdk = async (appKey: string): Promise<void> => {
     if (!appKey) {
         throw new Error("Dropbox requires appKey.");
@@ -249,6 +255,12 @@ const uploadFile = async (
             },
             body: file,
         });
+
+        if (uploadResponse.status === 401) {
+            // Token expired — clear it so next attempt triggers re-authentication
+            clearDropboxToken();
+            throw new Error("Dropbox access token expired. Please try uploading again to re-authenticate.");
+        }
 
         if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text();
