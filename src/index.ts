@@ -265,12 +265,12 @@ const openUploadDialog = (
                 { type: "cancel", text: "Cancel" },
                 { type: "submit", text: "Upload", primary: true },
             ],
-            onAction: (api: any, details: any) => {
+            onChange: (api: any, details: any) => {
                 if (details.name === "provider") {
                     // Get current insertAsLink value to preserve it
                     const data = api.getData();
                     api.close();
-                    openUploadDialogWithProvider(details.value, data.insertAsLink);
+                    openUploadDialogWithProvider(data.provider, data.insertAsLink);
                 }
             },
             onSubmit: (api: any) => {
