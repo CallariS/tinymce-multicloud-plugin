@@ -64,7 +64,7 @@ const openDropboxChooser = async (
                 const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
                 const isArchive = /\.(zip|rar|7z|tar|gz|bz2|xz)$/i.test(fileName);
 
-                if ((isImage || isPdf || isOfficeDoc || isArchive) && fileUrl.includes("dropbox.com")) {
+                if ((isImage || isPdf || isOfficeDoc) && fileUrl.includes("dropbox.com")) {
                     // Convert to raw content URL for proper embedding
                     fileUrl = fileUrl
                         .replace("www.dropbox.com", "dl.dropboxusercontent.com")
@@ -74,9 +74,9 @@ const openDropboxChooser = async (
                 }
 
                 // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
+                // Note: Archives are NOT embedded - inserted as links instead
                 let embedUrl: string | undefined;
-                if (isPdf || isArchive) {
-                    // Google viewer can display PDFs and archives from public Dropbox raw URLs
+                if (isPdf) {
                     embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
                 } else if (isOfficeDoc) {
                     embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
@@ -90,7 +90,7 @@ const openDropboxChooser = async (
                         embedUrl,
                         thumbnailUrl: validated.thumbnailLink,
                     },
-                    mode: detectInsertMode({
+                    mode: isArchive ? "link" : detectInsertMode({
                         id: validated.id || validated.name || "dropbox-file",
                         name: validated.name || "Dropbox file",
                         url: fileUrl,
@@ -374,6 +374,7 @@ const uploadFile = async (
         const mimeType = file.type || "application/octet-stream";
 
         // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
+        // Note: Archives are NOT embedded - inserted as links instead
         let embedUrl: string | undefined;
         const archiveTypes = [
             "application/zip",
@@ -385,8 +386,7 @@ const uploadFile = async (
             "application/x-gzip",
         ];
 
-        if (mimeType === "application/pdf" || archiveTypes.includes(mimeType)) {
-            // Google viewer can display PDFs and archives from any public URL
+        if (mimeType === "application/pdf") {
             embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
         } else if (
             mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || // .docx
@@ -407,7 +407,7 @@ const uploadFile = async (
                 embedUrl,
                 mimeType,
             },
-            mode: detectInsertMode({
+            mode: archiveTypes.includes(mimeType) ? "link" : detectInsertMode({
                 id: uploadData.id,
                 name: uploadData.name,
                 url: sharedUrl,
