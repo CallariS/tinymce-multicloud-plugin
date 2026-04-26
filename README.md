@@ -88,11 +88,16 @@ When configuring OAuth allowlists, include exactly:
       },
       bayerncloud: {
         enabled: true,
-        mode: "nextcloud-webdav",
-        baseUrl: "https://your-bayerncloud.example",
-        username: "user",
-        password: "app-password",
-        webdavPath: ""
+        // Option 1: Use interactive picker (prompts user for credentials)
+        pickerUrl: "./pickers/bayerncloud.html"
+
+        // Option 2: Use WebDAV with pre-configured credentials
+        // mode: "nextcloud-webdav",
+        // baseUrl: "https://your-nextcloud.example.com",
+        // username: "your-username",
+        // password: "app-password",  // Use app-specific password
+        // webdavPath: "",  // Optional subfolder
+        // createPublicShare: true  // Creates public share links
       }
     },
 
@@ -143,9 +148,14 @@ A mock bridge page is available at `demo/picker-bridge-example.html`.
 - Required config: `appKey`.
 
 ### BayernCloud (Nextcloud/WebDAV mode)
+- Supports two modes:
+  1. **Interactive Picker** (`pickerUrl`): Opens a popup that prompts users for their Nextcloud credentials, browses files via WebDAV, and creates public share links
+  2. **Pre-configured WebDAV** (`mode: "nextcloud-webdav"`): Uses pre-configured credentials for programmatic file access
 - Uses WebDAV `PROPFIND` to list files.
 - Optional OCS share creation for public links.
-- Required config: `baseUrl`, `username` and either `password` or `bearerToken`.
+- Works with any Nextcloud instance (BayernCloud, private Nextcloud servers, etc.)
+- Interactive mode: No config required, users enter credentials in picker
+- WebDAV mode required config: `baseUrl`, `username` and either `password` or `bearerToken`.
 
 ## Popup fallback mode
 

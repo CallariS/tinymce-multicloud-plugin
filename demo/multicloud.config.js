@@ -22,7 +22,12 @@ window.MULTICLOUD_CONFIG = {
             multiselect: false,
             extensions: [] // Empty array allows all file types
         },
-        bayerncloud: { enabled: true, pickerUrl: "./pickers/bayerncloud.html" }
+        bayerncloud: { 
+            enabled: true, 
+            pickerUrl: "./pickers/bayerncloud.html" 
+            // The picker will prompt for Nextcloud server URL, username, and password
+            // Supports any Nextcloud instance including BayernCloud
+        }
     },
     defaultProvider: "googleDrive",
     defaultInsertMode: "link",

@@ -3,15 +3,275 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BayernCloud Picker Mock</title>
+    <title>BayernCloud / Nextcloud Picker</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #f5f5f5;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .header {
+        background: #0082c9;
+        color: white;
+        padding: 16px 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .header h1 {
+        font-size: 20px;
+        font-weight: 500;
+      }
+      .container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .login-panel, .browse-panel {
+        flex: 1;
+        display: none;
+        flex-direction: column;
+        padding: 20px;
+        overflow: auto;
+      }
+      .login-panel.active, .browse-panel.active {
+        display: flex;
+      }
+      .form-group {
+        margin-bottom: 16px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #333;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .form-group input:focus {
+        outline: none;
+        border-color: #0082c9;
+      }
+      .form-group small {
+        display: block;
+        margin-top: 4px;
+        color: #666;
+        font-size: 12px;
+      }
+      .btn-group {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .btn-primary {
+        background: #0082c9;
+        color: white;
+      }
+      .btn-primary:hover:not(:disabled) {
+        background: #006da8;
+      }
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+      .btn-secondary:hover:not(:disabled) {
+        background: #5a6268;
+      }
+      .breadcrumb {
+        padding: 12px 20px;
+        background: white;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+      }
+      .breadcrumb-item {
+        color: #0082c9;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .breadcrumb-item:hover {
+        text-decoration: underline;
+      }
+      .breadcrumb-separator {
+        color: #999;
+      }
+      .file-list {
+        flex: 1;
+        background: white;
+        margin: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: auto;
+      }
+      .file-item {
+        padding: 14px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: background 0.2s;
+      }
+      .file-item:hover {
+        background: #f8f9fa;
+      }
+      .file-item.selected {
+        background: #e7f3ff;
+      }
+      .file-icon {
+        font-size: 20px;
+        width: 24px;
+        text-align: center;
+      }
+      .file-name {
+        flex: 1;
+        font-size: 14px;
+        color: #333;
+      }
+      .file-item.folder .file-name {
+        font-weight: 500;
+        color: #0082c9;
+      }
+      .footer {
+        background: white;
+        padding: 16px 20px;
+        border-top: 1px solid #ddd;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .status {
+        font-size: 13px;
+        color: #666;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 16px;
+        border: 1px solid #f5c6cb;
+      }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+      .empty {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+      }
+    </style>
   </head>
   <body>
-    <h2>BayernCloud Picker Mock</h2>
-    <button id="insert">Insert link</button>
-    <button id="cancel">Cancel</button>
+    <div class="header">
+      <h1>🌥️ BayernCloud / Nextcloud Picker</h1>
+    </div>
+
+    <div class="container">
+      <!-- Login Panel -->
+      <div class="login-panel active" id="loginPanel">
+        <div style="max-width: 500px; margin: 0 auto; width: 100%;">
+          <h2 style="margin-bottom: 20px; color: #333;">Connect to Nextcloud</h2>
+          
+          <div id="loginError" class="error" style="display: none;"></div>
+
+          <div class="form-group">
+            <label for="baseUrl">Server URL</label>
+            <input type="text" id="baseUrl" placeholder="https://cloud.example.com" />
+            <small>Your Nextcloud server URL (without trailing slash)</small>
+          </div>
+
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="your-username" />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password / App Password</label>
+            <input type="password" id="password" placeholder="••••••••" />
+            <small>Use an app-specific password for better security</small>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="createShare" checked /> 
+              Create public share link (recommended)
+            </label>
+            <small>If disabled, uses WebDAV URL (may require authentication)</small>
+          </div>
+
+          <div class="btn-group">
+            <button class="btn-primary" id="connectBtn">Connect</button>
+            <button class="btn-secondary" id="cancelLoginBtn">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Browse Panel -->
+      <div class="browse-panel" id="browsePanel">
+        <div class="breadcrumb" id="breadcrumb">
+          <span class="breadcrumb-item" data-path="">Home</span>
+        </div>
+        
+        <div class="file-list" id="fileList">
+          <div class="loading">Loading files...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="status" id="status">Not connected</div>
+      <div class="btn-group">
+        <button class="btn-primary" id="insertBtn" disabled>Insert</button>
+        <button class="btn-secondary" id="cancelBtn">Cancel</button>
+      </div>
+    </div>
+
     <script>
       const providerId = "bayerncloud";
-      const post = (type, payload) => {
+      
+      let config = {
+        baseUrl: "",
+        username: "",
+        password: "",
+        createShare: true,
+        currentPath: "",
+        pathHistory: [""],
+      };
+
+      let selectedFile = null;
+      let currentFiles = [];
+
+      // Post message to parent window
+      const postMessage = (type, payload) => {
         window.opener?.postMessage(
           {
             source: "tinymce-multicloud-plugin",
@@ -19,23 +279,388 @@
             providerId,
             payload,
           },
-          "*",
+          "*"
         );
         window.close();
       };
 
-      document.getElementById("insert").onclick = () => {
-        post("picked", {
-          item: {
-            id: "b-1",
-            name: "BayernCloud File",
-            url: "https://example.com/bayerncloud/file",
-          },
-          mode: "link",
+      // Auth header
+      const getAuthHeader = () => {
+        const credentials = btoa(`${config.username}:${config.password}`);
+        return { Authorization: `Basic ${credentials}` };
+      };
+
+      // WebDAV endpoint
+      const getWebDavUrl = (path = "") => {
+        const cleanPath = path.replace(/^\/+/, "");
+        return `${config.baseUrl}/remote.php/dav/files/${encodeURIComponent(config.username)}/${cleanPath}`;
+      };
+
+      // Parse WebDAV XML response
+      const parseWebDavXml = (xmlText, requestedPath) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xmlText, "application/xml");
+        const responses = Array.from(doc.getElementsByTagNameNS("DAV:", "response"));
+        
+        const basePathname = new URL(getWebDavUrl(requestedPath)).pathname.replace(/\/+$/, "");
+        const files = [];
+
+        responses.forEach((response) => {
+          const hrefNode = response.getElementsByTagNameNS("DAV:", "href")[0];
+          if (!hrefNode?.textContent) return;
+
+          const href = hrefNode.textContent;
+          const hrefPath = new URL(href, config.baseUrl).pathname.replace(/\/+$/, "");
+
+          // Skip the current directory itself
+          if (hrefPath === basePathname) return;
+
+          const displayNameNode = response.getElementsByTagNameNS("DAV:", "displayname")[0];
+          const contentTypeNode = response.getElementsByTagNameNS("DAV:", "getcontenttype")[0];
+          const collectionNode = response.getElementsByTagNameNS("DAV:", "collection")[0];
+
+          const isDirectory = Boolean(collectionNode);
+          const pathSegments = hrefPath.split("/").filter(Boolean);
+          const fallbackName = decodeURIComponent(pathSegments[pathSegments.length - 1] || "file");
+          const name = displayNameNode?.textContent?.trim() || fallbackName;
+
+          files.push({
+            id: hrefPath,
+            name,
+            path: hrefPath,
+            url: `${config.baseUrl}${href}`,
+            mimeType: contentTypeNode?.textContent || (isDirectory ? "inode/directory" : "application/octet-stream"),
+            isDirectory,
+          });
+        });
+
+        // Sort: folders first, then alphabetically
+        return files.sort((a, b) => {
+          if (a.isDirectory !== b.isDirectory) {
+            return b.isDirectory ? 1 : -1;
+          }
+          return a.name.localeCompare(b.name);
         });
       };
 
-      document.getElementById("cancel").onclick = () => post("cancelled");
+      // List files via WebDAV
+      const listFiles = async (path = "") => {
+        const url = getWebDavUrl(path);
+        
+        const response = await fetch(url, {
+          method: "PROPFIND",
+          headers: {
+            "Depth": "1",
+            "Content-Type": "application/xml; charset=utf-8",
+            ...getAuthHeader(),
+          },
+          body: `<?xml version="1.0"?>
+<d:propfind xmlns:d="DAV:">
+  <d:prop>
+    <d:displayname/>
+    <d:getcontenttype/>
+    <d:resourcetype/>
+  </d:prop>
+</d:propfind>`,
+        });
+
+        if (!response.ok) {
+          throw new Error(`WebDAV request failed: ${response.status} ${response.statusText}`);
+        }
+
+        const xmlText = await response.text();
+        return parseWebDavXml(xmlText, path);
+      };
+
+      // Create public share link
+      const createPublicShare = async (filePath) => {
+        const sharingUrl = `${config.baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares`;
+        
+        // Extract relative path from full WebDAV path
+        const marker = `/remote.php/dav/files/${config.username}/`;
+        const markerIndex = filePath.indexOf(marker);
+        const relativePath = markerIndex >= 0 
+          ? filePath.slice(markerIndex + marker.length)
+          : filePath.split("/").pop();
+
+        const params = new URLSearchParams({
+          path: `/${relativePath}`,
+          shareType: "3", // Public link
+        });
+
+        const response = await fetch(sharingUrl, {
+          method: "POST",
+          headers: {
+            "OCS-APIRequest": "true",
+            "Content-Type": "application/x-www-form-urlencoded",
+            ...getAuthHeader(),
+          },
+          body: params.toString(),
+        });
+
+        if (!response.ok) {
+          console.warn("Failed to create share link, using direct URL");
+          return null;
+        }
+
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(xmlText, "application/xml");
+        const urlNode = doc.getElementsByTagName("url")[0];
+        return urlNode?.textContent?.trim() || null;
+      };
+
+      // Detect insert mode based on MIME type
+      const detectInsertMode = (file) => {
+        const mime = file.mimeType || "";
+        const name = file.name || "";
+        
+        if (/^image\//i.test(mime) || /\.(apng|avif|gif|jpe?g|png|svg|webp|bmp|tiff?)$/i.test(name)) {
+          return "image";
+        }
+        
+        if (/^video\//i.test(mime) || /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(name)) {
+          return "embed";
+        }
+        
+        if (/(pdf|document|spreadsheet|presentation|msword|ms-excel|ms-powerpoint|officedocument)/i.test(mime) ||
+            /\.(pdf|docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(name)) {
+          return "embed";
+        }
+        
+        return "link";
+      };
+
+      // Render file list
+      const renderFileList = () => {
+        const fileList = document.getElementById("fileList");
+        
+        if (currentFiles.length === 0) {
+          fileList.innerHTML = '<div class="empty">No files in this folder</div>';
+          return;
+        }
+
+        fileList.innerHTML = currentFiles.map(file => `
+          <div class="file-item ${file.isDirectory ? 'folder' : 'file'} ${selectedFile?.id === file.id ? 'selected' : ''}"
+               data-id="${file.id}"
+               data-is-directory="${file.isDirectory}">
+            <div class="file-icon">${file.isDirectory ? '📁' : '📄'}</div>
+            <div class="file-name">${file.name}</div>
+          </div>
+        `).join("");
+
+        // Add click handlers
+        document.querySelectorAll(".file-item").forEach(item => {
+          item.addEventListener("click", () => {
+            const fileId = item.getAttribute("data-id");
+            const isDirectory = item.getAttribute("data-is-directory") === "true";
+            const file = currentFiles.find(f => f.id === fileId);
+
+            if (isDirectory) {
+              navigateToFolder(file);
+            } else {
+              selectFile(file);
+            }
+          });
+        });
+      };
+
+      // Navigate to folder
+      const navigateToFolder = async (folder) => {
+        try {
+          document.getElementById("status").textContent = "Loading...";
+          
+          // Extract relative path from full path
+          const marker = `/remote.php/dav/files/${config.username}/`;
+          const markerIndex = folder.path.indexOf(marker);
+          const relativePath = markerIndex >= 0 
+            ? folder.path.slice(markerIndex + marker.length)
+            : folder.path;
+
+          config.currentPath = relativePath;
+          config.pathHistory.push(relativePath);
+          
+          currentFiles = await listFiles(relativePath);
+          selectedFile = null;
+          
+          renderBreadcrumb();
+          renderFileList();
+          updateInsertButton();
+          
+          document.getElementById("status").textContent = `${currentFiles.length} items`;
+        } catch (error) {
+          document.getElementById("status").textContent = `Error: ${error.message}`;
+        }
+      };
+
+      // Navigate to path from breadcrumb
+      const navigateToPath = async (path) => {
+        try {
+          document.getElementById("status").textContent = "Loading...";
+          
+          config.currentPath = path;
+          currentFiles = await listFiles(path);
+          selectedFile = null;
+          
+          renderBreadcrumb();
+          renderFileList();
+          updateInsertButton();
+          
+          document.getElementById("status").textContent = `${currentFiles.length} items`;
+        } catch (error) {
+          document.getElementById("status").textContent = `Error: ${error.message}`;
+        }
+      };
+
+      // Render breadcrumb
+      const renderBreadcrumb = () => {
+        const breadcrumb = document.getElementById("breadcrumb");
+        const parts = config.currentPath.split("/").filter(Boolean);
+        
+        let html = '<span class="breadcrumb-item" data-path="">🏠 Home</span>';
+        
+        let currentPath = "";
+        parts.forEach((part, index) => {
+          currentPath += (currentPath ? "/" : "") + part;
+          html += ' <span class="breadcrumb-separator">/</span> ';
+          html += `<span class="breadcrumb-item" data-path="${currentPath}">${part}</span>`;
+        });
+        
+        breadcrumb.innerHTML = html;
+        
+        // Add click handlers
+        document.querySelectorAll(".breadcrumb-item").forEach(item => {
+          item.addEventListener("click", () => {
+            const path = item.getAttribute("data-path");
+            navigateToPath(path);
+          });
+        });
+      };
+
+      // Select file
+      const selectFile = (file) => {
+        selectedFile = file;
+        renderFileList();
+        updateInsertButton();
+      };
+
+      // Update insert button state
+      const updateInsertButton = () => {
+        const insertBtn = document.getElementById("insertBtn");
+        insertBtn.disabled = !selectedFile;
+      };
+
+      // Connect to Nextcloud
+      const connect = async () => {
+        const baseUrl = document.getElementById("baseUrl").value.trim().replace(/\/+$/, "");
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value;
+        const createShare = document.getElementById("createShare").checked;
+
+        if (!baseUrl || !username || !password) {
+          showLoginError("Please fill in all fields");
+          return;
+        }
+
+        config.baseUrl = baseUrl;
+        config.username = username;
+        config.password = password;
+        config.createShare = createShare;
+
+        document.getElementById("connectBtn").disabled = true;
+        document.getElementById("connectBtn").textContent = "Connecting...";
+        hideLoginError();
+
+        try {
+          currentFiles = await listFiles("");
+          
+          document.getElementById("loginPanel").classList.remove("active");
+          document.getElementById("browsePanel").classList.add("active");
+          document.getElementById("status").textContent = `Connected as ${username} - ${currentFiles.length} items`;
+          
+          renderBreadcrumb();
+          renderFileList();
+        } catch (error) {
+          showLoginError(`Connection failed: ${error.message}`);
+          document.getElementById("connectBtn").disabled = false;
+          document.getElementById("connectBtn").textContent = "Connect";
+        }
+      };
+
+      // Show/hide login errors
+      const showLoginError = (message) => {
+        const errorDiv = document.getElementById("loginError");
+        errorDiv.textContent = message;
+        errorDiv.style.display = "block";
+      };
+
+      const hideLoginError = () => {
+        document.getElementById("loginError").style.display = "none";
+      };
+
+      // Insert selected file
+      const insertFile = async () => {
+        if (!selectedFile) return;
+
+        document.getElementById("insertBtn").disabled = true;
+        document.getElementById("insertBtn").textContent = "Inserting...";
+        document.getElementById("status").textContent = "Creating share link...";
+
+        try {
+          let fileUrl = selectedFile.url;
+          
+          // Try to create public share link if enabled
+          if (config.createShare) {
+            const shareUrl = await createPublicShare(selectedFile.path);
+            if (shareUrl) {
+              fileUrl = shareUrl;
+            }
+          }
+
+          postMessage("picked", {
+            item: {
+              id: selectedFile.id,
+              name: selectedFile.name,
+              url: fileUrl,
+              mimeType: selectedFile.mimeType,
+            },
+            mode: detectInsertMode(selectedFile),
+          });
+        } catch (error) {
+          document.getElementById("status").textContent = `Error: ${error.message}`;
+          document.getElementById("insertBtn").disabled = false;
+          document.getElementById("insertBtn").textContent = "Insert";
+        }
+      };
+
+      // Event listeners
+      document.getElementById("connectBtn").addEventListener("click", connect);
+      document.getElementById("cancelLoginBtn").addEventListener("click", () => postMessage("cancelled"));
+      document.getElementById("insertBtn").addEventListener("click", insertFile);
+      document.getElementById("cancelBtn").addEventListener("click", () => postMessage("cancelled"));
+
+      // Handle Enter key in login form
+      document.querySelectorAll("#loginPanel input").forEach(input => {
+        input.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            connect();
+          }
+        });
+      });
+
+      // Try to load saved credentials (for development)
+      if (localStorage.getItem("bayerncloud_baseUrl")) {
+        document.getElementById("baseUrl").value = localStorage.getItem("bayerncloud_baseUrl") || "";
+        document.getElementById("username").value = localStorage.getItem("bayerncloud_username") || "";
+      }
+
+      // Save credentials on connect (for development convenience)
+      document.getElementById("connectBtn").addEventListener("click", () => {
+        if (document.getElementById("baseUrl").value && document.getElementById("username").value) {
+          localStorage.setItem("bayerncloud_baseUrl", document.getElementById("baseUrl").value);
+          localStorage.setItem("bayerncloud_username", document.getElementById("username").value);
+        }
+      });
     </script>
   </body>
 </html>
