@@ -32,11 +32,37 @@ Cloudflare Workers free tier includes:
 
 ### 3. Edit Worker Code
 
-1. After deployment, click **Edit Code**
-2. Delete the default code
-3. Copy the entire contents of `cloudflare-worker/nextcloud-proxy.js`
-4. Paste into the editor
-5. Click **Save and Deploy**
+1. After deployment, click **Edit Code** (or **Quick Edit**)
+2. Delete the default code completely
+3. Open `cloudflare-worker/nextcloud-proxy.js` from the repository
+4. **Copy the entire file contents** (Ctrl+A, Ctrl+C)
+5. **Paste into the Cloudflare editor** (Ctrl+V)
+6. Click **Save and Deploy**
+
+**⚠️ Important:** 
+- Don't try to upload the file - paste the code directly into the editor
+- Make sure to delete ALL default code before pasting
+- The file is plain JavaScript - no build process needed
+
+### Alternative: Deploy with Wrangler CLI
+
+If you prefer command-line deployment:
+
+```bash
+# Install Wrangler globally
+npm install -g wrangler
+
+# Login to Cloudflare
+wrangler login
+
+# Deploy from the repository root
+wrangler deploy
+
+# Or deploy directly
+wrangler deploy cloudflare-worker/nextcloud-proxy.js
+```
+
+Your worker will be deployed automatically!
 
 ### 4. Get Worker URL
 
