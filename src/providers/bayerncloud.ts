@@ -218,6 +218,92 @@ const selectBayernCloudNode = async (
         api.focus("fileId");
     });
 
+const uploadFile = async (
+    config: BayernCloudNextcloudProviderConfig,
+    file: File,
+): Promise<PickerResult | null> => {
+    try {
+        console.log("Uploading file to Nextcloud:", file.name);
+
+        // Build WebDAV upload URL
+        const baseUrl = required(config.baseUrl, "baseUrl");
+        const username = required(config.username, "username");
+        const webdavPath = (config.webdavPath || "").replace(/^\/+/, "");
+        const uploadPath = `${webdavPath}${webdavPath && !webdavPath.endsWith('/') ? '/' : ''}${file.name}`;
+        const uploadUrl = combineUrl(
+            baseUrl,
+            `remote.php/dav/files/${encodeURIComponent(username)}/${uploadPath}`
+        );
+
+        console.log("Upload URL:", uploadUrl);
+
+        // Upload file using WebDAV PUT
+        const uploadResponse = await fetch(uploadUrl, {
+            method: "PUT",
+            headers: {
+                "Content-Type": file.type || "application/octet-stream",
+                ...getAuthHeaders(config),
+                ...(config.headers || {}),
+            },
+            body: file,
+        });
+
+        if (!uploadResponse.ok) {
+            throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+        }
+
+        console.log("File uploaded successfully");
+
+        // Get the WebDAV path for the uploaded file
+        const webdavFilePath = `/remote.php/dav/files/${username}/${uploadPath}`;
+        
+        // Create public share link if enabled
+        let shareUrl: string | null = null;
+        if (config.createPublicShare) {
+            shareUrl = await createPublicShare(config, webdavFilePath);
+            if (shareUrl) {
+                console.log("Created public share:", shareUrl);
+                // Append /download for direct file access (needed for embedding)
+                shareUrl = shareUrl + "/download";
+            }
+        }
+
+        // Construct the file URL
+        const fileUrl = shareUrl || uploadUrl;
+
+        // Check if file should be embedded
+        const fileName = file.name || "";
+        const isPdf = /\.pdf$/i.test(fileName);
+        const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
+        const isPublicShare = shareUrl !== null;
+        
+        let embedUrl: string | undefined;
+        if ((isPdf || isOfficeDoc) && isPublicShare) {
+            // Use Google Docs Viewer for documents with public share links
+            embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+        }
+
+        return {
+            item: {
+                id: webdavFilePath,
+                name: file.name,
+                url: fileUrl,
+                embedUrl,
+                mimeType: file.type || "application/octet-stream",
+            },
+            mode: detectInsertMode({
+                id: webdavFilePath,
+                name: file.name,
+                url: fileUrl,
+                mimeType: file.type,
+            }),
+        };
+    } catch (error) {
+        console.error("Upload error:", error);
+        throw error;
+    }
+};
+
 export const bayerncloudProvider = (): CloudProvider => ({
     id: "bayerncloud",
     label: "BayernCloud",
@@ -258,5 +344,18 @@ export const bayerncloudProvider = (): CloudProvider => ({
         };
 
         return result;
+    },
+    upload: async (context, file) => {
+        const config = context.providerConfig as BayernCloudNextcloudProviderConfig;
+
+        if (config.pickerUrl) {
+            throw new Error("Upload is not supported when using pickerUrl mode. Use WebDAV mode instead.");
+        }
+
+        if ((config.mode || "nextcloud-webdav") !== "nextcloud-webdav") {
+            throw new Error("Unsupported BayernCloud mode. Use nextcloud-webdav.");
+        }
+
+        return await uploadFile(config, file);
     },
 });

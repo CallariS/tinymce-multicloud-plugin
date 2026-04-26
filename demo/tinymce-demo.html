@@ -57,7 +57,10 @@
           // Handle window resize
           window.addEventListener('resize', () => {
             const newHeight = calculateEditorHeight();
-            editor.theme.resizeTo(null, newHeight);
+            // Use the container resize method instead of deprecated theme.resizeTo
+            if (editor.getContainer()) {
+              editor.getContainer().style.height = newHeight + 'px';
+            }
           });
         },
       });
