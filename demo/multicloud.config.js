@@ -27,7 +27,14 @@ window.MULTICLOUD_CONFIG = {
             pickerUrl: "./pickers/bayerncloud.html"
             // Uses Nextcloud Login Flow v2 (OAuth-like authentication)
             // Picker prompts for Nextcloud server URL, then opens secure login popup
-            // Works with any Nextcloud instance - CORS-friendly!
+            // Works with any Nextcloud instance
+            // 
+            // ⚠️ CORS PROXY REQUIRED FOR BROWSER USAGE
+            // Nextcloud blocks browser requests from different domains
+            // To enable:
+            // 1. Deploy Cloudflare Worker (free): docs/CLOUDFLARE_WORKER_SETUP.md
+            // 2. Update picker: Set PROXY_URL in demo/pickers/bayerncloud.html
+            // 3. OR disable this provider for GitHub Pages demo
         }
     },
     defaultProvider: "googleDrive",

@@ -252,6 +252,12 @@
     <script>
       const providerId = "bayerncloud";
       
+      // CORS Proxy Configuration
+      // Set this to your Cloudflare Worker URL to enable CORS proxying
+      // Example: "https://nextcloud-proxy.your-account.workers.dev"
+      // See docs/CLOUDFLARE_WORKER_SETUP.md for setup instructions
+      const PROXY_URL = null; // Set your Cloudflare Worker URL here
+      
       let config = {
         baseUrl: "",
         username: "",
@@ -278,6 +284,18 @@
         window.close();
       };
 
+      // Proxy-aware fetch wrapper
+      const proxyFetch = (url, options = {}) => {
+        if (PROXY_URL) {
+          // Use proxy
+          const proxyUrl = `${PROXY_URL}?target=${encodeURIComponent(url)}`;
+          return fetch(proxyUrl, options);
+        } else {
+          // Direct request (will fail with CORS on most Nextcloud instances)
+          return fetch(url, options);
+        }
+      };
+
       // Auth header
       const getAuthHeader = () => {
         const credentials = btoa(`${config.username}:${config.appPassword}`);
@@ -287,7 +305,7 @@
       // Nextcloud Login Flow v2
       const loginFlowV2 = async (baseUrl) => {
         // Step 1: Initiate login flow
-        const initResponse = await fetch(`${baseUrl}/index.php/login/v2`, {
+        const initResponse = await proxyFetch(`${baseUrl}/index.php/login/v2`, {
           method: "POST",
           headers: { "Content-Type": "application/json" }
         });
@@ -321,7 +339,7 @@
                 return;
               }
 
-              const pollResponse = await fetch(poll.endpoint, {
+              const pollResponse = await proxyFetch(poll.endpoint, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/x-www-form-urlencoded",
@@ -425,7 +443,7 @@
       const listFiles = async (path = "") => {
         const url = getWebDavUrl(path);
         
-        const response = await fetch(url, {
+        const response = await proxyFetch(url, {
           method: "PROPFIND",
           headers: {
             "Depth": "1",
@@ -466,7 +484,7 @@
           shareType: "3", // Public link
         });
 
-        const response = await fetch(sharingUrl, {
+        const response = await proxyFetch(sharingUrl, {
           method: "POST",
           headers: {
             "OCS-APIRequest": "true",

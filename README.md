@@ -148,14 +148,34 @@ A mock bridge page is available at `demo/picker-bridge-example.html`.
 - Required config: `appKey`.
 
 ### BayernCloud (Nextcloud/WebDAV mode)
+- **⚠️ Requires CORS Proxy**: Nextcloud APIs have CORS restrictions - browser deployments require a proxy (see below)
 - Supports two modes:
-  1. **Interactive Picker** (`pickerUrl`): Opens a popup that prompts users for their Nextcloud credentials, browses files via WebDAV, and creates public share links
+  1. **Interactive Picker** (`pickerUrl`): Opens a popup with Nextcloud Login Flow v2 (OAuth-like), browses files via WebDAV, creates public share links
   2. **Pre-configured WebDAV** (`mode: "nextcloud-webdav"`): Uses pre-configured credentials for programmatic file access
-- Uses WebDAV `PROPFIND` to list files.
-- Optional OCS share creation for public links.
+- Uses Nextcloud Login Flow v2 for secure authentication
+- Uses WebDAV `PROPFIND` to list files
+- Optional OCS share creation for public links
 - Works with any Nextcloud instance (BayernCloud, private Nextcloud servers, etc.)
-- Interactive mode: No config required, users enter credentials in picker
-- WebDAV mode required config: `baseUrl`, `username` and either `password` or `bearerToken`.
+- **CORS Proxy Setup**: See `docs/CLOUDFLARE_WORKER_SETUP.md` for free Cloudflare Worker proxy (100k requests/day free)
+- **Alternative**: Deploy plugin on same domain as Nextcloud (no proxy needed)
+
+#### Nextcloud CORS Proxy
+
+Nextcloud instances block browser requests from different domains. To enable browser-based access:
+
+**Option 1: Cloudflare Worker (Recommended - Free)**
+1. Follow `docs/CLOUDFLARE_WORKER_SETUP.md`
+2. Deploy the worker from `cloudflare-worker/nextcloud-proxy.js`
+3. Update picker config with worker URL
+4. ✅ Works from GitHub Pages, any domain
+
+**Option 2: Same-Origin Deployment**
+- Host plugin on same domain as Nextcloud
+- No proxy needed (same-origin = no CORS)
+
+**Option 3: Server-Side Integration**
+- Use Nextcloud provider in backend/Node.js
+- No CORS issues in server-to-server requests
 
 ## Popup fallback mode
 

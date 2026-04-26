@@ -1,0 +1,20 @@
+# Cloudflare Worker Configuration
+# This file makes it easier to deploy the Nextcloud proxy worker
+# See docs/CLOUDFLARE_WORKER_SETUP.md for setup instructions
+
+name = "nextcloud-proxy"
+main = "cloudflare-worker/nextcloud-proxy.js"
+compatibility_date = "2024-01-01"
+
+# Workers Free tier limits
+# - 100,000 requests/day
+# - 10ms CPU time per request
+
+[build]
+command = ""
+
+[env.production]
+name = "nextcloud-proxy"
+
+[env.development]
+name = "nextcloud-proxy-dev"
