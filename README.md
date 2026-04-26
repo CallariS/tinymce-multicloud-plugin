@@ -67,7 +67,7 @@ When configuring OAuth allowlists, include exactly:
   tinymce.init({
     selector: "#editor",
     plugins: "link image media multicloud",
-    toolbar: "undo redo | bold italic | link image media | multicloud",
+    toolbar: "undo redo | bold italic | link image media | multicloud multicloud_upload",
 
     multicloud_providers: {
       googleDrive: {
@@ -107,6 +107,39 @@ When configuring OAuth allowlists, include exactly:
     multicloud_popup_timeout_ms: 120000
   });
 </script>
+```
+
+### Toolbar buttons
+
+The plugin provides two toolbar buttons:
+
+- **`multicloud`**: Opens a file picker to browse and select files from cloud providers
+- **`multicloud_upload`**: Opens a dialog to upload local files to cloud providers
+
+### Upload support
+
+Some providers support uploading local files directly to the cloud:
+
+**Google Drive**: ✅ Full upload support
+- Uploads files to user's Drive
+- Creates public sharing link
+- Embeds PDFs and Office documents
+
+**Nextcloud/BayernCloud**: ✅ Upload support in WebDAV mode only
+- Requires `mode: "nextcloud-webdav"` with credentials
+- Not supported in `pickerUrl` mode (interactive picker)
+- Uploads via WebDAV PUT request
+- Creates public share links (if `createPublicShare: true`)
+- Embeds PDFs and Office documents
+
+**OneDrive**: ❌ Upload not yet implemented
+
+**Dropbox**: ❌ Upload not yet implemented
+
+To use upload, add `multicloud_upload` to your toolbar:
+
+```javascript
+toolbar: "undo redo | bold italic | link image media | multicloud multicloud_upload"
 ```
 
 ## Picker bridge contract
