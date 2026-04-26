@@ -357,7 +357,7 @@ export const bayerncloudProvider = (): CloudProvider => ({
                 120000;
             const popupFeatures =
                 config.popupFeatures ?? "popup=yes,width=1120,height=760,resizable=yes,scrollbars=yes";
-            
+
             // Resolve picker URL
             // If it starts with http/https, use as-is
             // If it starts with ./ or ../, resolve relative to current page

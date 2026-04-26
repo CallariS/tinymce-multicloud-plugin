@@ -77,7 +77,7 @@ export const createPopupProvider = (
             120000;
         const popupFeatures =
             context.providerConfig.popupFeatures ?? DEFAULT_POPUP_FEATURES;
-        
+
         // Resolve picker URL
         let pickerUrl: string;
         if (context.providerConfig.pickerUrl) {

@@ -212,71 +212,107 @@ const openUploadDialog = (
             ? options.defaultProvider
             : uploadProviders[0].id;
 
-    const dialogApi = editor.windowManager.open({
-        title: "Upload to Cloud",
-        body: {
-            type: "panel",
-            items: [
-                {
-                    type: "selectbox",
-                    name: "provider",
-                    label: "Provider",
-                    items: uploadProviders.map((provider) => ({
-                        text: provider.label,
-                        value: provider.id,
-                    })),
-                },
-                {
-                    type: "htmlpanel",
-                    html: '<input type="file" id="multicloud-file-input" style="width: 100%; padding: 8px; box-sizing: border-box;" />',
-                },
-                {
-                    type: "checkbox",
-                    name: "insertAsLink",
-                    label: "Insert as link only (don't embed images/documents)",
-                },
+
+
+    // Helper to determine if provider uses a picker for upload (e.g., Nextcloud)
+
+    function providerUsesPicker(providerId: string) {
+        // Hide file input for any provider with a pickerUrl in config
+        const providerConfig = options.providers?.[providerId];
+        return !!providerConfig?.pickerUrl;
+    }
+
+    // Helper to build dialog items based on provider
+    function getDialogItems(selectedProviderId: string) {
+        const items = [
+            {
+                type: "selectbox",
+                name: "provider",
+                label: "Provider",
+                items: uploadProviders.map((provider) => ({
+                    text: provider.label,
+                    value: provider.id,
+                })),
+            },
+        ];
+        if (!providerUsesPicker(selectedProviderId)) {
+            items.push({
+                type: "htmlpanel",
+                name: "multicloud-file-input-panel",
+                html: '<input type="file" id="multicloud-file-input" style="width: 100%; padding: 8px; box-sizing: border-box;" />',
+            });
+        }
+        items.push({
+            type: "checkbox",
+            name: "insertAsLink",
+            label: "Insert as link only (don\'t embed images/documents)",
+        });
+        return items;
+    }
+
+    function openUploadDialogWithProvider(selectedProviderId: string, insertAsLink: boolean = false) {
+        const dialogApi = editor.windowManager.open({
+            title: "Upload to Cloud",
+            body: {
+                type: "panel",
+                items: getDialogItems(selectedProviderId),
+            },
+            initialData: {
+                provider: selectedProviderId,
+                insertAsLink,
+            },
+            buttons: [
+                { type: "cancel", text: "Cancel" },
+                { type: "submit", text: "Upload", primary: true },
             ],
-        },
-        initialData: {
-            provider: initialProvider,
-            insertAsLink: false,
-        },
-        buttons: [
-            { type: "cancel", text: "Cancel" },
-            { type: "submit", text: "Upload", primary: true },
-        ],
-        onSubmit: (api: any) => {
-            const data = api.getData();
-            const selectedProvider = uploadProviders.find(
-                (provider) => provider.id === data.provider,
-            );
+            onAction: (api, details) => {
+                if (details.name === "provider") {
+                    // Get current insertAsLink value to preserve it
+                    const data = api.getData();
+                    api.close();
+                    openUploadDialogWithProvider(details.value, data.insertAsLink);
+                }
+            },
+            onSubmit: (api: any) => {
+                const data = api.getData();
+                const selectedProvider = uploadProviders.find(
+                    (provider) => provider.id === data.provider,
+                );
 
-            const fileInput = document.getElementById("multicloud-file-input") as HTMLInputElement;
-            const file = fileInput?.files?.[0];
+                if (!selectedProvider) {
+                    editor.notificationManager.open({
+                        type: "warning",
+                        text: "No provider selected.",
+                    });
+                    return;
+                }
 
-            if (!file) {
-                editor.notificationManager.open({
-                    type: "warning",
-                    text: "No file selected.",
-                });
-                return;
-            }
+                // If provider uses picker, skip file input and call pickAndInsert
+                if (providerUsesPicker(selectedProvider.id)) {
+                    api.close();
+                    void pickAndInsert(editor, selectedProvider, pluginUrl, data.insertAsLink);
+                    return;
+                }
 
-            if (!selectedProvider) {
-                editor.notificationManager.open({
-                    type: "warning",
-                    text: "No provider selected.",
-                });
-                return;
-            }
+                const fileInput = document.getElementById("multicloud-file-input") as HTMLInputElement;
+                const file = fileInput?.files?.[0];
 
-            api.close();
+                if (!file) {
+                    editor.notificationManager.open({
+                        type: "warning",
+                        text: "No file selected.",
+                    });
+                    return;
+                }
 
-            void uploadAndInsert(editor, selectedProvider, pluginUrl, file, data.insertAsLink);
-        },
-    });
+                api.close();
+                void uploadAndInsert(editor, selectedProvider, pluginUrl, file, data.insertAsLink);
+            },
+        });
+        dialogApi.focus("provider");
+    }
 
-    dialogApi.focus("provider");
+    openUploadDialogWithProvider(initialProvider);
 };
 
 const openProviderDialog = (
