@@ -53,9 +53,18 @@ const insertResult = (
     }
 
     if (mode === "embed") {
-        editor.insertContent(
-            `<iframe src="${safeEmbed}" title="${safeName}" width="800" height="500" frameborder="0" style="max-width: 100%;" loading="lazy" allowfullscreen></iframe>`,
-        );
+        const isVideo =
+            item.mimeType?.startsWith("video/") ||
+            /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(item.name || item.url);
+        if (isVideo) {
+            editor.insertContent(
+                `<video src="${safeEmbed}" title="${safeName}" width="800" height="450" controls style="max-width: 100%;"></video>`,
+            );
+        } else {
+            editor.insertContent(
+                `<iframe src="${safeEmbed}" title="${safeName}" width="800" height="500" frameborder="0" style="max-width: 100%;" loading="lazy" allowfullscreen></iframe>`,
+            );
+        }
         return;
     }
 

@@ -326,7 +326,8 @@ export const bayerncloudProvider = (): CloudProvider => ({
         }
 
         const shareUrl = await createPublicShare(config, selected.webdavPath);
-        const targetUrl = shareUrl || selected.url;
+        // Append /download for direct file access (needed for embedding videos, images, PDFs)
+        const targetUrl = shareUrl ? shareUrl + "/download" : selected.url;
 
         const result: PickerResult = {
             item: {
