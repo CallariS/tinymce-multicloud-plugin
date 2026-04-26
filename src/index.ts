@@ -224,7 +224,7 @@ const openUploadDialog = (
 
     // Helper to build dialog items based on provider
     function getDialogItems(selectedProviderId: string) {
-        const items = [
+        const items: any[] = [
             {
                 type: "selectbox",
                 name: "provider",
@@ -265,7 +265,7 @@ const openUploadDialog = (
                 { type: "cancel", text: "Cancel" },
                 { type: "submit", text: "Upload", primary: true },
             ],
-            onAction: (api, details) => {
+            onAction: (api: any, details: any) => {
                 if (details.name === "provider") {
                     // Get current insertAsLink value to preserve it
                     const data = api.getData();
