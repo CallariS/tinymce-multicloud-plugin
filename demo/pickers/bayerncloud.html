@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BayernCloud / Nextcloud Picker</title>
+    <title>Nextcloud File Picker</title>
     <style>
       * {
         box-sizing: border-box;
@@ -192,7 +192,7 @@
   </head>
   <body>
     <div class="header">
-      <h1>🌥️ BayernCloud / Nextcloud Picker</h1>
+      <h1>🌥️ Nextcloud File Picker (OAuth)</h1>
     </div>
 
     <div class="container">
@@ -210,26 +210,20 @@
           </div>
 
           <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" placeholder="your-username" />
-          </div>
-
-          <div class="form-group">
-            <label for="password">Password / App Password</label>
-            <input type="password" id="password" placeholder="••••••••" />
-            <small>Use an app-specific password for better security</small>
-          </div>
-
-          <div class="form-group">
             <label>
               <input type="checkbox" id="createShare" checked /> 
-              Create public share link (recommended)
+              Create public share links (recommended)
             </label>
-            <small>If disabled, uses WebDAV URL (may require authentication)</small>
+            <small>If disabled, uses direct file URLs (may require authentication)</small>
+          </div>
+
+          <div style="padding: 12px; background: #e7f3ff; border-radius: 4px; margin-bottom: 16px; font-size: 13px; color: #004085;">
+            <strong>📱 OAuth Login Flow</strong><br>
+            Click Connect to authorize via secure Nextcloud login (no password needed here)
           </div>
 
           <div class="btn-group">
-            <button class="btn-primary" id="connectBtn">Connect</button>
+            <button class="btn-primary" id="connectBtn">Connect with Nextcloud</button>
             <button class="btn-secondary" id="cancelLoginBtn">Cancel</button>
           </div>
         </div>
@@ -261,7 +255,7 @@
       let config = {
         baseUrl: "",
         username: "",
-        password: "",
+        appPassword: "", // Token from Login Flow v2
         createShare: true,
         currentPath: "",
         pathHistory: [""],
@@ -286,8 +280,92 @@
 
       // Auth header
       const getAuthHeader = () => {
-        const credentials = btoa(`${config.username}:${config.password}`);
+        const credentials = btoa(`${config.username}:${config.appPassword}`);
         return { Authorization: `Basic ${credentials}` };
+      };
+
+      // Nextcloud Login Flow v2
+      const loginFlowV2 = async (baseUrl) => {
+        // Step 1: Initiate login flow
+        const initResponse = await fetch(`${baseUrl}/index.php/login/v2`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+
+        if (!initResponse.ok) {
+          throw new Error(`Login flow initialization failed: ${initResponse.status}`);
+        }
+
+        const initData = await initResponse.json();
+        const { poll, login } = initData;
+
+        // Step 2: Open login URL in popup
+        const loginPopup = window.open(
+          login,
+          "nextcloud_login",
+          "width=600,height=700,popup=yes,resizable=yes,scrollbars=yes"
+        );
+
+        if (!loginPopup) {
+          throw new Error("Could not open login popup. Please allow popups.");
+        }
+
+        // Step 3: Poll for completion
+        return new Promise((resolve, reject) => {
+          const pollInterval = setInterval(async () => {
+            try {
+              // Check if popup was closed by user
+              if (loginPopup.closed) {
+                clearInterval(pollInterval);
+                reject(new Error("Login cancelled by user"));
+                return;
+              }
+
+              const pollResponse = await fetch(poll.endpoint, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: `token=${encodeURIComponent(poll.token)}`
+              });
+
+              if (pollResponse.status === 404) {
+                // Still waiting for user to authorize
+                return;
+              }
+
+              if (!pollResponse.ok) {
+                clearInterval(pollInterval);
+                loginPopup.close();
+                reject(new Error(`Login polling failed: ${pollResponse.status}`));
+                return;
+              }
+
+              // Success!
+              const data = await pollResponse.json();
+              clearInterval(pollInterval);
+              loginPopup.close();
+              
+              resolve({
+                loginName: data.loginName,
+                appPassword: data.appPassword,
+                server: data.server
+              });
+            } catch (error) {
+              // Continue polling on network errors
+              console.log("Poll attempt failed, retrying...");
+            }
+          }, 1000); // Poll every second
+
+          // Timeout after 5 minutes
+          setTimeout(() => {
+            clearInterval(pollInterval);
+            if (!loginPopup.closed) {
+              loginPopup.close();
+            }
+            reject(new Error("Login timeout - please try again"));
+          }, 300000);
+        });
       };
 
       // WebDAV endpoint
@@ -553,37 +631,46 @@
       // Connect to Nextcloud
       const connect = async () => {
         const baseUrl = document.getElementById("baseUrl").value.trim().replace(/\/+$/, "");
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value;
         const createShare = document.getElementById("createShare").checked;
 
-        if (!baseUrl || !username || !password) {
-          showLoginError("Please fill in all fields");
+        if (!baseUrl) {
+          showLoginError("Please enter your Nextcloud server URL");
           return;
         }
 
         config.baseUrl = baseUrl;
-        config.username = username;
-        config.password = password;
         config.createShare = createShare;
 
         document.getElementById("connectBtn").disabled = true;
-        document.getElementById("connectBtn").textContent = "Connecting...";
+        document.getElementById("connectBtn").textContent = "Opening Login...";
         hideLoginError();
 
         try {
+          // Use Login Flow v2 for secure authentication
+          const loginData = await loginFlowV2(baseUrl);
+          
+          config.username = loginData.loginName;
+          config.appPassword = loginData.appPassword;
+
+          document.getElementById("connectBtn").textContent = "Loading files...";
+
+          // Load root files
           currentFiles = await listFiles("");
           
           document.getElementById("loginPanel").classList.remove("active");
           document.getElementById("browsePanel").classList.add("active");
-          document.getElementById("status").textContent = `Connected as ${username} - ${currentFiles.length} items`;
+          document.getElementById("status").textContent = `Connected as ${config.username} - ${currentFiles.length} items`;
           
           renderBreadcrumb();
           renderFileList();
+
+          // Save for convenience
+          localStorage.setItem("bayerncloud_baseUrl", baseUrl);
+          localStorage.setItem("bayerncloud_username", config.username);
         } catch (error) {
           showLoginError(`Connection failed: ${error.message}`);
           document.getElementById("connectBtn").disabled = false;
-          document.getElementById("connectBtn").textContent = "Connect";
+          document.getElementById("connectBtn").textContent = "Connect with Nextcloud";
         }
       };
 
@@ -648,19 +735,10 @@
         });
       });
 
-      // Try to load saved credentials (for development)
+      // Try to load saved server URL (for development convenience)
       if (localStorage.getItem("bayerncloud_baseUrl")) {
         document.getElementById("baseUrl").value = localStorage.getItem("bayerncloud_baseUrl") || "";
-        document.getElementById("username").value = localStorage.getItem("bayerncloud_username") || "";
       }
-
-      // Save credentials on connect (for development convenience)
-      document.getElementById("connectBtn").addEventListener("click", () => {
-        if (document.getElementById("baseUrl").value && document.getElementById("username").value) {
-          localStorage.setItem("bayerncloud_baseUrl", document.getElementById("baseUrl").value);
-          localStorage.setItem("bayerncloud_username", document.getElementById("username").value);
-        }
-      });
     </script>
   </body>
 </html>

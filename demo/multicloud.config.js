@@ -22,11 +22,12 @@ window.MULTICLOUD_CONFIG = {
             multiselect: false,
             extensions: [] // Empty array allows all file types
         },
-        bayerncloud: { 
-            enabled: true, 
-            pickerUrl: "./pickers/bayerncloud.html" 
-            // The picker will prompt for Nextcloud server URL, username, and password
-            // Supports any Nextcloud instance including BayernCloud
+        bayerncloud: {
+            enabled: true,
+            pickerUrl: "./pickers/bayerncloud.html"
+            // Uses Nextcloud Login Flow v2 (OAuth-like authentication)
+            // Picker prompts for Nextcloud server URL, then opens secure login popup
+            // Works with any Nextcloud instance - CORS-friendly!
         }
     },
     defaultProvider: "googleDrive",
