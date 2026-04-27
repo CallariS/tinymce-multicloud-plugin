@@ -1,5 +1,11 @@
 # TinyMCE MultiCloud Plugin
 
+[![npm](https://img.shields.io/npm/v/tinymce-multicloud-plugin)](https://www.npmjs.com/package/tinymce-multicloud-plugin)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Deploy GitHub Pages](https://github.com/CallariS/tinymce-multicloud-plugin/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/CallariS/tinymce-multicloud-plugin/actions/workflows/deploy-pages.yml)
+[![Demo](https://img.shields.io/badge/demo-live-blue)](https://callaris.github.io/tinymce-multicloud-plugin/demo/tinymce-demo.html)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
 A TinyMCE plugin that lets users browse/pick files from multiple cloud providers and insert them into editor content as links, images, or embeds.
 
 Built-in provider adapters:
