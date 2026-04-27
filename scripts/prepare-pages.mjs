@@ -36,6 +36,12 @@ if (existsSync(localConfig)) {
   cpSync(localConfig, join(outDir, "demo", "multicloud.config.js"));
 } else {
   const env = (key, fallback) => process.env[key] ?? fallback;
+
+  // Strip trailing .apps.googleusercontent.com if already present in the secret,
+  // then always append it — prevents accidental duplication.
+  const rawGoogleClientId = env("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_ID");
+  const googleClientId = rawGoogleClientId.replace(/\.apps\.googleusercontent\.com$/, "") + ".apps.googleusercontent.com";
+
   writeFileSync(
     join(outDir, "demo", "multicloud.config.js"),
     `window.MULTICLOUD_CONFIG = {
@@ -43,7 +49,7 @@ if (existsSync(localConfig)) {
         googleDrive: {
             enabled: true,
             apiKey: "${env("GOOGLE_BROWSER_API_KEY", "GOOGLE_BROWSER_API_KEY")}",
-            clientId: "${env("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_ID")}.apps.googleusercontent.com",
+            clientId: "${googleClientId}",
             scopes: ["https://www.googleapis.com/auth/drive.file"],
         },
         oneDrive: {
