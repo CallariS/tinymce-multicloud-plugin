@@ -29,6 +29,52 @@ ensureExists(tinyMceDir, "TinyMCE package directory");
 
 copyDir(distDir, join(outDir, "dist"));
 copyDir(demoDir, join(outDir, "demo"));
+
+// multicloud.config.js is gitignored (contains real credentials).
+// In CI, secrets are injected via environment variables.
+// Locally, the file is copied from the working tree if it exists.
+const localConfig = join(demoDir, "multicloud.config.js");
+if (existsSync(localConfig)) {
+    cpSync(localConfig, join(outDir, "demo", "multicloud.config.js"));
+} else {
+    const env = (key, fallback) => process.env[key] ?? fallback;
+    writeFileSync(
+        join(outDir, "demo", "multicloud.config.js"),
+        `window.MULTICLOUD_CONFIG = {
+    providers: {
+        googleDrive: {
+            enabled: true,
+            apiKey: "${env("GOOGLE_BROWSER_API_KEY", "GOOGLE_BROWSER_API_KEY")}",
+            clientId: "${env("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_ID")}.apps.googleusercontent.com",
+            scopes: ["https://www.googleapis.com/auth/drive.file"],
+        },
+        oneDrive: {
+            enabled: true,
+            clientId: "${env("ONEDRIVE_CLIENT_ID", "ONEDRIVE_CLIENT_ID")}",
+            action: "query",
+            redirectUri: window.location.origin,
+        },
+        dropbox: {
+            enabled: true,
+            appKey: "${env("DROPBOX_APP_KEY", "DROPBOX_APP_KEY")}",
+            linkType: "direct",
+            multiselect: false,
+            extensions: [],
+        },
+        bayerncloud: {
+            enabled: true,
+            pickerUrl: "./pickers/bayerncloud.html",
+        },
+    },
+    defaultProvider: "googleDrive",
+    defaultInsertMode: "link",
+    dialogTitle: "Insert From Cloud",
+    popupTimeoutMs: 120000,
+};
+`,
+        "utf8",
+    );
+}
 copyDir(docsDir, join(outDir, "docs"));
 copyDir(tinyMceDir, join(outDir, "node_modules", "tinymce"));
 
