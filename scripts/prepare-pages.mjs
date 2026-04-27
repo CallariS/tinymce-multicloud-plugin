@@ -37,11 +37,12 @@ if (existsSync(localConfig)) {
 } else {
   const env = (key, fallback) => process.env[key] ?? fallback;
 
-  // Strip trailing .apps.googleusercontent.com if already present in the secret,
-  // then always append it — prevents accidental duplication.
-  // .trim() handles secrets that were saved with a trailing newline or whitespace.
+  // Normalize the Google OAuth client ID: strip any number of trailing
+  // .apps.googleusercontent.com suffixes (handles copy-paste mistakes),
+  // then append it exactly once. .trim() handles secrets with trailing whitespace.
   const rawGoogleClientId = env("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_ID").trim();
-  const googleClientId = rawGoogleClientId.replace(/\.apps\.googleusercontent\.com$/i, "") + ".apps.googleusercontent.com";
+  const baseClientId = rawGoogleClientId.replace(/(?:\.apps\.googleusercontent\.com)+$/i, "");
+  const googleClientId = baseClientId + ".apps.googleusercontent.com";
 
   writeFileSync(
     join(outDir, "demo", "multicloud.config.js"),
