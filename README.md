@@ -25,11 +25,26 @@ npm install
 npm run build
 ```
 
+## Development
+
+```bash
+npm install
+npm run dev       # watches src/ and rebuilds dist/ on change
+```
+
+For local development with real cloud provider SDKs:
+
+1. Copy `demo/multicloud.config.example.js` to `demo/multicloud.config.js`.
+2. Fill in your real credentials (this file is gitignored and will never be committed).
+3. Open `demo/tinymce-demo.html` in a browser (via a local HTTP server, not `file://`).
+
 ## Production quickstart
 
 1. Copy `demo/multicloud.config.example.js` to `demo/multicloud.config.js`.
 2. Fill in your real cloud app IDs/keys and BayernCloud endpoint values.
 3. Follow the provider console checklists in `docs/PRODUCTION_SETUP.md`.
+
+> **Note:** `demo/multicloud.config.js` is gitignored — never commit real credentials to the repository.
 
 ## GitHub Pages demo deployment
 
@@ -49,7 +64,16 @@ Note: `site/` is generated output and is intentionally not tracked in git.
 
 1. Push to `main` or `master`.
 2. In GitHub repository settings, ensure Pages is enabled and uses GitHub Actions.
-3. Wait for the `Deploy GitHub Pages` workflow to complete.
+3. Add the following [repository secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets) so the build can inject credentials:
+
+   | Secret name | Where to get it |
+   |---|---|
+   | `GOOGLE_BROWSER_API_KEY` | Google Cloud Console → APIs & Services → Credentials |
+   | `GOOGLE_OAUTH_CLIENT_ID` | Google Cloud Console → OAuth 2.0 Client ID (without `.apps.googleusercontent.com`) |
+   | `ONEDRIVE_CLIENT_ID` | Azure Portal → App registrations → Application (client) ID |
+   | `DROPBOX_APP_KEY` | Dropbox Developer Console → App settings |
+
+4. Wait for the `Deploy GitHub Pages` workflow to complete.
 
 The demo URL will be:
 
