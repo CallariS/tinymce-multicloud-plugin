@@ -37,13 +37,6 @@ if (existsSync(localConfig)) {
 } else {
   const env = (key, fallback) => process.env[key] ?? fallback;
 
-  // Normalize the Google OAuth client ID: strip any number of trailing
-  // .apps.googleusercontent.com suffixes (handles copy-paste mistakes),
-  // then append it exactly once. .trim() handles secrets with trailing whitespace.
-  const rawGoogleClientId = env("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_ID").trim();
-  const baseClientId = rawGoogleClientId.replace(/(?:\.apps\.googleusercontent\.com)+$/i, "");
-  const googleClientId = baseClientId + ".apps.googleusercontent.com";
-
   writeFileSync(
     join(outDir, "demo", "multicloud.config.js"),
     `window.MULTICLOUD_CONFIG = {
@@ -51,7 +44,7 @@ if (existsSync(localConfig)) {
         googleDrive: {
             enabled: true,
             apiKey: "${env("GOOGLE_BROWSER_API_KEY", "GOOGLE_BROWSER_API_KEY")}",
-            clientId: "${googleClientId}",
+            clientId: "${env("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_ID")}.apps.googleusercontent.com",
             scopes: ["https://www.googleapis.com/auth/drive.file"],
         },
         oneDrive: {

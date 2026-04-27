@@ -22,6 +22,14 @@ Use your exact origins in all cloud app settings.
 - OAuth 2.0 Client ID (type: Web application)
 - API Key (browser key)
 
+> **⚠️ Google Client ID — copy-paste trap**
+> The Google Cloud Console displays the client ID **with** the `.apps.googleusercontent.com` suffix, and the copy button on the credentials list page copies the full string including the suffix.
+> When entering the client ID into your config or as a GitHub Actions secret, use **only the part before `.apps.googleusercontent.com`**.
+> Example — if the console shows:
+> `506225751213-abc123.apps.googleusercontent.com`
+> enter into your config / secret:
+> `506225751213-abc123`
+
 3. OAuth client settings:
 - Authorized JavaScript origins:
   - http://localhost:5173

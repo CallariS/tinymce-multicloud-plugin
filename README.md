@@ -69,9 +69,17 @@ Note: `site/` is generated output and is intentionally not tracked in git.
    | Secret name | Where to get it |
    |---|---|
    | `GOOGLE_BROWSER_API_KEY` | Google Cloud Console → APIs & Services → Credentials |
-   | `GOOGLE_OAUTH_CLIENT_ID` | Google Cloud Console → OAuth 2.0 Client ID (without `.apps.googleusercontent.com`) |
+   | `GOOGLE_OAUTH_CLIENT_ID` | Google Cloud Console → OAuth 2.0 Client ID — **enter only the bare ID, without `.apps.googleusercontent.com`** (see warning below) |
    | `ONEDRIVE_CLIENT_ID` | Azure Portal → App registrations → Application (client) ID |
    | `DROPBOX_APP_KEY` | Dropbox Developer Console → App settings |
+
+   > **⚠️ Google Client ID — copy-paste trap**
+   > In the Google Cloud Console the client ID is displayed **with** the `.apps.googleusercontent.com` suffix, and the copy button on the credentials list page also copies the full string including the suffix.
+   > The build script appends `.apps.googleusercontent.com` automatically, so paste **only the part before it**.
+   > Example — if the console shows:
+   > `506225751213-abc123.apps.googleusercontent.com`
+   > enter into the secret:
+   > `506225751213-abc123`
 
 4. Wait for the `Deploy GitHub Pages` workflow to complete.
 
