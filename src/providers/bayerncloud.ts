@@ -330,6 +330,7 @@ export const bayerncloudProvider = (): CloudProvider => ({
 
         const shareUrl = await createPublicShare(config, selected.webdavPath);
         const isImage = selected.mimeType?.startsWith("image/") || /\.(png|jpe?g|gif|svg|webp|bmp|apng|avif|tiff?)$/i.test(selected.name);
+        const isSvg = selected.mimeType === "image/svg+xml" || /\.svg$/i.test(selected.name);
         // For images, do NOT append /download — that adds Content-Disposition: attachment which prevents <img> rendering
         const targetUrl = shareUrl ? (isImage ? shareUrl : shareUrl + "/download") : selected.url;
 
@@ -338,9 +339,11 @@ export const bayerncloudProvider = (): CloudProvider => ({
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
+                // SVG: use embedUrl so it loads in an iframe (browsers block cross-origin SVG in <img>)
+                embedUrl: isSvg ? targetUrl : undefined,
                 mimeType: selected.mimeType,
             },
-            mode: detectInsertMode({
+            mode: isSvg ? "embed" : detectInsertMode({
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
