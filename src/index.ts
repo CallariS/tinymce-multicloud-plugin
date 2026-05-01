@@ -326,11 +326,16 @@ const openUploadDialog = (
         onClose: () => {},
     });
 
-    setTimeout(() => {
-        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
-            btn.addEventListener("click", () => selectUploadProvider(btn.dataset.provider!));
-        });
-    }, 0);
+    const uploadObserver = new MutationObserver(() => {
+        const btns = document.querySelectorAll<HTMLElement>(".mc-provider-btn");
+        if (btns.length > 0) {
+            uploadObserver.disconnect();
+            btns.forEach((btn) => {
+                btn.addEventListener("click", () => selectUploadProvider(btn.dataset.provider!));
+            });
+        }
+    });
+    uploadObserver.observe(document.body, { childList: true, subtree: true });
 };
 
 const openProviderDialog = (
@@ -400,11 +405,16 @@ const openProviderDialog = (
         onClose: () => {},
     });
 
-    setTimeout(() => {
-        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
-            btn.addEventListener("click", () => selectProvider(btn.dataset.provider!));
-        });
-    }, 0);
+    const pickerObserver = new MutationObserver(() => {
+        const btns = document.querySelectorAll<HTMLElement>(".mc-provider-btn");
+        if (btns.length > 0) {
+            pickerObserver.disconnect();
+            btns.forEach((btn) => {
+                btn.addEventListener("click", () => selectProvider(btn.dataset.provider!));
+            });
+        }
+    });
+    pickerObserver.observe(document.body, { childList: true, subtree: true });
 };
 
 const register = (): void => {

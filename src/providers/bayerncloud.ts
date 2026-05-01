@@ -306,7 +306,7 @@ const uploadFile = async (
 
 export const bayerncloudProvider = (): CloudProvider => ({
     id: "bayerncloud",
-    label: "BayernCloud",
+    label: "Nextcloud / BayernCloud",
     pick: async (context) => {
         const config = context.providerConfig as BayernCloudNextcloudProviderConfig;
 
