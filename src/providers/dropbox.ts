@@ -388,6 +388,12 @@ const uploadFile = async (
         // Determine MIME type
         const mimeType = file.type || "application/octet-stream";
 
+        const odfMimeTypes = [
+            "application/vnd.oasis.opendocument.text",
+            "application/vnd.oasis.opendocument.spreadsheet",
+            "application/vnd.oasis.opendocument.presentation",
+        ];
+
         // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
         // Note: Archives are NOT embedded - inserted as links instead
         let embedUrl: string | undefined;
@@ -401,7 +407,7 @@ const uploadFile = async (
             "application/x-gzip",
         ];
 
-        if (mimeType === "application/pdf") {
+        if (mimeType === "application/pdf" || odfMimeTypes.includes(mimeType)) {
             embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
         } else if (
             mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || // .docx
@@ -425,7 +431,7 @@ const uploadFile = async (
                 downloadUrl: isMediaFile ? sharedUrl : undefined,
                 mimeType,
             },
-            mode: (archiveTypes.includes(mimeType) || odfTypes.includes(mimeType)) ? "link" : detectInsertMode({
+            mode: archiveTypes.includes(mimeType) ? "link" : detectInsertMode({
                 id: uploadData.id,
                 name: uploadData.name,
                 url: sharedUrl,
