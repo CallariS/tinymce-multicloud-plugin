@@ -403,6 +403,7 @@ const uploadFile = async (
             "application/vnd.oasis.opendocument.spreadsheet",
             "application/vnd.oasis.opendocument.presentation",
         ];
+        const isOdfFile = odfMimeTypes.includes(mimeType) || /\.(odt|ods|odp|odf)$/i.test(file.name);
 
         // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
         // Note: Archives are NOT embedded - inserted as links instead
@@ -417,7 +418,7 @@ const uploadFile = async (
             "application/x-gzip",
         ];
 
-        if (mimeType === "application/pdf" || odfMimeTypes.includes(mimeType)) {
+        if (mimeType === "application/pdf") {
             embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
         } else if (
             mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || // .docx
@@ -441,7 +442,7 @@ const uploadFile = async (
                 downloadUrl: isMediaFile ? sharedUrl : undefined,
                 mimeType,
             },
-            mode: (archiveTypes.includes(mimeType) || odfMimeTypes.includes(mimeType)) ? "link" : detectInsertMode({
+            mode: (archiveTypes.includes(mimeType) || isOdfFile) ? "link" : detectInsertMode({
                 id: uploadData.id,
                 name: uploadData.name,
                 url: sharedUrl,
