@@ -259,12 +259,15 @@ const uploadFile = async (
 
         // Create public share link if enabled
         let shareUrl: string | null = null;
+        const isImageFile = file.type.startsWith("image/") || /\.(png|jpe?g|gif|svg|webp|bmp|apng|avif|tiff?)$/i.test(file.name);
         if (config.createPublicShare) {
             shareUrl = await createPublicShare(config, webdavFilePath);
             if (shareUrl) {
                 console.log("Created public share:", shareUrl);
-                // Append /download for direct file access (needed for embedding)
-                shareUrl = shareUrl + "/download";
+                // For images, do NOT append /download — Content-Disposition: attachment prevents <img> rendering
+                if (!isImageFile) {
+                    shareUrl = shareUrl + "/download";
+                }
             }
         }
 
@@ -326,20 +329,18 @@ export const bayerncloudProvider = (): CloudProvider => ({
         }
 
         const shareUrl = await createPublicShare(config, selected.webdavPath);
-        // Append /download for direct file access (needed for embedding videos, images, PDFs)
-        const targetUrl = shareUrl ? shareUrl + "/download" : selected.url;
-        const isSvg = /\.svg$/i.test(selected.name) || selected.mimeType === "image/svg+xml";
+        const isImage = selected.mimeType?.startsWith("image/") || /\.(png|jpe?g|gif|svg|webp|bmp|apng|avif|tiff?)$/i.test(selected.name);
+        // For images, do NOT append /download — that adds Content-Disposition: attachment which prevents <img> rendering
+        const targetUrl = shareUrl ? (isImage ? shareUrl : shareUrl + "/download") : selected.url;
 
         const result: PickerResult = {
             item: {
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
-                embedUrl: isSvg ? targetUrl : undefined,
                 mimeType: selected.mimeType,
             },
-            // SVGs from Nextcloud are served with CSP that blocks cross-origin <img> — use iframe instead
-            mode: isSvg ? "embed" : detectInsertMode({
+            mode: detectInsertMode({
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
