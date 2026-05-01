@@ -42,12 +42,13 @@ const buildProviderButtonsHtml = (
     selectedId: string,
     handlerName: string,
 ): string => {
-    const css = `<style>.mc-provider-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:6px 0 2px;}.mc-provider-btn{display:flex!important;flex-direction:column;align-items:center;padding:.5em!important;border:2px solid #d0d0d0!important;border-radius:.5em!important;background:#fff!important;cursor:pointer;box-shadow:0 0 .25em rgba(0,0,0,.5)!important;transition:border-color .25s,background .25s,box-shadow .25s;}.mc-provider-btn:hover{border-color:#1a73e8!important;background:#f0f7ff!important;box-shadow:0 0 .4em rgba(26,115,232,.5)!important;}.mc-provider-btn.mc-selected{border-color:#1a73e8!important;background:#e8f0fe!important;}</style>`;
+    const navHandler = `${handlerName}_nav`;
+    const css = `<style>.mc-provider-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:6px 0 2px;}.mc-provider-btn{display:flex!important;flex-direction:column;align-items:center;padding:.5em!important;border:1px solid #d0d0d0!important;border-radius:.5em!important;background:#fff!important;cursor:pointer!important;box-shadow:0 0 .25em rgba(0,0,0,.5)!important;transition:border-color .25s,background .25s,box-shadow .25s;outline:none!important;}.mc-provider-btn:hover{border-color:#1a73e8!important;background:#f0f7ff!important;box-shadow:0 0 .4em rgba(26,115,232,.5)!important;cursor:pointer!important;}.mc-provider-btn.mc-selected{border-color:#1a73e8!important;background:#e8f0fe!important;}</style>`;
     const buttons = providers.map((p) => {
         const sel = p.id === selectedId ? " mc-selected" : "";
-        return `<button type="button" class="mc-provider-btn${sel}" data-provider="${escapeHtml(p.id)}" onclick="window.${handlerName}('${escapeHtml(p.id)}')" title="${escapeHtml(p.label)}">${getProviderLogoHtml(p.id, p.label)}</button>`;
+        return `<button type="button" class="mc-provider-btn${sel}" tabindex="0" data-provider="${escapeHtml(p.id)}" onclick="window.${handlerName}('${escapeHtml(p.id)}')" onfocus="window.${handlerName}('${escapeHtml(p.id)}')" title="${escapeHtml(p.label)}">${getProviderLogoHtml(p.id, p.label)}</button>`;
     }).join("");
-    return `${css}<div class="mc-provider-grid">${buttons}</div>`;
+    return `${css}<div class="mc-provider-grid" onkeydown="window.${navHandler}(event)">${buttons}</div>`;
 };
 
 const getOptions = (editor: any): MultiCloudPluginOptions => {
@@ -265,6 +266,13 @@ const openUploadDialog = (
         }
     };
 
+    (window as any).__mcSelectUploadProvider_nav = (e: KeyboardEvent) => {
+        const btns = Array.from(document.querySelectorAll<HTMLElement>(".mc-provider-btn"));
+        const idx = btns.indexOf(document.activeElement as HTMLElement);
+        if (e.key === "ArrowRight" && idx < btns.length - 1) { e.preventDefault(); btns[idx + 1].focus(); }
+        else if (e.key === "ArrowLeft" && idx > 0) { e.preventDefault(); btns[idx - 1].focus(); }
+    };
+
     editor.windowManager.open({
         title: "Upload to Cloud",
         body: {
@@ -326,6 +334,7 @@ const openUploadDialog = (
         },
         onClose: () => {
             delete (window as any).__mcSelectUploadProvider;
+            delete (window as any).__mcSelectUploadProvider_nav;
         },
     });
 };
@@ -354,6 +363,13 @@ const openProviderDialog = (
         document.querySelectorAll(".mc-provider-btn").forEach((btn) => {
             btn.classList.toggle("mc-selected", (btn as HTMLElement).dataset.provider === id);
         });
+    };
+
+    (window as any).__mcSelectProvider_nav = (e: KeyboardEvent) => {
+        const btns = Array.from(document.querySelectorAll<HTMLElement>(".mc-provider-btn"));
+        const idx = btns.indexOf(document.activeElement as HTMLElement);
+        if (e.key === "ArrowRight" && idx < btns.length - 1) { e.preventDefault(); btns[idx + 1].focus(); }
+        else if (e.key === "ArrowLeft" && idx > 0) { e.preventDefault(); btns[idx - 1].focus(); }
     };
 
     editor.windowManager.open({
@@ -396,6 +412,7 @@ const openProviderDialog = (
         },
         onClose: () => {
             delete (window as any).__mcSelectProvider;
+            delete (window as any).__mcSelectProvider_nav;
         },
     });
 };
