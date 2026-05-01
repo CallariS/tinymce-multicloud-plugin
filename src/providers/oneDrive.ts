@@ -558,7 +558,9 @@ const openOneDrivePicker = async (
     // Note: Archives are NOT embedded for OneDrive - inserted as links instead
 
     // Determine insert mode
-    let insertMode = detectInsertMode({
+    // SVG: cross-origin SVG cannot be embedded in <img> reliably — insert as link
+    const isSvg = mimeType === "image/svg+xml" || /\.svg$/i.test(validated.name || "");
+    let insertMode = isSvg ? "link" as const : detectInsertMode({
         id: validated.id || validated.name,
         name: validated.name || validated.id,
         url,
