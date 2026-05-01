@@ -24,6 +24,32 @@ const escapeHtml = (value: string): string =>
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
 
+const PROVIDER_LOGOS: Record<string, string> = {
+    googleDrive: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 87.3 78" width="40" height="36"><path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0-1.2 4.5h27.5z" fill="#00ac47"/><path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.5l5.85 11.5z" fill="#ea4335"/><path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg>`,
+    oneDrive: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 28" width="40" height="28"><ellipse cx="10" cy="18" rx="9" ry="8" fill="#0078D4"/><ellipse cx="22" cy="12" rx="11" ry="10" fill="#0078D4"/><ellipse cx="32" cy="18" rx="8" ry="7" fill="#0078D4"/><rect x="2" y="18" width="36" height="9" rx="1" fill="#0078D4"/></svg>`,
+    dropbox: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 174" width="40" height="35"><polygon points="50,0 100,35 50,70 0,35" fill="#0061FF"/><polygon points="150,0 200,35 150,70 100,35" fill="#0061FF"/><polygon points="50,70 100,105 50,140 0,105" fill="#0061FF"/><polygon points="150,70 200,105 150,140 100,105" fill="#0061FF"/><polygon points="100,105 150,140 100,175 50,140" fill="#0061FF"/></svg>`,
+    bayerncloud: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 32" width="40" height="32"><ellipse cx="12" cy="20" rx="10" ry="9" fill="#0082C9"/><ellipse cx="22" cy="13" rx="12" ry="11" fill="#0082C9"/><ellipse cx="32" cy="20" rx="9" ry="8" fill="#0082C9"/><rect x="3" y="20" width="35" height="10" rx="1" fill="#0082C9"/><text x="20" y="27" text-anchor="middle" font-size="8" font-weight="bold" fill="white" font-family="sans-serif">BC</text></svg>`,
+};
+
+const getProviderLogoHtml = (id: string, label: string): string => {
+    if (PROVIDER_LOGOS[id]) return PROVIDER_LOGOS[id];
+    const initials = escapeHtml(label.slice(0, 2).toUpperCase());
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="20" r="20" fill="#666"/><text x="20" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="white" font-family="sans-serif">${initials}</text></svg>`;
+};
+
+const buildProviderButtonsHtml = (
+    providers: CloudProvider[],
+    selectedId: string,
+    handlerName: string,
+): string => {
+    const css = `<style>.mc-provider-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:6px 0 2px;}.mc-provider-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 14px;border:2px solid #d0d0d0;border-radius:8px;background:#fff;cursor:pointer;min-width:80px;font-family:inherit;}.mc-provider-btn:hover{border-color:#1a73e8;background:#f0f7ff;}.mc-provider-btn.mc-selected{border-color:#1a73e8;background:#e8f0fe;}.mc-provider-label{font-size:12px;font-weight:500;color:#333;white-space:nowrap;}</style>`;
+    const buttons = providers.map((p) => {
+        const sel = p.id === selectedId ? " mc-selected" : "";
+        return `<button type="button" class="mc-provider-btn${sel}" data-provider="${escapeHtml(p.id)}" onclick="window.${handlerName}('${escapeHtml(p.id)}')" title="${escapeHtml(p.label)}">${getProviderLogoHtml(p.id, p.label)}<span class="mc-provider-label">${escapeHtml(p.label)}</span></button>`;
+    }).join("");
+    return `${css}<div class="mc-provider-grid">${buttons}</div>`;
+};
+
 const getOptions = (editor: any): MultiCloudPluginOptions => {
     const raw = {
         providers: editor.options.get("multicloud_providers") || {},
@@ -221,107 +247,87 @@ const openUploadDialog = (
             ? options.defaultProvider
             : uploadProviders[0].id;
 
-
-
-    // Helper to determine if provider uses a picker for upload (e.g., Nextcloud)
-
-    function providerUsesPicker(providerId: string) {
-        // Hide file input for any provider with a pickerUrl in config
+    const providerUsesPicker = (providerId: string): boolean => {
         const providerConfig = options.providers?.[providerId];
         return !!providerConfig?.pickerUrl;
-    }
+    };
 
-    // Helper to build dialog items based on provider
-    function getDialogItems(selectedProviderId: string) {
-        const items: any[] = [
-            {
-                type: "selectbox",
-                name: "provider",
-                label: "Provider",
-                items: uploadProviders.map((provider) => ({
-                    text: provider.label,
-                    value: provider.id,
-                })),
-            },
-        ];
-        if (!providerUsesPicker(selectedProviderId)) {
-            items.push({
-                type: "htmlpanel",
-                name: "multicloud-file-input-panel",
-                html: '<input type="file" id="multicloud-file-input" style="width: 100%; padding: 8px; box-sizing: border-box;" />',
-            });
+    let selectedProvider = initialProvider;
+
+    (window as any).__mcSelectUploadProvider = (id: string) => {
+        selectedProvider = id;
+        document.querySelectorAll(".mc-provider-btn").forEach((btn) => {
+            btn.classList.toggle("mc-selected", (btn as HTMLElement).dataset.provider === id);
+        });
+        const fileSection = document.getElementById("mc-file-section");
+        if (fileSection) {
+            fileSection.style.display = providerUsesPicker(id) ? "none" : "";
         }
-        items.push({
-            type: "checkbox",
-            name: "insertAsLink",
-            label: "Insert as link only (don\'t embed images/documents)",
-        });
-        return items;
-    }
+    };
 
-    function openUploadDialogWithProvider(selectedProviderId: string, insertAsLink: boolean = false) {
-        const dialogApi = editor.windowManager.open({
-            title: "Upload to Cloud",
-            body: {
-                type: "panel",
-                items: getDialogItems(selectedProviderId),
-            },
-            initialData: {
-                provider: selectedProviderId,
-                insertAsLink,
-            },
-            buttons: [
-                { type: "cancel", text: "Cancel" },
-                { type: "submit", text: "Upload", primary: true },
+    editor.windowManager.open({
+        title: "Upload to Cloud",
+        body: {
+            type: "panel",
+            items: [
+                {
+                    type: "htmlpanel",
+                    html: buildProviderButtonsHtml(uploadProviders, initialProvider, "__mcSelectUploadProvider"),
+                },
+                {
+                    type: "htmlpanel",
+                    html: `<div id="mc-file-section"${providerUsesPicker(initialProvider) ? ' style="display:none"' : ""}><input type="file" id="multicloud-file-input" style="width:100%;padding:8px;box-sizing:border-box;margin-top:4px;" /></div>`,
+                },
+                {
+                    type: "checkbox",
+                    name: "insertAsLink",
+                    label: "Insert as link only (don't embed images/documents)",
+                },
             ],
-            onChange: (api: any, details: any) => {
-                if (details.name === "provider") {
-                    // Get current insertAsLink value to preserve it
-                    const data = api.getData();
-                    api.close();
-                    openUploadDialogWithProvider(data.provider, data.insertAsLink);
-                }
-            },
-            onSubmit: (api: any) => {
-                const data = api.getData();
-                const selectedProvider = uploadProviders.find(
-                    (provider) => provider.id === data.provider,
-                );
+        },
+        initialData: {
+            insertAsLink: false,
+        },
+        buttons: [
+            { type: "cancel", text: "Cancel" },
+            { type: "submit", text: "Upload", primary: true },
+        ],
+        onSubmit: (api: any) => {
+            const data = api.getData();
+            const provider = uploadProviders.find((p) => p.id === selectedProvider);
 
-                if (!selectedProvider) {
-                    editor.notificationManager.open({
-                        type: "warning",
-                        text: "No provider selected.",
-                    });
-                    return;
-                }
+            if (!provider) {
+                editor.notificationManager.open({
+                    type: "warning",
+                    text: "No provider selected.",
+                });
+                return;
+            }
 
-                // If provider uses picker, skip file input and call pickAndInsert
-                if (providerUsesPicker(selectedProvider.id)) {
-                    api.close();
-                    void pickAndInsert(editor, selectedProvider, pluginUrl, data.insertAsLink);
-                    return;
-                }
-
-                const fileInput = document.getElementById("multicloud-file-input") as HTMLInputElement;
-                const file = fileInput?.files?.[0];
-
-                if (!file) {
-                    editor.notificationManager.open({
-                        type: "warning",
-                        text: "No file selected.",
-                    });
-                    return;
-                }
-
+            if (providerUsesPicker(provider.id)) {
                 api.close();
-                void uploadAndInsert(editor, selectedProvider, pluginUrl, file, data.insertAsLink);
-            },
-        });
-        dialogApi.focus("provider");
-    }
+                void pickAndInsert(editor, provider, pluginUrl, data.insertAsLink);
+                return;
+            }
 
-    openUploadDialogWithProvider(initialProvider);
+            const fileInput = document.getElementById("multicloud-file-input") as HTMLInputElement;
+            const file = fileInput?.files?.[0];
+
+            if (!file) {
+                editor.notificationManager.open({
+                    type: "warning",
+                    text: "No file selected.",
+                });
+                return;
+            }
+
+            api.close();
+            void uploadAndInsert(editor, provider, pluginUrl, file, data.insertAsLink);
+        },
+        onClose: () => {
+            delete (window as any).__mcSelectUploadProvider;
+        },
+    });
 };
 
 const openProviderDialog = (
@@ -341,19 +347,23 @@ const openProviderDialog = (
             ? options.defaultProvider
             : providers[0].id;
 
-    const dialogApi = editor.windowManager.open({
+    let selectedProvider = initialProvider;
+
+    (window as any).__mcSelectProvider = (id: string) => {
+        selectedProvider = id;
+        document.querySelectorAll(".mc-provider-btn").forEach((btn) => {
+            btn.classList.toggle("mc-selected", (btn as HTMLElement).dataset.provider === id);
+        });
+    };
+
+    editor.windowManager.open({
         title: options.dialogTitle || "Insert From Cloud",
         body: {
             type: "panel",
             items: [
                 {
-                    type: "selectbox",
-                    name: "provider",
-                    label: "Provider",
-                    items: providers.map((provider) => ({
-                        text: provider.label,
-                        value: provider.id,
-                    })),
+                    type: "htmlpanel",
+                    html: buildProviderButtonsHtml(providers, initialProvider, "__mcSelectProvider"),
                 },
                 {
                     type: "checkbox",
@@ -363,7 +373,6 @@ const openProviderDialog = (
             ],
         },
         initialData: {
-            provider: initialProvider,
             insertAsLink: false,
         },
         buttons: [
@@ -372,12 +381,10 @@ const openProviderDialog = (
         ],
         onSubmit: (api: any) => {
             const data = api.getData();
-            const selectedProvider = providers.find(
-                (provider) => provider.id === data.provider,
-            );
+            const provider = providers.find((p) => p.id === selectedProvider);
             api.close();
 
-            if (!selectedProvider) {
+            if (!provider) {
                 editor.notificationManager.open({
                     type: "warning",
                     text: "No provider selected.",
@@ -385,11 +392,12 @@ const openProviderDialog = (
                 return;
             }
 
-            void pickAndInsert(editor, selectedProvider, pluginUrl, data.insertAsLink);
+            void pickAndInsert(editor, provider, pluginUrl, data.insertAsLink);
+        },
+        onClose: () => {
+            delete (window as any).__mcSelectProvider;
         },
     });
-
-    dialogApi.focus("provider");
 };
 
 const register = (): void => {
