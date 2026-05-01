@@ -567,8 +567,13 @@
       const detectInsertMode = (file) => {
         const mime = file.mimeType || "";
         const name = file.name || "";
+
+        // SVG: cross-origin SVG cannot be embedded reliably — insert as link
+        if (mime === "image/svg+xml" || /\.svg$/i.test(name)) {
+          return "link";
+        }
         
-        if (/^image\//i.test(mime) || /\.(apng|avif|gif|jpe?g|png|svg|webp|bmp|tiff?)$/i.test(name)) {
+        if (/^image\//i.test(mime) || /\.(apng|avif|gif|jpe?g|png|webp|bmp|tiff?)$/i.test(name)) {
           return "image";
         }
         
@@ -810,12 +815,6 @@
           } else if ((isPdf || isOfficeDoc) && !isPublicShare) {
             console.warn("[Insert] Document without public share - inserting as download link instead of embed");
             console.warn("[Insert] To enable embedding, ensure public sharing is enabled on your Nextcloud instance");
-          }
-
-          // SVG: bare share URL (/s/TOKEN) serves an HTML page — /download serves raw SVG content for <img>
-          const isSvgFile = selectedFile.mimeType === "image/svg+xml" || /\.svg$/i.test(fileName);
-          if (isSvgFile && fileUrl.includes("/s/")) {
-            fileUrl = fileUrl.replace(/\/+$/, "") + "/download";
           }
 
           postMessage("picked", {
