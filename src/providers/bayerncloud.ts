@@ -331,8 +331,12 @@ export const bayerncloudProvider = (): CloudProvider => ({
         const shareUrl = await createPublicShare(config, selected.webdavPath);
         const isImage = selected.mimeType?.startsWith("image/") || /\.(png|jpe?g|gif|svg|webp|bmp|apng|avif|tiff?)$/i.test(selected.name);
         const isSvg = selected.mimeType === "image/svg+xml" || /\.svg$/i.test(selected.name);
-        // For images, do NOT append /download — that adds Content-Disposition: attachment which prevents <img> rendering
-        const targetUrl = shareUrl ? (isImage ? shareUrl : shareUrl + "/download") : selected.url;
+        // SVG: bare share URL (/s/TOKEN) serves an HTML page — use /download to get raw SVG content for <img>
+        // Other images: bare share URL serves content inline, no /download needed
+        // Non-images: /download needed to get the file directly
+        const targetUrl = shareUrl
+            ? (isSvg ? shareUrl + "/download" : isImage ? shareUrl : shareUrl + "/download")
+            : selected.url;
 
         const result: PickerResult = {
             item: {
@@ -341,7 +345,7 @@ export const bayerncloudProvider = (): CloudProvider => ({
                 url: targetUrl,
                 mimeType: selected.mimeType,
             },
-            mode: isSvg ? "link" : detectInsertMode({
+            mode: detectInsertMode({
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
