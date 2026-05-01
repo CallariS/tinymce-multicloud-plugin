@@ -82,9 +82,9 @@ const openDropboxChooser = async (
                 }
 
                 // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
-                // Note: Archives and ODF files are NOT embedded - inserted as links instead
+                // Note: Archives are NOT embedded - inserted as links instead
                 let embedUrl: string | undefined;
-                if (isPdf) {
+                if (isPdf || isOdf) {
                     embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
                 } else if (isOfficeDoc) {
                     embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
@@ -99,7 +99,7 @@ const openDropboxChooser = async (
                         downloadUrl: (isAudio || isVideo) ? fileUrl : undefined,
                         thumbnailUrl: validated.thumbnailLink,
                     },
-                    mode: (isArchive || isOdf) ? "link" : detectInsertMode({
+                    mode: isArchive ? "link" : detectInsertMode({
                         id: validated.id || validated.name || "dropbox-file",
                         name: validated.name || "Dropbox file",
                         url: fileUrl,
