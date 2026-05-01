@@ -42,7 +42,7 @@ const buildProviderButtonsHtml = (
     selectedId: string,
     handlerName: string,
 ): string => {
-    const css = `<style>.mc-provider-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:6px 0 2px;}.mc-provider-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 14px;border:2px solid #d0d0d0;border-radius:8px;background:#fff;cursor:pointer;min-width:80px;font-family:inherit;}.mc-provider-btn:hover{border-color:#1a73e8;background:#f0f7ff;}.mc-provider-btn.mc-selected{border-color:#1a73e8;background:#e8f0fe;}.mc-provider-label{font-size:12px;font-weight:500;color:#333;white-space:nowrap;}</style>`;
+    const css = `<style>.mc-provider-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:6px 0 2px;}.mc-provider-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:.5em;border:2px solid #d0d0d0;border-radius:.5em;background:#fff;cursor:pointer;min-width:80px;font-family:inherit;box-shadow:0 0 .5em black;transition:.25s;}.mc-provider-btn:hover{border-color:#1a73e8;background:#f0f7ff;}.mc-provider-btn.mc-selected{border-color:#1a73e8;background:#e8f0fe;}.mc-provider-label{font-size:12px;font-weight:500;color:#333;white-space:nowrap;}</style>`;
     const buttons = providers.map((p) => {
         const sel = p.id === selectedId ? " mc-selected" : "";
         return `<button type="button" class="mc-provider-btn${sel}" data-provider="${escapeHtml(p.id)}" onclick="window.${handlerName}('${escapeHtml(p.id)}')" title="${escapeHtml(p.label)}">${getProviderLogoHtml(p.id, p.label)}<span class="mc-provider-label">${escapeHtml(p.label)}</span></button>`;
