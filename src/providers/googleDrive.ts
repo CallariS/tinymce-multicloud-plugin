@@ -340,6 +340,16 @@ export const googleDriveProvider = (): CloudProvider => ({
 
         await ensureGoogleApis(config);
         await requestToken(); // Ensure we have a valid token
-        return await uploadFile(config, file);
+        const result = await uploadFile(config, file);
+
+        if (result && file.type.startsWith("video/")) {
+            context.editor.notificationManager.open({
+                type: "info",
+                text: "Video uploaded. Google Drive needs a few minutes to process it — the embedded player will start working once transcoding is complete.",
+                timeout: 10000,
+            });
+        }
+
+        return result;
     },
 });

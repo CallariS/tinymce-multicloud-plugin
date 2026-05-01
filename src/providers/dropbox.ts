@@ -73,11 +73,10 @@ const openDropboxChooser = async (
                 const isVideo = /\.(mp4|webm|ogg|mov|m4v|avi|wmv|flv|mkv)$/i.test(fileName);
 
                 if ((isImage || isPdf || isOfficeDoc || isAudio || isVideo) && fileUrl.includes("dropbox.com")) {
-                    // Convert to raw content URL for proper embedding
+                    // Convert to raw content URL for proper embedding/streaming
                     fileUrl = fileUrl
                         .replace("www.dropbox.com", "dl.dropboxusercontent.com")
-                        .replace("?dl=0", "?raw=1")
-                        .replace("?dl=1", "?raw=1");
+                        .replace(/[?&]dl=[01]/g, (m) => m[0] + "raw=1");
                     console.log("[Dropbox] Converted to raw content URL:", fileUrl);
                 }
 
@@ -96,6 +95,7 @@ const openDropboxChooser = async (
                         name: validated.name || "Dropbox file",
                         url: fileUrl,
                         embedUrl,
+                        downloadUrl: (isAudio || isVideo) ? fileUrl : undefined,
                         thumbnailUrl: validated.thumbnailLink,
                     },
                     mode: isArchive ? "link" : detectInsertMode({
@@ -413,12 +413,15 @@ const uploadFile = async (
             embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(sharedUrl)}`;
         }
 
+        const isMediaFile = mimeType.startsWith("audio/") || mimeType.startsWith("video/");
+
         const result: PickerResult = {
             item: {
                 id: uploadData.id,
                 name: uploadData.name,
                 url: sharedUrl,
                 embedUrl,
+                downloadUrl: isMediaFile ? sharedUrl : undefined,
                 mimeType,
             },
             mode: archiveTypes.includes(mimeType) ? "link" : detectInsertMode({

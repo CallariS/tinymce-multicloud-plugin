@@ -106,7 +106,7 @@ const insertResult = (
             } else {
                 // No direct download URL (e.g. Google Drive) — use embed/preview iframe
                 editor.insertContent(
-                    `<iframe src="${safeEmbed}" title="${safeName}" width="800" height="450" frameborder="0" style="max-width: 100%;" loading="lazy" allowfullscreen></iframe>`,
+                    `<iframe src="${safeEmbed}" title="${safeName}" width="800" height="450" frameborder="0" style="max-width: 100%;" loading="lazy" allow="autoplay" allowfullscreen></iframe>`,
                 );
             }
         } else {
