@@ -71,7 +71,6 @@ const insertResult = (
     const item = result.item;
     const safeName = escapeHtml(item.name || item.url);
     const safeUrl = escapeHtml(item.url);
-    const safeMedia = escapeHtml(item.downloadUrl || item.url);
     const safeEmbed = escapeHtml(item.embedUrl || item.url);
 
     if (mode === "image") {
@@ -80,9 +79,17 @@ const insertResult = (
     }
 
     if (mode === "audio") {
-        editor.insertContent(
-            `<audio src="${safeMedia}" title="${safeName}" controls style="max-width: 100%;"></audio>`,
-        );
+        if (item.downloadUrl) {
+            const safeDownload = escapeHtml(item.downloadUrl);
+            editor.insertContent(
+                `<audio src="${safeDownload}" title="${safeName}" controls style="max-width: 100%;"></audio>`,
+            );
+        } else {
+            // No direct download URL (e.g. Google Drive) — use embed/preview iframe with built-in player
+            editor.insertContent(
+                `<iframe src="${safeEmbed}" title="${safeName}" width="800" height="120" frameborder="0" style="max-width: 100%;" loading="lazy" allowfullscreen></iframe>`,
+            );
+        }
         return;
     }
 
@@ -91,9 +98,17 @@ const insertResult = (
             item.mimeType?.startsWith("video/") ||
             /\.(mp4|webm|ogg|mov|m4v|avi|wmv|flv|mkv)$/i.test(item.name || item.url);
         if (isVideo) {
-            editor.insertContent(
-                `<video src="${safeMedia}" title="${safeName}" width="800" height="450" controls style="max-width: 100%;"></video>`,
-            );
+            if (item.downloadUrl) {
+                const safeDownload = escapeHtml(item.downloadUrl);
+                editor.insertContent(
+                    `<video src="${safeDownload}" title="${safeName}" width="800" height="450" controls style="max-width: 100%;"></video>`,
+                );
+            } else {
+                // No direct download URL (e.g. Google Drive) — use embed/preview iframe
+                editor.insertContent(
+                    `<iframe src="${safeEmbed}" title="${safeName}" width="800" height="450" frameborder="0" style="max-width: 100%;" loading="lazy" allowfullscreen></iframe>`,
+                );
+            }
         } else {
             editor.insertContent(
                 `<iframe src="${safeEmbed}" title="${safeName}" width="800" height="500" frameborder="0" style="max-width: 100%;" loading="lazy" allowfullscreen></iframe>`,
