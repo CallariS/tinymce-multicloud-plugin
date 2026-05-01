@@ -45,9 +45,9 @@
       tinymce.init({
         selector: "#editor",
         height: calculateEditorHeight(),
-        plugins: "link image media multicloud",
+        plugins: "link image media code multicloud",
         toolbar:
-          "undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload",
+          "undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload | code",
         multicloud_providers: config.providers,
         multicloud_default_provider: config.defaultProvider,
         multicloud_default_insert_mode: config.defaultInsertMode,
