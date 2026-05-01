@@ -265,13 +265,6 @@ const openUploadDialog = (
         }
     };
 
-    const uploadNavFn = (e: KeyboardEvent) => {
-        const btns = Array.from(document.querySelectorAll<HTMLElement>(".mc-provider-btn"));
-        const idx = btns.findIndex((b) => b === e.currentTarget);
-        if (e.key === "ArrowRight" && idx < btns.length - 1) { e.preventDefault(); e.stopImmediatePropagation(); btns[idx + 1].focus(); }
-        else if (e.key === "ArrowLeft" && idx > 0) { e.preventDefault(); e.stopImmediatePropagation(); btns[idx - 1].focus(); }
-    };
-
     editor.windowManager.open({
         title: "Upload to Cloud",
         body: {
@@ -335,12 +328,6 @@ const openUploadDialog = (
             delete (window as any).__mcSelectUploadProvider;
         },
     });
-
-    setTimeout(() => {
-        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
-            btn.addEventListener("keydown", uploadNavFn);
-        });
-    }, 0);
 };
 
 const openProviderDialog = (
@@ -367,13 +354,6 @@ const openProviderDialog = (
         document.querySelectorAll(".mc-provider-btn").forEach((btn) => {
             btn.classList.toggle("mc-selected", (btn as HTMLElement).dataset.provider === id);
         });
-    };
-
-    const pickerNavFn = (e: KeyboardEvent) => {
-        const btns = Array.from(document.querySelectorAll<HTMLElement>(".mc-provider-btn"));
-        const idx = btns.findIndex((b) => b === e.currentTarget);
-        if (e.key === "ArrowRight" && idx < btns.length - 1) { e.preventDefault(); e.stopImmediatePropagation(); btns[idx + 1].focus(); }
-        else if (e.key === "ArrowLeft" && idx > 0) { e.preventDefault(); e.stopImmediatePropagation(); btns[idx - 1].focus(); }
     };
 
     editor.windowManager.open({
@@ -418,12 +398,6 @@ const openProviderDialog = (
             delete (window as any).__mcSelectProvider;
         },
     });
-
-    setTimeout(() => {
-        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
-            btn.addEventListener("keydown", pickerNavFn);
-        });
-    }, 0);
 };
 
 const register = (): void => {
