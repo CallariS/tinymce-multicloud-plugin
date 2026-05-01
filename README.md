@@ -280,6 +280,67 @@ Open `demo/tinymce-demo.html` after building. The demo includes mock pickers und
 
 The demo auto-loads `demo/multicloud.config.js` if present; otherwise it falls back to local mock picker pages.
 
+## File type support
+
+How each provider handles different file types. Insert modes: **image** = `<img>`, **embed** = `<iframe>`, **audio** = `<audio>`, **video** = `<video>`, **link** = `<a>`.
+
+### Google Drive
+
+| File type | Extensions | Insert mode | Notes |
+|---|---|---|---|
+| Images | png, jpg, jpeg, gif, webp, bmp, svg, tiff | image | Direct `<img>` via Drive preview URL |
+| Audio | mp3, wav, ogg, aac, m4a, flac, opus | audio | `<iframe>` preview (Drive transcodes audio) |
+| Video | mp4, webm, mov, avi, mkv, m4v, wmv, flv | embed | `<iframe>` preview (Drive transcodes video) |
+| PDF | pdf | embed | `<iframe>` via Drive preview URL |
+| Office (OOXML) | docx, xlsx, pptx | embed | `<iframe>` via Drive preview URL |
+| Office (legacy) | doc, xls, ppt | embed | `<iframe>` via Drive preview URL |
+| OpenDocument | odt, ods, odp | embed | `<iframe>` via Drive preview URL |
+| Archives | zip, rar, 7z, tar, gz, bz2, xz | link | Download link only |
+| Other | anything else | link | Download link |
+
+### Dropbox
+
+| File type | Extensions | Insert mode | Notes |
+|---|---|---|---|
+| Images | png, jpg, jpeg, gif, svg, webp, bmp | image | Raw CDN URL via `dl.dropboxusercontent.com` |
+| Audio | mp3, wav, ogg, aac, m4a, flac, opus, oga, weba | audio | `<audio>` with raw CDN URL |
+| Video | mp4, webm, ogg, mov, m4v, avi, wmv, flv, mkv | embed | `<video>` with raw CDN URL |
+| PDF | pdf | embed | `<iframe>` via Google Docs Viewer |
+| Office (OOXML) | docx, xlsx, pptx, doc, xls, ppt | embed | `<iframe>` via Microsoft Office Online viewer |
+| OpenDocument | odt, ods, odp | link | Google Docs Viewer cannot reliably load ODF |
+| Archives | zip, rar, 7z, tar, gz, bz2, xz | link | Download link only |
+| Other | anything else | link | Download link |
+
+### OneDrive
+
+| File type | Extensions | Insert mode | Notes |
+|---|---|---|---|
+| Images | png, jpg, jpeg, gif, svg, webp, bmp, tiff, apng, avif | image | Direct embed URL from OneDrive |
+| Audio | mp3, wav, ogg, aac, m4a, flac, opus | audio | `<audio>` or `<iframe>` depending on download URL availability |
+| Video | mp4, webm, ogg, mov, m4v, avi, wmv, flv, mkv | embed | `<video>` or `<iframe>` |
+| PDF | pdf | embed | `<iframe>` |
+| Office (OOXML) | docx, xlsx, pptx, doc, xls, ppt | embed | `<iframe>` |
+| OpenDocument | odt, ods, odp | embed | `<iframe>` |
+| Archives | zip, rar, 7z, tar, gz, bz2, xz | link | Download link only |
+| Other | anything else | link | Download link |
+
+### Nextcloud / BayernCloud
+
+| File type | Extensions | Insert mode | Notes |
+|---|---|---|---|
+| Images | png, jpg, jpeg, gif, webp, bmp, tiff, apng, avif | image | `<img>` via public share URL |
+| SVG | svg | link | Cross-origin SVG cannot be embedded reliably |
+| Audio | mp3, wav, ogg, aac, m4a, flac, opus | link | Cross-origin streaming unreliable |
+| Video | mp4, webm, ogg, mov, avi, wmv, flv, mkv | link | Cross-origin streaming unreliable |
+| PDF | pdf | embed | `<iframe>` via Google Docs Viewer (requires public share) |
+| Office (OOXML) | docx, xlsx, pptx | embed | `<iframe>` via Google Docs Viewer (requires public share) |
+| Office (legacy) | doc, xls, ppt | link | Viewer support unreliable for legacy formats |
+| OpenDocument | odt, ods, odp | link | Viewer support unreliable for ODF |
+| Archives | zip, rar, 7z, tar, gz, bz2, xz | link | Download link only |
+| Other | anything else | link | Download link |
+
+> **Note on Nextcloud embedding**: Google Docs Viewer fetches files from its own servers, so the Nextcloud share link must be publicly accessible (not password-protected or on a private network). Embedding may fail intermittently due to Google's rate limiting on the viewer service.
+
 ## Scope and next steps
 
 This repository gives you:
