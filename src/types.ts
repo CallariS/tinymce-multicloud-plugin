@@ -1,7 +1,7 @@
 export type BuiltInCloudProviderId = "googleDrive" | "oneDrive" | "dropbox" | "bayerncloud";
 export type CloudProviderId = BuiltInCloudProviderId | (string & {});
 
-export type InsertMode = "link" | "image" | "embed";
+export type InsertMode = "link" | "image" | "embed" | "audio";
 
 export interface CloudItem {
     id: string;

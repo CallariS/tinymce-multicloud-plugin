@@ -78,10 +78,17 @@ const insertResult = (
         return;
     }
 
+    if (mode === "audio") {
+        editor.insertContent(
+            `<audio src="${safeEmbed}" title="${safeName}" controls style="max-width: 100%;"></audio>`,
+        );
+        return;
+    }
+
     if (mode === "embed") {
         const isVideo =
             item.mimeType?.startsWith("video/") ||
-            /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(item.name || item.url);
+            /\.(mp4|webm|ogg|mov|m4v|avi|wmv|flv|mkv)$/i.test(item.name || item.url);
         if (isVideo) {
             editor.insertContent(
                 `<video src="${safeEmbed}" title="${safeName}" width="800" height="450" controls style="max-width: 100%;"></video>`,

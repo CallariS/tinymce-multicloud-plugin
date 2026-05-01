@@ -37,7 +37,8 @@ export const loadScript = async (
     });
 
 const imagePattern = /\.(apng|avif|gif|jpe?g|png|svg|webp|bmp|tiff?)$/i;
-const videoPattern = /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i;
+const videoPattern = /\.(mp4|webm|ogg|mov|m4v|avi|wmv|flv|mkv)$/i;
+const audioPattern = /\.(mp3|wav|ogg|aac|m4a|flac|opus|oga|weba)$/i;
 const pdfPattern = /\.pdf$/i;
 const officePattern = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i;
 const archivePattern = /\.(zip|rar|7z|tar|gz|bz2|xz)$/i;
@@ -78,6 +79,11 @@ export const detectInsertMode = (item: CloudItem): InsertMode => {
     // Videos
     if (mime.startsWith("video/") || videoPattern.test(name) || videoPattern.test(url)) {
         return "embed";
+    }
+
+    // Audio
+    if (mime.startsWith("audio/") || audioPattern.test(name) || audioPattern.test(url)) {
+        return "audio";
     }
 
     // Embeddable documents (check MIME and file extension)
