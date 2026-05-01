@@ -62,6 +62,25 @@ const getOptions = (editor: any): MultiCloudPluginOptions => {
     return validatePluginOptionsBoundary(raw);
 };
 
+const attachMediaErrorHandler = (editor: any, tag: "audio" | "video"): void => {
+    setTimeout(() => {
+        try {
+            const elements = editor.dom.select(tag) as HTMLMediaElement[];
+            const el = elements[elements.length - 1];
+            if (!el) return;
+            el.addEventListener("error", () => {
+                editor.notificationManager.open({
+                    type: "warning",
+                    text: "Media could not be loaded. If you just uploaded or shared the file, it may still be processing \u2014 wait a moment and reload the page.",
+                    timeout: 8000,
+                });
+            }, { once: true });
+        } catch {
+            // ignore — editor may not be ready yet
+        }
+    }, 0);
+};
+
 const insertResult = (
     editor: any,
     result: PickerResult,
@@ -84,6 +103,7 @@ const insertResult = (
             editor.insertContent(
                 `<audio src="${safeDownload}" title="${safeName}" controls style="max-width: 100%;"></audio>`,
             );
+            attachMediaErrorHandler(editor, "audio");
         } else {
             // No direct download URL (e.g. Google Drive) — use embed/preview iframe with built-in player
             editor.insertContent(
@@ -103,6 +123,7 @@ const insertResult = (
                 editor.insertContent(
                     `<video src="${safeDownload}" title="${safeName}" width="800" height="450" controls style="max-width: 100%;"></video>`,
                 );
+                attachMediaErrorHandler(editor, "video");
             } else {
                 // No direct download URL (e.g. Google Drive) — use embed/preview iframe
                 editor.insertContent(
