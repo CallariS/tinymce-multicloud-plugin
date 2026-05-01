@@ -339,11 +339,9 @@ export const bayerncloudProvider = (): CloudProvider => ({
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
-                // SVG: use embedUrl so it loads in an iframe (browsers block cross-origin SVG in <img>)
-                embedUrl: isSvg ? targetUrl : undefined,
                 mimeType: selected.mimeType,
             },
-            mode: isSvg ? "embed" : detectInsertMode({
+            mode: isSvg ? "link" : detectInsertMode({
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
