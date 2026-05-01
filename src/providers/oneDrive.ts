@@ -496,15 +496,38 @@ const openOneDrivePicker = async (
         throw new Error("OneDrive file does not have a usable URL.");
     }
 
-    // For images, create a permanent public share link instead of the expiring thumbnail URL
+    // For images, create a permanent public share link and serve content via the OneDrive Shares API.
+    // The Shares API content endpoint (api.onedrive.com/v1.0/shares/{encoded}/root/content)
+    // redirects to the actual file bytes — permanent as long as the sharing link exists.
+    // This avoids the expiring tempauth thumbnail URLs from the Graph /thumbnails endpoint.
     if (mimeType.startsWith("image/")) {
         console.log("[OneDrive] Detected image, creating public share link...");
-        const shareUrl = await getPublicDownloadUrl(accessToken, validated);
-        if (shareUrl) {
-            url = shareUrl;
-            console.log("[OneDrive] Using public share URL for image");
-        } else {
-            console.warn("[OneDrive] Could not get public share URL, falling back to webUrl");
+        try {
+            const linkResponse = await fetch(
+                `https://graph.microsoft.com/v1.0/me/drive/items/${validated.id}/createLink`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ type: "view", scope: "anonymous" }),
+                }
+            );
+            if (linkResponse.ok) {
+                const linkData = await linkResponse.json();
+                const shareUrl: string | undefined = linkData.link?.webUrl;
+                if (shareUrl) {
+                    // Encode sharing URL for the OneDrive Shares API (base64url with u! prefix)
+                    const encoded = "u!" + btoa(shareUrl).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+                    url = `https://api.onedrive.com/v1.0/shares/${encoded}/root/content`;
+                    console.log("[OneDrive] Using Shares API content URL for image");
+                }
+            } else {
+                console.warn("[OneDrive] Could not create share link for image, using webUrl");
+            }
+        } catch (err) {
+            console.warn("[OneDrive] Error creating share link for image:", err);
         }
     }
     // For documents/PDFs, try to get an embeddable public URL
