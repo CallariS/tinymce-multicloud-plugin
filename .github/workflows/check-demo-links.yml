@@ -1,0 +1,119 @@
+name: Check Demo Links
+
+on:
+  schedule:
+    - cron: '0 7 * * *'   # 07:00 UTC every day
+  workflow_dispatch:       # also triggerable manually
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check URLs
+        run: |
+          URLS=(
+            # ── Demo pages ────────────────────────────────────────────────────
+            "https://callaris.github.io/tinymce-multicloud-plugin/demo/tinymce-demo.html"
+            "https://callaris.github.io/tinymce-multicloud-plugin/demo/privacy-policy.html"
+            "https://callaris.github.io/tinymce-multicloud-plugin/demo/terms-of-service.html"
+
+            # ── Google Drive ──────────────────────────────────────────────────
+            "https://drive.google.com/file/d/1T_CqXjd8r4oYh4U9LRt74ymkRvgtvJOu/preview"
+            "https://lh3.googleusercontent.com/drive-storage/AJQWtBOJA_xnwo3Aks2YnWEWipJDDQUpD2Jr3Y46sBAcnv5DXlgln81Paellc7NfoTDqtiQ8GP0sqrVVWj3vFMa_jWg3jE-cQcSkvfs06aFMjVRykcdWaQ=s2000"
+            "https://drive.google.com/uc?id=1hrLcStthxyubGlRKuM3yPi73_KvSEkts&export=download"
+            "https://drive.google.com/uc?id=1mbPA8tPfv0idtKl94Ns17tb_x9T6u7iM&export=download"
+            "https://lh3.googleusercontent.com/drive-storage/AJQWtBPSKVQ_iYR7O55GYkNreeHKjcjddZu4xOpRhVBc2X2idPe9fJHWTuAMyiIn6Gb5g-vs61WLX6-nhf4eHN8tVW9qs8qCjpkuQLhQSBmONUOg5AJi=s2000"
+            "https://lh3.googleusercontent.com/drive-storage/AJQWtBMvSf_sNtON_m_Pe5oQPZhk6y0Ao_f2sa6MsQy_Y9PPlxjEM6nwGT0jFHZp5sBWvE-6fWTBhuWFLkjwG_0VpmsiwdTaprXaHxEavKSICncnMFLaIg=s2000"
+            "https://drive.google.com/uc?id=14OefWr90LotEdOTVJxDXPc1eZqehCCXp&export=download"
+            "https://drive.google.com/uc?id=1xqgCCub-C9Lsm6PiK5ps4I-lCJkWT15a&export=download"
+            "https://drive.google.com/uc?id=1RHMvj4q7_zxT12apIPKhmKtyLQ79xtm5&export=download"
+            "https://drive.google.com/uc?id=1zSJdUxDaOlQJLMAqAz1Bf3PO2zBjt24i&export=download"
+
+            # ── OneDrive ──────────────────────────────────────────────────────
+            # Note: tempauth tokens in some URLs expire — a failure here means the token needs renewal
+            "https://onedrive.live.com?cid=b1be7ad0cd77c81c&id=B1BE7AD0CD77C81C!se0887444b6e44999b2f4fec409c559da"
+            "https://1drv.ms/x/c/b1be7ad0cd77c81c/IQRFskl-cMt3QIQoeXHK0V9iARsdhLTDaa3I5Ke8ixBG-qk"
+            "https://onedrive.live.com/personal/b1be7ad0cd77c81c/_layouts/15/doc.aspx?resid=2c7fb26c-a991-49a1-a8bb-9f597430970f&cid=b1be7ad0cd77c81c"
+            "https://1drv.ms/b/c/b1be7ad0cd77c81c/IQQ7lABnBWFdTrMR6rDo1BxPAWksi0rczKdjt6h0xk-PWGQ"
+            "https://onedrive.live.com?cid=b1be7ad0cd77c81c&id=B1BE7AD0CD77C81C!sdd015aea46f64fc891f1ab9d81bddada"
+            "https://1drv.ms/w/c/b1be7ad0cd77c81c/IQTSExjQztaJS6YxG_6-hYfSAVYnFgnTvGIoW1T57HiPo7o"
+
+            # ── Dropbox ───────────────────────────────────────────────────────
+            "https://dl.dropboxusercontent.com/1/view/te020t5q2ojoj3w/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/CodBi.svg"
+            "https://dl.dropboxusercontent.com/1/view/i9qoivgghsfsy1h/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/file_example_MP3_700KB.mp3"
+            "https://dl.dropboxusercontent.com/1/view/r675bi77ls9bc1v/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/file_example_XLS_10.xls"
+            "https://dl.dropboxusercontent.com/1/view/frgihu07tthrkqh/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/file-sample_100kB.odt"
+            "https://dl.dropboxusercontent.com/1/view/ku55mzhbtlzsvyx/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Liberia.jpg"
+            "https://dl.dropboxusercontent.com/1/view/cjwjzzj61yy1sat/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Nextcloud%20Intro.mp4"
+            "https://dl.dropboxusercontent.com/1/view/scfc3j6x4nntms6/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Nextcloud.png"
+            "https://dl.dropboxusercontent.com/1/view/f8o6rv19w0b0wot/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Test.zip"
+            "https://dl.dropboxusercontent.com/1/view/6sqxu6yxvsqlj2a/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Welcome%20to%20Nextcloud%20Hub.docx"
+
+            # ── Nextcloud ─────────────────────────────────────────────────────
+            "https://fie.nl.tab.digital/s/5kbB7yqKPdAg2Aw/download"
+            "https://fie.nl.tab.digital/s/owqGmbrmTQxSiNp/download"
+            "https://fie.nl.tab.digital/s/dFa4rLLGXajoYEG/download"
+            "https://fie.nl.tab.digital/s/zYf5Ak9d89GYWed/download"
+            "https://fie.nl.tab.digital/s/D5o7Cne5ZX2dnSZ/download"
+            "https://fie.nl.tab.digital/s/MNmiC2n6ED5zH3m/download"
+            "https://fie.nl.tab.digital/s/GY2r3gGdaBLwrMm/download"
+            "https://fie.nl.tab.digital/s/cGTK7WKfdESdzr3/download"
+            "https://fie.nl.tab.digital/s/FA8fas6FPFjYKZg/download"
+          )
+
+          FAILED=0
+          FAILED_URLS=()
+
+          for URL in "${URLS[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 20 --location --retry 2 "$URL")
+            if [[ "$STATUS" =~ ^[23] ]]; then
+              echo "OK   $STATUS  $URL"
+            else
+              echo "FAIL $STATUS  $URL"
+              FAILED_URLS+=("$URL  →  HTTP $STATUS")
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo ""
+            echo "──────────────────────────────────────"
+            echo "Broken links detected:"
+            for U in "${FAILED_URLS[@]}"; do
+              echo "  ✗ $U"
+            done
+            echo "──────────────────────────────────────"
+            exit 1
+          fi
+
+          echo "All ${#URLS[@]} links OK."
+
+
+          FAILED=0
+          FAILED_URLS=()
+
+          for URL in "${URLS[@]}"; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              --max-time 20 --location --retry 2 "$URL")
+            if [[ "$STATUS" =~ ^[23] ]]; then
+              echo "OK   $STATUS  $URL"
+            else
+              echo "FAIL $STATUS  $URL"
+              FAILED_URLS+=("$URL  →  HTTP $STATUS")
+              FAILED=1
+            fi
+          done
+
+          if [ "$FAILED" -ne 0 ]; then
+            echo ""
+            echo "──────────────────────────────────────"
+            echo "Broken links detected:"
+            for U in "${FAILED_URLS[@]}"; do
+              echo "  ✗ $U"
+            done
+            echo "──────────────────────────────────────"
+            exit 1
+          fi
+
+          echo "All ${#URLS[@]} links OK."
