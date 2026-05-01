@@ -313,10 +313,15 @@ const uploadFile = async (
                     "application/x-gzip",
                 ];
 
-                // For images, PDFs, Office docs, and archives, convert to raw content URL for proper embedding
-                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type)) {
+                // For images, PDFs, Office docs, ODF docs, and archives, convert to raw content URL for proper embedding
+                const odfTypes = [
+                    "application/vnd.oasis.opendocument.text",
+                    "application/vnd.oasis.opendocument.spreadsheet",
+                    "application/vnd.oasis.opendocument.presentation",
+                ];
+                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type) || odfTypes.includes(file.type)) {
                     // Convert www.dropbox.com to dl.dropboxusercontent.com and add ?raw=1
-                    sharedUrl = baseUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
+                    sharedUrl = baseUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace(/[?&]dl=[01]/g, (m) => m[0] + "raw=1");
                     console.log("[Dropbox] Created raw content URL:", sharedUrl);
                 } else {
                     // For other files, use direct download link
@@ -363,8 +368,13 @@ const uploadFile = async (
                                     "application/gzip",
                                     "application/x-gzip",
                                 ];
-                                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type)) {
-                                    sharedUrl = existingLink.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "?raw=1");
+                                const odfTypes2 = [
+                                    "application/vnd.oasis.opendocument.text",
+                                    "application/vnd.oasis.opendocument.spreadsheet",
+                                    "application/vnd.oasis.opendocument.presentation",
+                                ];
+                                if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type) || odfTypes2.includes(file.type)) {
+                                    sharedUrl = existingLink.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace(/[?&]dl=[01]/g, (m) => m[0] + "raw=1");
                                 } else {
                                     sharedUrl = existingLink.replace("?dl=0", "?dl=1");
                                 }
