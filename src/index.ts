@@ -132,7 +132,8 @@ const insertResult = (
             }
         } else {
             editor.insertContent(
-                `<iframe src="${safeEmbed}" title="${safeName}" width="800" height="500" frameborder="0" style="max-width: 100%;" loading="lazy" allowfullscreen></iframe>`,
+                `<iframe src="${safeEmbed}" title="${safeName}" width="800" height="500" frameborder="0" style="max-width: 100%;" loading="lazy" allowfullscreen></iframe>` +
+                `<p><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeName}</a></p>`,
             );
         }
         return;
