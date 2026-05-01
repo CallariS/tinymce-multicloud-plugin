@@ -581,10 +581,9 @@
           return "embed";
         }
         
-        // Documents/PDFs: cross-origin embedding unreliable from Nextcloud — insert as link
         if (/(pdf|document|spreadsheet|presentation|msword|ms-excel|ms-powerpoint|officedocument)/i.test(mime) ||
             /\.(pdf|docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(name)) {
-          return "link";
+          return "embed";
         }
         
         return "link";
@@ -799,7 +798,33 @@
             }
           }
 
+          // Create embedUrl for documents and PDFs
+          const fileName = selectedFile.name || "";
+          const isPdf = /\.pdf$/i.test(fileName);
+          const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
+          
           let embedUrl = undefined;
+          
+          // Only create embedUrl if we have a public share link (not authenticated WebDAV)
+          const isPublicShare = fileUrl.includes('/s/') || !fileUrl.includes('/remote.php/dav/');
+          
+          if ((isPdf || isOfficeDoc) && isPublicShare) {
+            // Nextcloud share URL (/s/TOKEN) serves an HTML preview page — append /download for the raw file
+            const rawFileUrl = fileUrl.includes('/s/') ? fileUrl.replace(/\/+$/, '') + '/download' : fileUrl;
+            const isMsOffice = /\.(docx?|xlsx?|pptx?)$/i.test(fileName);
+            if (isMsOffice) {
+              // Microsoft Office Online viewer supports Office formats including legacy .xls/.doc/.ppt
+              embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(rawFileUrl)}`;
+              console.log("[Insert] Created embedUrl using Microsoft Office Online viewer:", embedUrl);
+            } else {
+              // Google Docs Viewer for PDF and ODF formats
+              embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(rawFileUrl)}&embedded=true`;
+              console.log("[Insert] Created embedUrl using Google Docs Viewer:", embedUrl);
+            }
+          } else if ((isPdf || isOfficeDoc) && !isPublicShare) {
+            console.warn("[Insert] Document without public share - inserting as download link instead of embed");
+            console.warn("[Insert] To enable embedding, ensure public sharing is enabled on your Nextcloud instance");
+          }
 
           postMessage("picked", {
             item: {
