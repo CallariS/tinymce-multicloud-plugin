@@ -328,15 +328,18 @@ export const bayerncloudProvider = (): CloudProvider => ({
         const shareUrl = await createPublicShare(config, selected.webdavPath);
         // Append /download for direct file access (needed for embedding videos, images, PDFs)
         const targetUrl = shareUrl ? shareUrl + "/download" : selected.url;
+        const isSvg = /\.svg$/i.test(selected.name) || selected.mimeType === "image/svg+xml";
 
         const result: PickerResult = {
             item: {
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
+                embedUrl: isSvg ? targetUrl : undefined,
                 mimeType: selected.mimeType,
             },
-            mode: detectInsertMode({
+            // SVGs from Nextcloud are served with CSP that blocks cross-origin <img> — use iframe instead
+            mode: isSvg ? "embed" : detectInsertMode({
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
