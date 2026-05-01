@@ -71,6 +71,7 @@ const insertResult = (
     const item = result.item;
     const safeName = escapeHtml(item.name || item.url);
     const safeUrl = escapeHtml(item.url);
+    const safeMedia = escapeHtml(item.downloadUrl || item.url);
     const safeEmbed = escapeHtml(item.embedUrl || item.url);
 
     if (mode === "image") {
@@ -80,7 +81,7 @@ const insertResult = (
 
     if (mode === "audio") {
         editor.insertContent(
-            `<audio src="${safeEmbed}" title="${safeName}" controls style="max-width: 100%;"></audio>`,
+            `<audio src="${safeMedia}" title="${safeName}" controls style="max-width: 100%;"></audio>`,
         );
         return;
     }
@@ -91,7 +92,7 @@ const insertResult = (
             /\.(mp4|webm|ogg|mov|m4v|avi|wmv|flv|mkv)$/i.test(item.name || item.url);
         if (isVideo) {
             editor.insertContent(
-                `<video src="${safeEmbed}" title="${safeName}" width="800" height="450" controls style="max-width: 100%;"></video>`,
+                `<video src="${safeMedia}" title="${safeName}" width="800" height="450" controls style="max-width: 100%;"></video>`,
             );
         } else {
             editor.insertContent(

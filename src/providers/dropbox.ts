@@ -69,8 +69,10 @@ const openDropboxChooser = async (
                 const isPdf = /\.pdf$/i.test(fileName);
                 const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
                 const isArchive = /\.(zip|rar|7z|tar|gz|bz2|xz)$/i.test(fileName);
+                const isAudio = /\.(mp3|wav|ogg|aac|m4a|flac|opus|oga|weba)$/i.test(fileName);
+                const isVideo = /\.(mp4|webm|ogg|mov|m4v|avi|wmv|flv|mkv)$/i.test(fileName);
 
-                if ((isImage || isPdf || isOfficeDoc) && fileUrl.includes("dropbox.com")) {
+                if ((isImage || isPdf || isOfficeDoc || isAudio || isVideo) && fileUrl.includes("dropbox.com")) {
                     // Convert to raw content URL for proper embedding
                     fileUrl = fileUrl
                         .replace("www.dropbox.com", "dl.dropboxusercontent.com")
