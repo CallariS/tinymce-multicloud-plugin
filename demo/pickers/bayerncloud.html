@@ -567,8 +567,13 @@
       const detectInsertMode = (file) => {
         const mime = file.mimeType || "";
         const name = file.name || "";
+
+        // SVG: browsers block cross-origin SVG in <img> — insert as link
+        if (mime === "image/svg+xml" || /\.svg$/i.test(name)) {
+          return "link";
+        }
         
-        if (/^image\//i.test(mime) || /\.(apng|avif|gif|jpe?g|png|svg|webp|bmp|tiff?)$/i.test(name)) {
+        if (/^image\//i.test(mime) || /\.(apng|avif|gif|jpe?g|png|webp|bmp|tiff?)$/i.test(name)) {
           return "image";
         }
         
