@@ -496,15 +496,15 @@ const openOneDrivePicker = async (
         throw new Error("OneDrive file does not have a usable URL.");
     }
 
-    // For images, try to get a high-res thumbnail URL
+    // For images, create a permanent public share link instead of the expiring thumbnail URL
     if (mimeType.startsWith("image/")) {
-        console.log("[OneDrive] Detected image, fetching thumbnail...");
-        const thumbnailUrl = await getThumbnailUrl(accessToken, validated.id);
-        if (thumbnailUrl) {
-            url = thumbnailUrl;
-            console.log("[OneDrive] Using thumbnail URL for image");
+        console.log("[OneDrive] Detected image, creating public share link...");
+        const shareUrl = await getPublicDownloadUrl(accessToken, validated);
+        if (shareUrl) {
+            url = shareUrl;
+            console.log("[OneDrive] Using public share URL for image");
         } else {
-            console.warn("[OneDrive] Could not get thumbnail, using webUrl");
+            console.warn("[OneDrive] Could not get public share URL, falling back to webUrl");
         }
     }
     // For documents/PDFs, try to get an embeddable public URL
