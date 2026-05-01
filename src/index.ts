@@ -40,12 +40,11 @@ const getProviderLogoHtml = (id: string, label: string): string => {
 const buildProviderButtonsHtml = (
     providers: CloudProvider[],
     selectedId: string,
-    handlerName: string,
 ): string => {
     const css = `<style>.mc-provider-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:6px 0 2px;}.mc-provider-btn{display:flex!important;flex-direction:column;align-items:center;padding:.5em!important;border:1px solid #d0d0d0!important;border-radius:.5em!important;background:#fff!important;cursor:pointer!important;box-shadow:0 0 .25em rgba(0,0,0,.5)!important;transition:border-color .25s,background .25s,box-shadow .25s;outline:none!important;}.mc-provider-btn:hover{border-color:#1a73e8!important;background:#f0f7ff!important;box-shadow:0 0 .4em rgba(26,115,232,.5)!important;cursor:pointer!important;}.mc-provider-btn.mc-selected{border-color:#1a73e8!important;background:#e8f0fe!important;}</style>`;
     const buttons = providers.map((p) => {
         const sel = p.id === selectedId ? " mc-selected" : "";
-        return `<button type="button" class="mc-provider-btn${sel}" tabindex="0" data-provider="${escapeHtml(p.id)}" onclick="window.${handlerName}('${escapeHtml(p.id)}')" onfocus="window.${handlerName}('${escapeHtml(p.id)}')" title="${escapeHtml(p.label)}">${getProviderLogoHtml(p.id, p.label)}</button>`;
+        return `<button type="button" class="mc-provider-btn${sel}" tabindex="0" data-provider="${escapeHtml(p.id)}" title="${escapeHtml(p.label)}">${getProviderLogoHtml(p.id, p.label)}</button>`;
     }).join("");
     return `${css}<div class="mc-provider-grid">${buttons}</div>`;
 };
@@ -254,10 +253,10 @@ const openUploadDialog = (
 
     let selectedProvider = initialProvider;
 
-    (window as any).__mcSelectUploadProvider = (id: string) => {
+    const selectUploadProvider = (id: string) => {
         selectedProvider = id;
-        document.querySelectorAll(".mc-provider-btn").forEach((btn) => {
-            btn.classList.toggle("mc-selected", (btn as HTMLElement).dataset.provider === id);
+        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
+            btn.classList.toggle("mc-selected", btn.dataset.provider === id);
         });
         const fileSection = document.getElementById("mc-file-section");
         if (fileSection) {
@@ -272,7 +271,7 @@ const openUploadDialog = (
             items: [
                 {
                     type: "htmlpanel",
-                    html: buildProviderButtonsHtml(uploadProviders, initialProvider, "__mcSelectUploadProvider"),
+                    html: buildProviderButtonsHtml(uploadProviders, initialProvider),
                 },
                 {
                     type: "htmlpanel",
@@ -324,10 +323,14 @@ const openUploadDialog = (
             api.close();
             void uploadAndInsert(editor, provider, pluginUrl, file, data.insertAsLink);
         },
-        onClose: () => {
-            delete (window as any).__mcSelectUploadProvider;
-        },
+        onClose: () => {},
     });
+
+    setTimeout(() => {
+        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
+            btn.addEventListener("click", () => selectUploadProvider(btn.dataset.provider!));
+        });
+    }, 0);
 };
 
 const openProviderDialog = (
@@ -349,10 +352,10 @@ const openProviderDialog = (
 
     let selectedProvider = initialProvider;
 
-    (window as any).__mcSelectProvider = (id: string) => {
+    const selectProvider = (id: string) => {
         selectedProvider = id;
-        document.querySelectorAll(".mc-provider-btn").forEach((btn) => {
-            btn.classList.toggle("mc-selected", (btn as HTMLElement).dataset.provider === id);
+        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
+            btn.classList.toggle("mc-selected", btn.dataset.provider === id);
         });
     };
 
@@ -363,7 +366,7 @@ const openProviderDialog = (
             items: [
                 {
                     type: "htmlpanel",
-                    html: buildProviderButtonsHtml(providers, initialProvider, "__mcSelectProvider"),
+                    html: buildProviderButtonsHtml(providers, initialProvider),
                 },
                 {
                     type: "checkbox",
@@ -394,10 +397,14 @@ const openProviderDialog = (
 
             void pickAndInsert(editor, provider, pluginUrl, data.insertAsLink);
         },
-        onClose: () => {
-            delete (window as any).__mcSelectProvider;
-        },
+        onClose: () => {},
     });
+
+    setTimeout(() => {
+        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
+            btn.addEventListener("click", () => selectProvider(btn.dataset.provider!));
+        });
+    }, 0);
 };
 
 const register = (): void => {
