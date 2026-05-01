@@ -577,8 +577,9 @@
           return "image";
         }
         
+        // Video: cross-origin streaming unreliable from Nextcloud — insert as link
         if (/^video\//i.test(mime) || /\.(mp4|webm|ogg|mov|avi|wmv|flv|mkv)$/i.test(name)) {
-          return "embed";
+          return "link";
         }
         
         // Legacy Office and ODF formats: viewers unreliable cross-origin — insert as link
