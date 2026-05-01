@@ -267,12 +267,10 @@ const openUploadDialog = (
 
     const uploadNavFn = (e: KeyboardEvent) => {
         const btns = Array.from(document.querySelectorAll<HTMLElement>(".mc-provider-btn"));
-        const idx = btns.indexOf(document.activeElement as HTMLElement);
-        if (idx === -1) return;
-        if (e.key === "ArrowRight" && idx < btns.length - 1) { e.preventDefault(); e.stopPropagation(); btns[idx + 1].focus(); }
-        else if (e.key === "ArrowLeft" && idx > 0) { e.preventDefault(); e.stopPropagation(); btns[idx - 1].focus(); }
+        const idx = btns.findIndex((b) => b === e.currentTarget);
+        if (e.key === "ArrowRight" && idx < btns.length - 1) { e.preventDefault(); e.stopImmediatePropagation(); btns[idx + 1].focus(); }
+        else if (e.key === "ArrowLeft" && idx > 0) { e.preventDefault(); e.stopImmediatePropagation(); btns[idx - 1].focus(); }
     };
-    document.addEventListener("keydown", uploadNavFn, true);
 
     editor.windowManager.open({
         title: "Upload to Cloud",
@@ -335,9 +333,14 @@ const openUploadDialog = (
         },
         onClose: () => {
             delete (window as any).__mcSelectUploadProvider;
-            document.removeEventListener("keydown", uploadNavFn, true);
         },
     });
+
+    setTimeout(() => {
+        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
+            btn.addEventListener("keydown", uploadNavFn);
+        });
+    }, 0);
 };
 
 const openProviderDialog = (
@@ -368,12 +371,10 @@ const openProviderDialog = (
 
     const pickerNavFn = (e: KeyboardEvent) => {
         const btns = Array.from(document.querySelectorAll<HTMLElement>(".mc-provider-btn"));
-        const idx = btns.indexOf(document.activeElement as HTMLElement);
-        if (idx === -1) return;
-        if (e.key === "ArrowRight" && idx < btns.length - 1) { e.preventDefault(); e.stopPropagation(); btns[idx + 1].focus(); }
-        else if (e.key === "ArrowLeft" && idx > 0) { e.preventDefault(); e.stopPropagation(); btns[idx - 1].focus(); }
+        const idx = btns.findIndex((b) => b === e.currentTarget);
+        if (e.key === "ArrowRight" && idx < btns.length - 1) { e.preventDefault(); e.stopImmediatePropagation(); btns[idx + 1].focus(); }
+        else if (e.key === "ArrowLeft" && idx > 0) { e.preventDefault(); e.stopImmediatePropagation(); btns[idx - 1].focus(); }
     };
-    document.addEventListener("keydown", pickerNavFn, true);
 
     editor.windowManager.open({
         title: options.dialogTitle || "Insert From Cloud",
@@ -415,9 +416,14 @@ const openProviderDialog = (
         },
         onClose: () => {
             delete (window as any).__mcSelectProvider;
-            document.removeEventListener("keydown", pickerNavFn, true);
         },
     });
+
+    setTimeout(() => {
+        document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
+            btn.addEventListener("keydown", pickerNavFn);
+        });
+    }, 0);
 };
 
 const register = (): void => {
