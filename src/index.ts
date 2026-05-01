@@ -46,9 +46,9 @@ const buildProviderButtonsHtml = (
     const css = `<style>.mc-provider-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:6px 0 2px;}.mc-provider-btn{display:flex!important;flex-direction:column;align-items:center;padding:.5em!important;border:1px solid #d0d0d0!important;border-radius:.5em!important;background:#fff!important;cursor:pointer!important;box-shadow:0 0 .25em rgba(0,0,0,.5)!important;transition:border-color .25s,background .25s,box-shadow .25s;outline:none!important;}.mc-provider-btn:hover{border-color:#1a73e8!important;background:#f0f7ff!important;box-shadow:0 0 .4em rgba(26,115,232,.5)!important;cursor:pointer!important;}.mc-provider-btn.mc-selected{border-color:#1a73e8!important;background:#e8f0fe!important;}</style>`;
     const buttons = providers.map((p) => {
         const sel = p.id === selectedId ? " mc-selected" : "";
-        return `<button type="button" class="mc-provider-btn${sel}" tabindex="0" data-provider="${escapeHtml(p.id)}" onclick="window.${handlerName}('${escapeHtml(p.id)}')" onfocus="window.${handlerName}('${escapeHtml(p.id)}')" title="${escapeHtml(p.label)}">${getProviderLogoHtml(p.id, p.label)}</button>`;
+        return `<button type="button" class="mc-provider-btn${sel}" tabindex="0" data-provider="${escapeHtml(p.id)}" onclick="window.${handlerName}('${escapeHtml(p.id)}')" onfocus="window.${handlerName}('${escapeHtml(p.id)}')" onkeydown="window.${navHandler}(event)" title="${escapeHtml(p.label)}">${getProviderLogoHtml(p.id, p.label)}</button>`;
     }).join("");
-    return `${css}<div class="mc-provider-grid" onkeydown="window.${navHandler}(event)">${buttons}</div>`;
+    return `${css}<div class="mc-provider-grid">${buttons}</div>`;
 };
 
 const getOptions = (editor: any): MultiCloudPluginOptions => {
