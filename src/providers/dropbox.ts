@@ -476,7 +476,17 @@ export const dropboxProvider = (): CloudProvider => ({
 
         console.log("[Dropbox] upload() called for file:", file.name);
 
-        return await uploadFile(config, file);
+        const result = await uploadFile(config, file);
+
+        if (result && (file.type.startsWith("video/") || file.type.startsWith("audio/"))) {
+            context.editor.notificationManager.open({
+                type: "info",
+                text: "Media uploaded. If the player shows 0:00, the file may still be processing on Dropbox \u2014 wait a moment and reload the page.",
+                timeout: 10000,
+            });
+        }
+
+        return result;
     },
 });
 
