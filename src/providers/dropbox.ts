@@ -441,7 +441,7 @@ const uploadFile = async (
                 downloadUrl: isMediaFile ? sharedUrl : undefined,
                 mimeType,
             },
-            mode: archiveTypes.includes(mimeType) ? "link" : detectInsertMode({
+            mode: (archiveTypes.includes(mimeType) || odfMimeTypes.includes(mimeType)) ? "link" : detectInsertMode({
                 id: uploadData.id,
                 name: uploadData.name,
                 url: sharedUrl,
