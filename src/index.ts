@@ -159,6 +159,7 @@ const pickAndInsert = async (
                 ? error.message
                 : "Cloud picker failed unexpectedly.";
 
+        console.error("[multicloud] pickAndInsert error:", error);
         editor.notificationManager.open({
             type: "error",
             text: message,
@@ -224,6 +225,7 @@ const uploadAndInsert = async (
                 ? error.message
                 : "Cloud upload failed unexpectedly.";
 
+        console.error("[multicloud] uploadAndInsert error:", error);
         editor.notificationManager.open({
             type: "error",
             text: message,

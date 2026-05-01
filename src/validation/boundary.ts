@@ -18,7 +18,7 @@ const pickerResultSchema = z.object({
         downloadUrl: z.string().url().optional(),
         type: z.enum(["file", "folder"]).optional(),
     }),
-    mode: z.enum(["link", "image", "embed"]).optional(),
+    mode: z.enum(["link", "image", "embed", "audio"]).optional(),
 });
 
 const googleDocSchema = z.object({
