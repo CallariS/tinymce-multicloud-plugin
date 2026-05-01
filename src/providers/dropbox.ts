@@ -67,7 +67,8 @@ const openDropboxChooser = async (
                 const fileName = validated.name || "";
                 const isImage = /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(fileName);
                 const isPdf = /\.pdf$/i.test(fileName);
-                const isOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(fileName);
+                const isOfficeDoc = /\.(docx?|xlsx?|pptx?)$/i.test(fileName); // OOXML only — embeddable via Office Online
+                const isOdf = /\.(odt|ods|odp)$/i.test(fileName); // OpenDocument — not supported by Office Online viewer
                 const isArchive = /\.(zip|rar|7z|tar|gz|bz2|xz)$/i.test(fileName);
                 const isAudio = /\.(mp3|wav|ogg|aac|m4a|flac|opus|oga|weba)$/i.test(fileName);
                 const isVideo = /\.(mp4|webm|ogg|mov|m4v|avi|wmv|flv|mkv)$/i.test(fileName);
@@ -81,7 +82,7 @@ const openDropboxChooser = async (
                 }
 
                 // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
-                // Note: Archives are NOT embedded - inserted as links instead
+                // Note: Archives and ODF files are NOT embedded - inserted as links instead
                 let embedUrl: string | undefined;
                 if (isPdf) {
                     embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
@@ -98,7 +99,7 @@ const openDropboxChooser = async (
                         downloadUrl: (isAudio || isVideo) ? fileUrl : undefined,
                         thumbnailUrl: validated.thumbnailLink,
                     },
-                    mode: isArchive ? "link" : detectInsertMode({
+                    mode: (isArchive || isOdf) ? "link" : detectInsertMode({
                         id: validated.id || validated.name || "dropbox-file",
                         name: validated.name || "Dropbox file",
                         url: fileUrl,
@@ -424,7 +425,7 @@ const uploadFile = async (
                 downloadUrl: isMediaFile ? sharedUrl : undefined,
                 mimeType,
             },
-            mode: archiveTypes.includes(mimeType) ? "link" : detectInsertMode({
+            mode: (archiveTypes.includes(mimeType) || odfTypes.includes(mimeType)) ? "link" : detectInsertMode({
                 id: uploadData.id,
                 name: uploadData.name,
                 url: sharedUrl,
