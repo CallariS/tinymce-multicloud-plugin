@@ -352,7 +352,8 @@ const openUploadDialog = (
 
             if (providerUsesPicker(provider.id)) {
                 api.close();
-                void pickAndInsert(editor, provider, pluginUrl, data.insertAsLink);
+                // Provider handles file selection in its own popup (upload mode)
+                void uploadAndInsert(editor, provider, pluginUrl, new File([], ""), data.insertAsLink);
                 return;
             }
 
