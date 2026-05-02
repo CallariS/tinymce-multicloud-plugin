@@ -49,7 +49,7 @@ const openDropboxChooser = async (
         const clear = () => window.clearTimeout(timeoutRef);
 
         window.Dropbox.choose({
-            linkType: config.linkType || "direct",  // Use 'direct' for download links instead of preview
+            linkType: config.linkType || "preview",  // Use 'preview' for persistent www.dropbox.com/scl/fi/... links; raw=1 is appended below for direct content access
             multiselect: config.multiselect || false,
             extensions: config.extensions || [".png", ".jpg", ".jpeg", ".gif", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"],
             success: (files: any[]) => {
@@ -74,10 +74,14 @@ const openDropboxChooser = async (
                 const isVideo = /\.(mp4|webm|ogg|mov|m4v|avi|wmv|flv|mkv)$/i.test(fileName);
 
                 if ((isImage || isPdf || isOfficeDoc || isAudio || isVideo) && fileUrl.includes("dropbox.com")) {
-                    // Convert to raw content URL for proper embedding/streaming
-                    fileUrl = fileUrl
-                        .replace("www.dropbox.com", "dl.dropboxusercontent.com")
-                        .replace(/[?&]dl=[01]/g, (m) => m[0] + "raw=1");
+                    // Add raw=1 so Dropbox serves file content directly instead of a preview/download page.
+                    // Do NOT swap the domain to dl.dropboxusercontent.com — newer scl/fi/... links with
+                    // rlkey params return 403 on that CDN domain.
+                    if (/[?&]dl=[01]/.test(fileUrl)) {
+                        fileUrl = fileUrl.replace(/([?&])dl=[01]/, "$1raw=1");
+                    } else {
+                        fileUrl += (fileUrl.includes("?") ? "&" : "?") + "raw=1";
+                    }
                     console.log("[Dropbox] Converted to raw content URL:", fileUrl);
                 }
 
