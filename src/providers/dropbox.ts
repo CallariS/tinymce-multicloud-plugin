@@ -82,9 +82,11 @@ const openDropboxChooser = async (
                 }
 
                 // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
-                // Note: Archives are NOT embedded - inserted as links instead
+                // Note: Archives and ODF files are NOT embedded - inserted as links instead.
+                // ODF (odt/ods/odp) files cannot be embedded from Dropbox: Google Docs Viewer does
+                // not support ODF served from Dropbox's CDN and returns raw XML instead.
                 let embedUrl: string | undefined;
-                if (isPdf || isOdf) {
+                if (isPdf) {
                     embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
                 } else if (isOfficeDoc) {
                     embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
@@ -99,7 +101,7 @@ const openDropboxChooser = async (
                         downloadUrl: (isAudio || isVideo) ? fileUrl : undefined,
                         thumbnailUrl: validated.thumbnailLink,
                     },
-                    mode: isArchive ? "link" : detectInsertMode({
+                    mode: (isArchive || isOdf) ? "link" : detectInsertMode({
                         id: validated.id || validated.name || "dropbox-file",
                         name: validated.name || "Dropbox file",
                         url: fileUrl,

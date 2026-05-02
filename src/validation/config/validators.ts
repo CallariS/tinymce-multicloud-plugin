@@ -261,6 +261,39 @@ export class PluginOptionsValidator {
 
     public validate(options: unknown): MultiCloudPluginOptions {
         const raw = XdbcBoundary.ensurePlainObject(options, "plugin options");
+
+        const insertMode = raw.defaultInsertMode;
+        if (insertMode !== undefined && insertMode !== "link" && insertMode !== "image" && insertMode !== "embed") {
+            throw new Error(`[XDBC Boundary] plugin options.defaultInsertMode: expected "link", "image", or "embed".`);
+        }
+
+        const timeout = raw.popupTimeoutMs;
+        if (timeout !== undefined) {
+            if (typeof timeout !== "number") {
+                throw new Error(`[XDBC Boundary] plugin options.popupTimeoutMs: expected a number.`);
+            }
+            if (timeout <= 0) {
+                throw new Error(`[XDBC Boundary] plugin options.popupTimeoutMs: expected a positive number greater than 0.`);
+            }
+        }
+
+        const defaultProvider = raw.defaultProvider;
+        if (defaultProvider !== undefined) {
+            const providersMap =
+                typeof raw.providers === "object" && raw.providers !== null && !Array.isArray(raw.providers)
+                    ? (raw.providers as Record<string, unknown>)
+                    : null;
+            if (
+                typeof defaultProvider !== "string" ||
+                providersMap === null ||
+                !Object.prototype.hasOwnProperty.call(providersMap, defaultProvider)
+            ) {
+                throw new Error(
+                    `[XDBC Boundary] plugin options.defaultProvider: "${String(defaultProvider)}" is not configured in providers.`,
+                );
+            }
+        }
+
         this.boundaryOptions = raw;
 
         const providersRaw =

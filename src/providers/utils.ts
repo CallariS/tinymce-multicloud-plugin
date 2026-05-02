@@ -71,25 +71,17 @@ export const detectInsertMode = (item: CloudItem): InsertMode => {
     const name = item.name || "";
     const url = item.url || "";
 
-    // Images
-    if (mime.startsWith("image/") || imagePattern.test(name) || imagePattern.test(url)) {
-        return "image";
-    }
+    // MIME type takes priority — check it first before falling back to filename/URL
+    if (mime.startsWith("image/")) return "image";
+    if (mime.startsWith("video/")) return "embed";
+    if (mime.startsWith("audio/")) return "audio";
+    if (EMBEDDABLE_MIMES.includes(mime)) return "embed";
 
-    // Videos
-    if (mime.startsWith("video/") || videoPattern.test(name) || videoPattern.test(url)) {
-        return "embed";
-    }
-
-    // Audio
-    if (mime.startsWith("audio/") || audioPattern.test(name) || audioPattern.test(url)) {
-        return "audio";
-    }
-
-    // Embeddable documents (check MIME and file extension)
-    if (EMBEDDABLE_MIMES.includes(mime) || pdfPattern.test(name) || officePattern.test(name) || archivePattern.test(name)) {
-        return "embed";
-    }
+    // Fall back to filename / URL pattern detection
+    if (imagePattern.test(name) || imagePattern.test(url)) return "image";
+    if (videoPattern.test(name) || videoPattern.test(url)) return "embed";
+    if (audioPattern.test(name) || audioPattern.test(url)) return "audio";
+    if (pdfPattern.test(name) || officePattern.test(name) || archivePattern.test(name)) return "embed";
 
     // Default to link
     return "link";

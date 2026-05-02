@@ -23,8 +23,8 @@ tinymce.addI18n('de', {
     'No cloud providers support file uploads.': 'Kein Cloud-Anbieter unterstützt Datei-Uploads.',
     'No provider selected.': 'Kein Anbieter ausgewählt.',
     'No file selected.': 'Keine Datei ausgewählt.',
-    'Cloud picker failed unexpectedly.': 'Der Cloud-Picker ist unerwartet fehlgeschlagen.',
-    'Cloud upload failed unexpectedly.': 'Der Cloud-Upload ist unerwartet fehlgeschlagen.',
+    'Cloud picker failed unexpectedly.': 'Im Cloud-Picker gab es eine unerwartete Fehlfunktion.',
+    'Cloud upload failed unexpectedly.': 'Im Cloud-Upload gab es eine unerwartete Fehlfunktion.',
     '{#} does not support file uploads.': '{#} unterstützt keine Datei-Uploads.',
     'Media could not be loaded. If you just uploaded or shared the file, it may still be processing \u2014 wait a moment and reload the page.':
         'Medien konnten nicht geladen werden. Wenn Sie die Datei gerade hochgeladen oder freigegeben haben, wird sie möglicherweise noch verarbeitet \u2014 warten Sie einen Moment und laden Sie die Seite neu.',
