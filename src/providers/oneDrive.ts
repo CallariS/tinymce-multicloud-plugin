@@ -525,28 +525,32 @@ const openOneDrivePicker = async (
             console.log("[OneDrive] Could not get embeddable URL, will insert as link");
         }
     }
-    // For videos, use the direct download URL for streaming in a <video> tag
-    else if (mimeType.startsWith("video/")) {
-        const directUrl = validated["@microsoft.graph.downloadUrl"];
-        if (directUrl) {
-            url = directUrl;
-            console.log("[OneDrive] Using direct download URL for video streaming");
+    // For videos and audio, use the OneDrive embed viewer (iframe) instead of a direct
+    // download URL. The @microsoft.graph.downloadUrl is a short-lived signed token that
+    // expires within hours. A permanent anonymous sharing link (1drv.ms embed) is stable.
+    else if (mimeType.startsWith("video/") || mimeType.startsWith("audio/")) {
+        console.log("[OneDrive] Detected media, creating permanent embed URL...");
+        const embedUrl = await getPublicEmbedUrl(accessToken, validated);
+        if (embedUrl) {
+            url = embedUrl;
+            console.log("[OneDrive] Using OneDrive embed viewer for media");
         } else {
-            console.warn("[OneDrive] No direct download URL for video, will insert as link");
+            console.warn("[OneDrive] Could not get embed URL for media, will insert as link");
         }
     }
     // Note: Archives are NOT embedded for OneDrive - inserted as links instead
 
     // Determine insert mode
-    // Images: use embed (iframe via OneDrive viewer) since direct <img> is blocked cross-origin
-    let insertMode = mimeType.startsWith("image/") ? "embed" as const : detectInsertMode({
+    // Images and media: use embed (iframe via OneDrive viewer) since direct URLs are blocked or temporary
+    const isMediaOrImage = mimeType.startsWith("image/") || mimeType.startsWith("video/") || mimeType.startsWith("audio/");
+    let insertMode = isMediaOrImage ? "embed" as const : detectInsertMode({
         id: validated.id || validated.name,
         name: validated.name || validated.id,
         url,
         mimeType: validated.file?.mimeType,
     });
 
-    // If we tried to embed a document/image but still have the original webUrl, fall back to link
+    // If we tried to embed but still have the original webUrl (embed URL unavailable), fall back to link
     if (insertMode === "embed" && url === validated.webUrl) {
         console.log("[OneDrive] Falling back to link mode (embed URL unavailable)");
         insertMode = "link";
@@ -558,7 +562,6 @@ const openOneDrivePicker = async (
             name: validated.name || validated.id,
             url,
             mimeType: validated.file?.mimeType,
-            downloadUrl: validated["@microsoft.graph.downloadUrl"],
         },
         mode: insertMode,
     };
@@ -623,20 +626,23 @@ const uploadFile = async (
                 console.log("[OneDrive] Got embeddable URL for uploaded document");
             }
         }
-        // For videos, use the direct download URL for streaming in a <video> tag
-        else if (mimeType.startsWith("video/")) {
-            const directUrl = uploadedItem["@microsoft.graph.downloadUrl"];
-            if (directUrl) {
-                url = directUrl;
-                console.log("[OneDrive] Using direct download URL for uploaded video streaming");
+        // For videos and audio, use the OneDrive embed viewer (permanent 1drv.ms iframe)
+        // instead of the short-lived @microsoft.graph.downloadUrl signed token
+        else if (mimeType.startsWith("video/") || mimeType.startsWith("audio/")) {
+            console.log("[OneDrive] Creating permanent embed URL for uploaded media...");
+            const embedUrl = await getPublicEmbedUrl(accessToken, uploadedItem);
+            if (embedUrl) {
+                url = embedUrl;
+                console.log("[OneDrive] Using OneDrive embed viewer for uploaded media");
             } else {
-                console.warn("[OneDrive] No direct download URL for uploaded video, will insert as link");
+                console.warn("[OneDrive] Could not get embed URL for uploaded media, will insert as link");
             }
         }
         // Note: Archives are NOT embedded for OneDrive - inserted as links instead
 
         // Determine insert mode
-        let insertMode = detectInsertMode({
+        const isUploadedMediaOrImage = mimeType.startsWith("image/") || mimeType.startsWith("video/") || mimeType.startsWith("audio/");
+        let insertMode = isUploadedMediaOrImage ? "embed" as const : detectInsertMode({
             id: uploadedItem.id,
             name: uploadedItem.name,
             url,
@@ -644,10 +650,8 @@ const uploadFile = async (
         });
 
         // If we tried to embed but still have the original webUrl, fall back to link
-        if (insertMode === "embed" &&
-            url === uploadedItem.webUrl &&
-            !mimeType.startsWith("image/")) {
-            console.log("[OneDrive] Falling back to link mode for uploaded document");
+        if (insertMode === "embed" && url === uploadedItem.webUrl) {
+            console.log("[OneDrive] Falling back to link mode for uploaded file");
             insertMode = "link";
         }
 
@@ -657,7 +661,6 @@ const uploadFile = async (
                 name: uploadedItem.name,
                 url,
                 mimeType,
-                downloadUrl: uploadedItem["@microsoft.graph.downloadUrl"],
             },
             mode: insertMode,
         };
