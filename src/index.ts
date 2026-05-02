@@ -71,7 +71,7 @@ const attachMediaErrorHandler = (editor: any, tag: "audio" | "video"): void => {
             el.addEventListener("error", () => {
                 editor.notificationManager.open({
                     type: "warning",
-                    text: "Media could not be loaded. If you just uploaded or shared the file, it may still be processing \u2014 wait a moment and reload the page.",
+                    text: editor.translate("Media could not be loaded. If you just uploaded or shared the file, it may still be processing \u2014 wait a moment and reload the page."),
                     timeout: 8000,
                 });
             }, { once: true });
@@ -194,7 +194,7 @@ const pickAndInsert = async (
         const message =
             error instanceof Error
                 ? error.message
-                : "Cloud picker failed unexpectedly.";
+                : editor.translate("Cloud picker failed unexpectedly.");
 
         console.error("[multicloud] pickAndInsert error:", error);
         editor.notificationManager.open({
@@ -216,7 +216,7 @@ const uploadAndInsert = async (
     if (!provider.upload) {
         editor.notificationManager.open({
             type: "warning",
-            text: `${provider.label} does not support file uploads.`,
+            text: editor.translate(["{#} does not support file uploads.", provider.label]),
         });
         return;
     }
@@ -260,7 +260,7 @@ const uploadAndInsert = async (
         const message =
             error instanceof Error
                 ? error.message
-                : "Cloud upload failed unexpectedly.";
+                : editor.translate("Cloud upload failed unexpectedly.");
 
         console.error("[multicloud] uploadAndInsert error:", error);
         editor.notificationManager.open({
@@ -283,7 +283,7 @@ const openUploadDialog = (
     if (uploadProviders.length === 0) {
         editor.notificationManager.open({
             type: "warning",
-            text: "No cloud providers support file uploads.",
+            text: editor.translate("No cloud providers support file uploads."),
         });
         return;
     }
@@ -345,7 +345,7 @@ const openUploadDialog = (
             if (!provider) {
                 editor.notificationManager.open({
                     type: "warning",
-                    text: "No provider selected.",
+                    text: editor.translate("No provider selected."),
                 });
                 return;
             }
@@ -363,7 +363,7 @@ const openUploadDialog = (
             if (!file) {
                 editor.notificationManager.open({
                     type: "warning",
-                    text: "No file selected.",
+                    text: editor.translate("No file selected."),
                 });
                 return;
             }
@@ -434,7 +434,7 @@ const openProviderDialog = (
             if (!provider) {
                 editor.notificationManager.open({
                     type: "warning",
-                    text: "No provider selected.",
+                    text: editor.translate("No provider selected."),
                 });
                 return;
             }
@@ -483,7 +483,7 @@ const register = (): void => {
             if (providers.length === 0) {
                 editor.notificationManager.open({
                     type: "warning",
-                    text: "No cloud providers are enabled.",
+                    text: editor.translate("No cloud providers are enabled."),
                 });
                 return;
             }
@@ -495,7 +495,7 @@ const register = (): void => {
             if (providers.length === 0) {
                 editor.notificationManager.open({
                     type: "warning",
-                    text: "No cloud providers are enabled.",
+                    text: editor.translate("No cloud providers are enabled."),
                 });
                 return;
             }
