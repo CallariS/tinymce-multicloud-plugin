@@ -16,9 +16,37 @@
       #editor {
         height: 100%;
       }
+      #lang-switcher {
+        position: fixed;
+        bottom: 12px;
+        right: 14px;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,0.85);
+        border: 1px solid #bbb;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 0.82em;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        backdrop-filter: blur(4px);
+      }
+      @media(prefers-color-scheme:dark){
+        #lang-switcher{background:rgba(40,40,40,0.9);border-color:#555;color:#ddd;}
+        #lang-switcher select{background:#333;color:#ddd;border-color:#555;}
+      }
     </style>
   </head>
   <body>
+    <div id="lang-switcher">
+      <label for="lang-select">&#127760; Language:</label>
+      <select id="lang-select">
+        <option value="">English</option>
+        <option value="de">Deutsch</option>
+        <option value="it">Italiano</option>
+      </select>
+    </div>
     <textarea id="editor"><h1>TinyMCE MultiCloud Plugin &mdash; Live Demo</h1>
 <p>This editor demonstrates the <strong>TinyMCE MultiCloud Plugin</strong>, which lets you browse, pick and embed files from multiple cloud storage providers directly into your content.</p>
 <h2>How To</h2>
@@ -156,21 +184,45 @@
 
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-      tinymce.init({
-        selector: "#editor",
-        height: calculateEditorHeight(),
-        skin: prefersDark ? "oxide-dark" : "oxide",
-        content_css: prefersDark ? "dark" : "default",
-        content_style: `@media(prefers-color-scheme:dark){thead tr{background:#2a2a2a!important;}tr[style*="fafafa"]{background:#1e1e1e!important;}small{color:#aaa!important;}p[style*="#555"]{color:#aaa!important;}span[style*="border: 1px solid black"]{border-color:#999!important;box-shadow:0 0 .25em rgba(200,200,200,0.4)!important;}span[style*="border: 1px solid black"] img{filter:invert(1);}}`,
-        plugins: "link image media code multicloud",
-        toolbar:
-          "undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload | code",
-        multicloud_providers: config.providers,
-        multicloud_default_provider: config.defaultProvider,
-        multicloud_default_insert_mode: config.defaultInsertMode,
-        multicloud_dialog_title: config.dialogTitle,
-        multicloud_popup_timeout_ms: config.popupTimeoutMs,
-        setup: (editor) => {
+      const LANG_SCRIPTS = { de: '../langs/de.js', it: '../langs/it.js' };
+      const loadedLangs = new Set();
+
+      function loadLangAndReinit(lang) {
+        const doInit = () => {
+          tinymce.remove('#editor');
+          const initOptions = {
+            selector: '#editor',
+            height: calculateEditorHeight(),
+            skin: prefersDark ? 'oxide-dark' : 'oxide',
+            content_css: prefersDark ? 'dark' : 'default',
+            content_style: `@media(prefers-color-scheme:dark){thead tr{background:#2a2a2a!important;}tr[style*="fafafa"]{background:#1e1e1e!important;}small{color:#aaa!important;}p[style*="#555"]{color:#aaa!important;}span[style*="border: 1px solid black"]{border-color:#999!important;box-shadow:0 0 .25em rgba(200,200,200,0.4)!important;}span[style*="border: 1px solid black"] img{filter:invert(1);}}`,
+            plugins: 'link image media code multicloud',
+            toolbar: 'undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload | code',
+            multicloud_providers: config.providers,
+            multicloud_default_provider: config.defaultProvider,
+            multicloud_default_insert_mode: config.defaultInsertMode,
+            multicloud_dialog_title: config.dialogTitle,
+            multicloud_popup_timeout_ms: config.popupTimeoutMs,
+            setup: setupEditor,
+          };
+          if (lang) initOptions.language = lang;
+          tinymce.init(initOptions);
+        };
+        if (lang && LANG_SCRIPTS[lang] && !loadedLangs.has(lang)) {
+          const s = document.createElement('script');
+          s.src = LANG_SCRIPTS[lang];
+          s.onload = () => { loadedLangs.add(lang); doInit(); };
+          document.head.appendChild(s);
+        } else {
+          doInit();
+        }
+      }
+
+      document.getElementById('lang-select').addEventListener('change', (e) => {
+        loadLangAndReinit(e.target.value);
+      });
+
+      function setupEditor(editor) {
           // Handle window resize
           window.addEventListener('resize', () => {
             const newHeight = calculateEditorHeight();
@@ -187,8 +239,9 @@
               setTimeout(() => { iframe.contentWindow.scrollTo(0, 0);}, 4000);
             }
           });
-        },
-      });
+        }
+
+      loadLangAndReinit('');
     </script>
   </body>
 </html>
