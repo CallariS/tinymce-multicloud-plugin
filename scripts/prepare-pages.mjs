@@ -20,6 +20,7 @@ mkdirSync(outDir, { recursive: true });
 const distDir = join(root, "dist");
 const demoDir = join(root, "demo");
 const docsDir = join(root, "docs");
+const langsDir = join(root, "langs");
 
 ensureExists(distDir, "Build output directory");
 ensureExists(demoDir, "Demo directory");
@@ -27,6 +28,9 @@ ensureExists(docsDir, "Documentation directory");
 
 copyDir(distDir, join(outDir, "dist"));
 copyDir(demoDir, join(outDir, "demo"));
+if (existsSync(langsDir)) {
+  copyDir(langsDir, join(outDir, "langs"));
+}
 
 // multicloud.config.js is gitignored (contains real credentials).
 // In CI, secrets are injected via environment variables.
