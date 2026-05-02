@@ -184,15 +184,11 @@ const launchPicker = async (
                         const validatedDoc = validateGoogleDocBoundary(doc);
                         const fallbackUrl = `https://drive.google.com/file/d/${doc.id}/view`;
 
-                        // For images, use high-res thumbnail; for others use direct download link
+                        // Always use the stable public Drive URL as the stored URL.
+                        // thumbnailLink is session-bound (lh3.googleusercontent.com) and must
+                        // not be stored as the main URL — it breaks for other users and after logout.
                         let directUrl: string;
-                        const isImage = validatedDoc.mimeType?.startsWith("image/");
-
-                        if (isImage && metadata?.thumbnailLink) {
-                            // Replace thumbnail size parameter (e.g., =s220) with high-res (=s2000)
-                            directUrl = metadata.thumbnailLink.replace(/=s\d+$/, "=s2000");
-                            console.log("Using high-res thumbnail for image:", directUrl);
-                        } else if (metadata?.webContentLink) {
+                        if (metadata?.webContentLink) {
                             directUrl = metadata.webContentLink;
                             console.log("Using webContentLink:", directUrl);
                         } else {
