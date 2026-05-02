@@ -17,17 +17,18 @@ jobs:
             "https://callaris.github.io/tinymce-multicloud-plugin/demo/privacy-policy.html"
             "https://callaris.github.io/tinymce-multicloud-plugin/demo/terms-of-service.html"
 
-            # ── Google Drive ──────────────────────────────────────────────────
-            "https://drive.google.com/file/d/1T_CqXjd8r4oYh4U9LRt74ymkRvgtvJOu/preview"
+            # ── Google Drive ──────────────────────────────────────────────────────────────
+            "https://drive.google.com/file/d/1-eJTdbDRMJqrC7Mc1erxp17U-CAj31jF/preview"
             "https://drive.google.com/thumbnail?id=1-eJTdbDRMJqrC7Mc1erxp17U-CAj31jF&sz=w2000"
-            "https://drive.google.com/uc?id=1hrLcStthxyubGlRKuM3yPi73_KvSEkts&export=download"
-            "https://drive.google.com/uc?id=1mbPA8tPfv0idtKl94Ns17tb_x9T6u7iM&export=download"
+            "https://drive.google.com/file/d/1T_CqXjd8r4oYh4U9LRt74ymkRvgtvJOu/preview"
+            "https://drive.google.com/file/d/1hrLcStthxyubGlRKuM3yPi73_KvSEkts/preview"
+            "https://drive.google.com/file/d/1mbPA8tPfv0idtKl94Ns17tb_x9T6u7iM/preview"
             "https://drive.google.com/thumbnail?id=1N41uP1StSqjH76--b0spf7lZVoIY7eT5&sz=w2000"
             "https://drive.google.com/thumbnail?id=1OQ4BHtwrYYeYS9evIrGKdqS2S-AoD1lw&sz=w2000"
-            "https://drive.google.com/uc?id=14OefWr90LotEdOTVJxDXPc1eZqehCCXp&export=download"
-            "https://drive.google.com/uc?id=1xqgCCub-C9Lsm6PiK5ps4I-lCJkWT15a&export=download"
-            "https://drive.google.com/uc?id=1RHMvj4q7_zxT12apIPKhmKtyLQ79xtm5&export=download"
-            "https://drive.google.com/uc?id=1zSJdUxDaOlQJLMAqAz1Bf3PO2zBjt24i&export=download"
+            "https://drive.google.com/file/d/14OefWr90LotEdOTVJxDXPc1eZqehCCXp/preview"
+            "https://drive.google.com/file/d/1xqgCCub-C9Lsm6PiK5ps4I-lCJkWT15a/preview"
+            "https://drive.google.com/file/d/1RHMvj4q7_zxT12apIPKhmKtyLQ79xtm5/preview"
+            "https://drive.google.com/file/d/1zSJdUxDaOlQJLMAqAz1Bf3PO2zBjt24i/preview"
 
             # ── OneDrive ──────────────────────────────────────────────────────
             "https://1drv.ms/u/c/b1be7ad0cd77c81c/IQREdIjg5LaZSbL0_sQJxVnaAWqLAfmyjDjv6P2kFPH3clg"
@@ -54,15 +55,16 @@ jobs:
             "https://www.dropbox.com/scl/fi/gaffhmqf44sv6k62amnuo/Welcome-to-Nextcloud-Hub.docx?rlkey=s9wrj29qq0svf6s4w0z0aiuvv&raw=1"
 
             # ── Nextcloud ─────────────────────────────────────────────────────
-            "https://fie.nl.tab.digital/s/5kbB7yqKPdAg2Aw/download"
-            "https://fie.nl.tab.digital/s/owqGmbrmTQxSiNp/download"
-            "https://fie.nl.tab.digital/s/dFa4rLLGXajoYEG/download"
-            "https://fie.nl.tab.digital/s/zYf5Ak9d89GYWed/download"
-            "https://fie.nl.tab.digital/s/D5o7Cne5ZX2dnSZ/download"
-            "https://fie.nl.tab.digital/s/MNmiC2n6ED5zH3m/download"
-            "https://fie.nl.tab.digital/s/GY2r3gGdaBLwrMm/download"
-            "https://fie.nl.tab.digital/s/cGTK7WKfdESdzr3/download"
-            "https://fie.nl.tab.digital/s/FA8fas6FPFjYKZg/download"
+            "https://fie.nl.tab.digital/s/a5DXk35LNwNjXKf/download"
+            "https://fie.nl.tab.digital/s/gZHN74nmzPft9sk/download"
+            "https://fie.nl.tab.digital/s/gnAYMSn7ZJJW56m/download"
+            "https://fie.nl.tab.digital/s/CWKrZyAtnWAjKmX/download"
+            "https://fie.nl.tab.digital/s/ZoeQAHQ2YJD5bwi/download"
+            "https://fie.nl.tab.digital/s/KML3LtkQFgBQPxM/download"
+            "https://fie.nl.tab.digital/s/LtqdSKXiXtABGMW/download"
+            "https://fie.nl.tab.digital/s/MX2YsDB3wRbzKBs/download"
+            "https://fie.nl.tab.digital/s/iiB3W5qe5rf5CJH/download"
+            "https://fie.nl.tab.digital/s/PL6J2BsDkjLa2NF/download"
           )
 
           FAILED=0
