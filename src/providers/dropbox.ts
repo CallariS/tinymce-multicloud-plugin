@@ -90,11 +90,11 @@ const openDropboxChooser = async (
                 // Note: Archives and ODF files are NOT embedded - inserted as links instead.
                 // ODF (odt/ods/odp) files cannot be embedded from Dropbox: Google Docs Viewer does
                 // not support ODF served from Dropbox's CDN and returns raw XML instead.
-                // SVG files are assigned a Google Docs Viewer embedUrl so the user can choose between
-                // viewer (iframe) and rasterized image at insert time.
+                // SVG files use the raw URL directly as embedUrl — browsers render SVG natively
+                // in an iframe at full vector quality. Google Docs Viewer does not support SVG.
                 let embedUrl: string | undefined;
                 if (isSvg) {
-                    embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+                    embedUrl = fileUrl; // raw=1 URL; browser renders as vector SVG in iframe
                 } else if (isPdf) {
                     embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
                 } else if (isOfficeDoc) {
@@ -433,7 +433,7 @@ const uploadFile = async (
         if (mimeType === "application/pdf") {
             embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
         } else if (mimeType === "image/svg+xml" || /\.svg$/i.test(file.name)) {
-            embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
+            embedUrl = sharedUrl; // raw URL; browser renders SVG natively in iframe
         } else if (
             mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || // .docx
             mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || // .xlsx
