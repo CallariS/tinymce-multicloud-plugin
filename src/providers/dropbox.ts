@@ -96,7 +96,7 @@ const openDropboxChooser = async (
                 if (isSvg) {
                     embedUrl = fileUrl; // raw=1 URL; browser renders as vector SVG in iframe
                 } else if (isPdf) {
-                    embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+                    embedUrl = fileUrl; // raw=1 URL; browser renders PDF natively in iframe
                 } else if (isOfficeDoc) {
                     embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
                 }
@@ -431,7 +431,7 @@ const uploadFile = async (
         ];
 
         if (mimeType === "application/pdf") {
-            embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
+            embedUrl = sharedUrl; // raw URL; browser renders PDF natively in iframe
         } else if (mimeType === "image/svg+xml" || /\.svg$/i.test(file.name)) {
             embedUrl = sharedUrl; // raw URL; browser renders SVG natively in iframe
         } else if (
