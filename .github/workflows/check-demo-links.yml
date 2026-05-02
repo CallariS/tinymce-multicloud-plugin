@@ -98,12 +98,13 @@ jobs:
             fi
           done
 
-          # OneDrive: 404/410 = link gone (fail); 000 = Microsoft blocked CI IP (warn only).
+          # OneDrive: 401 = sharing revoked (fail); 404/410 = link gone (fail);
+          # 000 = Microsoft blocking CI IPs network-level (warn only, not a dead link).
           for URL in "${ONEDRIVE_URLS[@]}"; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
               -A "$AGENT" \
               --max-time 20 --retry 1 "$URL")
-            if [[ "$STATUS" == "404" || "$STATUS" == "410" ]]; then
+            if [[ "$STATUS" == "401" || "$STATUS" == "404" || "$STATUS" == "410" ]]; then
               echo "FAIL $STATUS  $URL"
               FAILED_URLS+=("$URL  →  HTTP $STATUS")
               FAILED=1
