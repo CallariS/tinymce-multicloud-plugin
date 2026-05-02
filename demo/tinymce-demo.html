@@ -179,7 +179,7 @@
             editor.getBody().scrollTop = 0;
             const iframe = editor.getContainer().querySelector('iframe');
             if (iframe && iframe.contentWindow) {
-              iframe.contentWindow.scrollTo(0, 0);
+              setTimeout(() => { iframe.contentWindow.scrollTo(0, 0);}, 2000);
             }
           });
         },
