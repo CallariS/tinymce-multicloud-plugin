@@ -19,11 +19,11 @@ jobs:
 
             # ── Google Drive ──────────────────────────────────────────────────
             "https://drive.google.com/file/d/1T_CqXjd8r4oYh4U9LRt74ymkRvgtvJOu/preview"
-            "https://lh3.googleusercontent.com/drive-storage/AJQWtBOJA_xnwo3Aks2YnWEWipJDDQUpD2Jr3Y46sBAcnv5DXlgln81Paellc7NfoTDqtiQ8GP0sqrVVWj3vFMa_jWg3jE-cQcSkvfs06aFMjVRykcdWaQ=s2000"
+            "https://drive.google.com/thumbnail?id=1-eJTdbDRMJqrC7Mc1erxp17U-CAj31jF&sz=w2000"
             "https://drive.google.com/uc?id=1hrLcStthxyubGlRKuM3yPi73_KvSEkts&export=download"
             "https://drive.google.com/uc?id=1mbPA8tPfv0idtKl94Ns17tb_x9T6u7iM&export=download"
-            "https://lh3.googleusercontent.com/drive-storage/AJQWtBPSKVQ_iYR7O55GYkNreeHKjcjddZu4xOpRhVBc2X2idPe9fJHWTuAMyiIn6Gb5g-vs61WLX6-nhf4eHN8tVW9qs8qCjpkuQLhQSBmONUOg5AJi=s2000"
-            "https://lh3.googleusercontent.com/drive-storage/AJQWtBMvSf_sNtON_m_Pe5oQPZhk6y0Ao_f2sa6MsQy_Y9PPlxjEM6nwGT0jFHZp5sBWvE-6fWTBhuWFLkjwG_0VpmsiwdTaprXaHxEavKSICncnMFLaIg=s2000"
+            "https://drive.google.com/thumbnail?id=1N41uP1StSqjH76--b0spf7lZVoIY7eT5&sz=w2000"
+            "https://drive.google.com/thumbnail?id=1OQ4BHtwrYYeYS9evIrGKdqS2S-AoD1lw&sz=w2000"
             "https://drive.google.com/uc?id=14OefWr90LotEdOTVJxDXPc1eZqehCCXp&export=download"
             "https://drive.google.com/uc?id=1xqgCCub-C9Lsm6PiK5ps4I-lCJkWT15a&export=download"
             "https://drive.google.com/uc?id=1RHMvj4q7_zxT12apIPKhmKtyLQ79xtm5&export=download"
@@ -42,15 +42,16 @@ jobs:
             "https://1drv.ms/i/c/b1be7ad0cd77c81c/IQQrGYA_71saT6T3MWNkyKS8AbWU7H0G5uFATXH0qnFF-MY"
 
             # ── Dropbox ───────────────────────────────────────────────────────
-            "https://dl.dropboxusercontent.com/1/view/te020t5q2ojoj3w/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/CodBi.svg"
-            "https://dl.dropboxusercontent.com/1/view/i9qoivgghsfsy1h/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/file_example_MP3_700KB.mp3"
-            "https://dl.dropboxusercontent.com/1/view/r675bi77ls9bc1v/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/file_example_XLS_10.xls"
-            "https://dl.dropboxusercontent.com/1/view/frgihu07tthrkqh/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/file-sample_100kB.odt"
-            "https://dl.dropboxusercontent.com/1/view/ku55mzhbtlzsvyx/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Liberia.jpg"
-            "https://dl.dropboxusercontent.com/1/view/cjwjzzj61yy1sat/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Nextcloud%20Intro.mp4"
-            "https://dl.dropboxusercontent.com/1/view/scfc3j6x4nntms6/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Nextcloud.png"
-            "https://dl.dropboxusercontent.com/1/view/f8o6rv19w0b0wot/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Test.zip"
-            "https://dl.dropboxusercontent.com/1/view/6sqxu6yxvsqlj2a/Documents/Development/GitHub/Repositories/TinyMCE%20MultiCloud%20Plugin/Welcome%20to%20Nextcloud%20Hub.docx"
+            "https://www.dropbox.com/scl/fi/wq0ozxuyzt4q4kgxykns8/CodBi.svg?rlkey=fu9f44yzopoyonc8zb139nl4q&raw=1"
+            "https://www.dropbox.com/scl/fi/nqxjpmzkla9ltkvs4yuzf/file_example_MP3_700KB.mp3?rlkey=x8mq6k7h55qt73h3wv90nua3l&raw=1"
+            "https://www.dropbox.com/scl/fi/y8wmyx2ro4wy67j3rkuq8/file_example_XLS_10.xls?rlkey=ltuwkymzepa1gggom7y36k5t0&raw=1"
+            "https://www.dropbox.com/scl/fi/tpwumyy710gnsqze1ps24/file-sample_100kB.odt?rlkey=0erhfz3196lfybo3ibbgl40v9&dl=0"
+            "https://www.dropbox.com/scl/fi/x8mdojuvqj9zg69f8oqdn/Grundgesetz.pdf?rlkey=94qep7n67c2cx55g4c9qxfwt2&raw=1"
+            "https://www.dropbox.com/scl/fi/gl3rbflqwjxshpxnfdgz1/Liberia.jpg?rlkey=cq1n0i8w125fe37eck7r98wuo&raw=1"
+            "https://www.dropbox.com/scl/fi/fpadi1el9rxlgezfwjggl/Nextcloud-Intro.mp4?rlkey=jb1air0b2rv2ub1mfstn405ta&raw=1"
+            "https://www.dropbox.com/scl/fi/j0o3dqc7gqa3j00auqafm/Nextcloud.png?rlkey=4ggr9srbriiax40pgpp21mmy4&raw=1"
+            "https://www.dropbox.com/scl/fi/ipn8463763x1xhhqpyulz/Test.zip?rlkey=a1odptaoc0ca5m18gmdzaiijg&dl=0"
+            "https://www.dropbox.com/scl/fi/gaffhmqf44sv6k62amnuo/Welcome-to-Nextcloud-Hub.docx?rlkey=s9wrj29qq0svf6s4w0z0aiuvv&raw=1"
 
             # ── Nextcloud ─────────────────────────────────────────────────────
             "https://fie.nl.tab.digital/s/5kbB7yqKPdAg2Aw/download"
@@ -63,35 +64,6 @@ jobs:
             "https://fie.nl.tab.digital/s/cGTK7WKfdESdzr3/download"
             "https://fie.nl.tab.digital/s/FA8fas6FPFjYKZg/download"
           )
-
-          FAILED=0
-          FAILED_URLS=()
-
-          for URL in "${URLS[@]}"; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              --max-time 20 --location --retry 2 "$URL")
-            if [[ "$STATUS" =~ ^[23] ]]; then
-              echo "OK   $STATUS  $URL"
-            else
-              echo "FAIL $STATUS  $URL"
-              FAILED_URLS+=("$URL  →  HTTP $STATUS")
-              FAILED=1
-            fi
-          done
-
-          if [ "$FAILED" -ne 0 ]; then
-            echo ""
-            echo "──────────────────────────────────────"
-            echo "Broken links detected:"
-            for U in "${FAILED_URLS[@]}"; do
-              echo "  ✗ $U"
-            done
-            echo "──────────────────────────────────────"
-            exit 1
-          fi
-
-          echo "All ${#URLS[@]} links OK."
-
 
           FAILED=0
           FAILED_URLS=()
