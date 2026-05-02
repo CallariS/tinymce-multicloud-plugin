@@ -72,6 +72,7 @@ jobs:
 
           for URL in "${URLS[@]}"; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
               --max-time 20 --location --retry 2 "$URL")
             if [[ "$STATUS" =~ ^[23] ]]; then
               echo "OK   $STATUS  $URL"
