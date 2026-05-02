@@ -161,6 +161,7 @@
         height: calculateEditorHeight(),
         skin: prefersDark ? "oxide-dark" : "oxide",
         content_css: prefersDark ? "dark" : "default",
+        content_style: `@media(prefers-color-scheme:dark){thead tr{background:#2a2a2a!important;}tr[style*="fafafa"]{background:#1e1e1e!important;}small{color:#aaa!important;}p[style*="#555"]{color:#aaa!important;}span[style*="border: 1px solid black"]{border-color:#999!important;box-shadow:0 0 .25em rgba(200,200,200,0.4)!important;}span[style*="border: 1px solid black"] img{filter:invert(1);}}`,
         plugins: "link image media code multicloud",
         toolbar:
           "undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload | code",
@@ -183,7 +184,7 @@
             editor.getBody().scrollTop = 0;
             const iframe = editor.getContainer().querySelector('iframe');
             if (iframe && iframe.contentWindow) {
-              setTimeout(() => { iframe.contentWindow.scrollTo(0, 0);}, 2000);
+              setTimeout(() => { iframe.contentWindow.scrollTo(0, 0);}, 4000);
             }
           });
         },
