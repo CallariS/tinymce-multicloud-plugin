@@ -65,7 +65,8 @@ const openDropboxChooser = async (
                 // Convert URL to raw content for embeddable files (images, PDFs, Office docs, archives)
                 let fileUrl = validated.link;
                 const fileName = validated.name || "";
-                const isImage = /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(fileName);
+                const isSvg = /\.svg$/i.test(fileName);
+                const isImage = !isSvg && /\.(png|jpe?g|gif|webp|bmp)$/i.test(fileName);
                 const isPdf = /\.pdf$/i.test(fileName);
                 const isOfficeDoc = /\.(docx?|xlsx?|pptx?)$/i.test(fileName); // OOXML only — embeddable via Office Online
                 const isOdf = /\.(odt|ods|odp)$/i.test(fileName); // OpenDocument — not supported by Office Online viewer
@@ -73,7 +74,7 @@ const openDropboxChooser = async (
                 const isAudio = /\.(mp3|wav|ogg|aac|m4a|flac|opus|oga|weba)$/i.test(fileName);
                 const isVideo = /\.(mp4|webm|ogg|mov|m4v|avi|wmv|flv|mkv)$/i.test(fileName);
 
-                if ((isImage || isPdf || isOfficeDoc || isAudio || isVideo) && fileUrl.includes("dropbox.com")) {
+                if ((isImage || isSvg || isPdf || isOfficeDoc || isAudio || isVideo) && fileUrl.includes("dropbox.com")) {
                     // Add raw=1 so Dropbox serves file content directly instead of a preview/download page.
                     // Do NOT swap the domain to dl.dropboxusercontent.com — newer scl/fi/... links with
                     // rlkey params return 403 on that CDN domain.
@@ -89,8 +90,12 @@ const openDropboxChooser = async (
                 // Note: Archives and ODF files are NOT embedded - inserted as links instead.
                 // ODF (odt/ods/odp) files cannot be embedded from Dropbox: Google Docs Viewer does
                 // not support ODF served from Dropbox's CDN and returns raw XML instead.
+                // SVG files are assigned a Google Docs Viewer embedUrl so the user can choose between
+                // viewer (iframe) and rasterized image at insert time.
                 let embedUrl: string | undefined;
-                if (isPdf) {
+                if (isSvg) {
+                    embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
+                } else if (isPdf) {
                     embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`;
                 } else if (isOfficeDoc) {
                     embedUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
@@ -104,8 +109,9 @@ const openDropboxChooser = async (
                         embedUrl,
                         downloadUrl: (isAudio || isVideo) ? fileUrl : undefined,
                         thumbnailUrl: validated.thumbnailLink,
+                        mimeType: isSvg ? "image/svg+xml" : undefined,
                     },
-                    mode: (isArchive || isOdf) ? "link" : detectInsertMode({
+                    mode: (isArchive || isOdf) ? "link" : isSvg ? "embed" : detectInsertMode({
                         id: validated.id || validated.name || "dropbox-file",
                         name: validated.name || "Dropbox file",
                         url: fileUrl,
@@ -426,6 +432,8 @@ const uploadFile = async (
 
         if (mimeType === "application/pdf") {
             embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
+        } else if (mimeType === "image/svg+xml" || /\.svg$/i.test(file.name)) {
+            embedUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(sharedUrl)}&embedded=true`;
         } else if (
             mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || // .docx
             mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || // .xlsx
@@ -438,6 +446,7 @@ const uploadFile = async (
         }
 
         const isMediaFile = mimeType.startsWith("audio/") || mimeType.startsWith("video/");
+        const isUploadSvg = mimeType === "image/svg+xml" || /\.svg$/i.test(file.name);
 
         const result: PickerResult = {
             item: {
@@ -448,7 +457,7 @@ const uploadFile = async (
                 downloadUrl: isMediaFile ? sharedUrl : undefined,
                 mimeType,
             },
-            mode: (archiveTypes.includes(mimeType) || isOdfFile) ? "link" : detectInsertMode({
+            mode: (archiveTypes.includes(mimeType) || isOdfFile) ? "link" : isUploadSvg ? "embed" : detectInsertMode({
                 id: uploadData.id,
                 name: uploadData.name,
                 url: sharedUrl,

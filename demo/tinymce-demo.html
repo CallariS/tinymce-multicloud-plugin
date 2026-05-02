@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TinyMCE MultiCloud Plugin Demo</title>
     <script src="../node_modules/tinymce/tinymce.min.js"></script>
-    <script src="../dist/index.global.js?v=20260502-4"></script>
+    <script src="../dist/index.global.js?v=20260502-5"></script>
     <script src="./multicloud.config.js"></script>
     <style>
       body {
@@ -83,8 +83,8 @@
 </tr>
 <tr style="background: #fafafa;">
 <td style="padding: 7px 12px; border: 1px solid #777;">SVG</td>
-<td style="padding: 7px 12px; border: 1px solid #777; text-align: center;"><span style="display: inline-block; background: #ea580c; color: white; padding: 1px 8px; border-radius: 9px; font-size: 0.8em; font-weight: 600;">viewer</span></td>
-<td style="padding: 7px 12px; border: 1px solid #777; text-align: center;"><span style="display: inline-block; background: #3b82f6; color: white; padding: 1px 8px; border-radius: 9px; font-size: 0.8em; font-weight: 600;">image</span></td>
+<td style="padding: 7px 12px; border: 1px solid #777; text-align: center;"><span style="display: inline-block; background: #ea580c; color: white; padding: 1px 8px; border-radius: 9px; font-size: 0.8em; font-weight: 600;">viewer</span> <small style="color: #888;">or image*</small></td>
+<td style="padding: 7px 12px; border: 1px solid #777; text-align: center;"><span style="display: inline-block; background: #3b82f6; color: white; padding: 1px 8px; border-radius: 9px; font-size: 0.8em; font-weight: 600;">image</span> <small style="color: #888;">or viewer*</small></td>
 <td style="padding: 7px 12px; border: 1px solid #777; text-align: center;"><span style="display: inline-block; background: #16a34a; color: white; padding: 1px 8px; border-radius: 9px; font-size: 0.8em; font-weight: 600;">embed</span></td>
 <td style="padding: 7px 12px; border: 1px solid #777; text-align: center;"><span style="display: inline-block; background: #9ca3af; color: white; padding: 1px 8px; border-radius: 9px; font-size: 0.8em; font-weight: 600;">link</span></td>
 </tr>
@@ -140,6 +140,7 @@
 </tbody>
 </table>
 <p style="font-size: 0.82em; color: #555; margin-top: 4px;"><span style="display: inline-block; background: #3b82f6; color: white; padding: 1px 7px; border-radius: 9px; font-size: 0.9em; font-weight: 600;">image</span> Direct <code>&lt;img&gt;</code> &nbsp; <span style="display: inline-block; background: #16a34a; color: white; padding: 1px 7px; border-radius: 9px; font-size: 0.9em; font-weight: 600;">embed</span> Native player / viewer &nbsp; <span style="display: inline-block; background: #9333ea; color: white; padding: 1px 7px; border-radius: 9px; font-size: 0.9em; font-weight: 600;">audio</span> <code>&lt;audio&gt;</code> player &nbsp; <span style="display: inline-block; background: #ea580c; color: white; padding: 1px 7px; border-radius: 9px; font-size: 0.9em; font-weight: 600;">viewer</span> Third-party viewer (Google Docs / MS Office Online) &nbsp; <span style="display: inline-block; background: #9ca3af; color: white; padding: 1px 7px; border-radius: 9px; font-size: 0.9em; font-weight: 600;">link</span> Download link only</p>
+<p style="font-size: 0.82em; color: #555; margin-top: 2px;">* SVG files from Google Drive and Dropbox cannot be served as raw vectors. A dialog lets the user choose between <strong>viewer</strong> (iframe, full vector quality) and <strong>image</strong> (rasterized thumbnail, more portable).</p>
 <hr>
 <h2>Example Embeds</h2>
 <p><em>The content below shows live files embedded from each provider.</em></p>

@@ -143,6 +143,64 @@ const insertResult = (
     editor.insertContent(`<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${linkText}</a>`);
 };
 
+/**
+ * When an SVG is picked from a provider that cannot serve raw SVG (e.g. Google Drive, Dropbox),
+ * ask the user whether they prefer the viewer iframe or a rasterized <img>.
+ * Resolves with the (possibly modified) result, or null if the dialog was cancelled.
+ */
+const promptSvgInsertMode = (
+    editor: any,
+    result: PickerResult,
+    rasterUrl: string,
+): Promise<PickerResult | null> =>
+    new Promise((resolve) => {
+        editor.windowManager.open({
+            title: editor.translate("Insert SVG"),
+            size: "normal",
+            body: {
+                type: "panel",
+                items: [
+                    {
+                        type: "alertbanner",
+                        level: "info",
+                        text: editor.translate("SVG files cannot be served as raw vector from this provider. Choose how to insert it:"),
+                        icon: "info",
+                    },
+                    {
+                        type: "selectbox",
+                        name: "svgMode",
+                        label: editor.translate("Insert as"),
+                        items: [
+                            { value: "embed", text: editor.translate("Viewer (vector quality, requires internet)") },
+                            { value: "image", text: editor.translate("Rasterized image (lower quality, more portable)") },
+                        ],
+                    },
+                ],
+            },
+            initialData: { svgMode: "embed" },
+            buttons: [
+                { type: "cancel", text: editor.translate("Cancel") },
+                { type: "submit", text: editor.translate("Insert"), primary: true },
+            ],
+            onSubmit(api: any) {
+                const data = api.getData();
+                api.close();
+                if (data.svgMode === "image") {
+                    resolve({
+                        ...result,
+                        item: { ...result.item, url: rasterUrl },
+                        mode: "image" as InsertMode,
+                    });
+                } else {
+                    resolve({ ...result, mode: "embed" as InsertMode });
+                }
+            },
+            onCancel() {
+                resolve(null);
+            },
+        });
+    });
+
 const resolveActiveProviders = (
     allProviders: CloudProvider[],
     providerConfigById: Partial<Record<CloudProviderId, ProviderRuntimeConfig>>,
@@ -187,9 +245,27 @@ const pickAndInsert = async (
             console.log("Forcing link mode as requested");
         }
 
-        console.log("Inserting into editor...");
-        insertResult(editor, validatedResult, options.defaultInsertMode || "link");
-        console.log("Insert complete");
+        // For SVG files from providers that cannot serve raw SVG, prompt the user
+        const isSvg = /\.svg$/i.test(validatedResult.item.name || "") ||
+            validatedResult.item.mimeType === "image/svg+xml";
+        const hasViewerEmbed = !!validatedResult.item.embedUrl;
+        if (!forceLinkMode && isSvg && hasViewerEmbed && validatedResult.mode !== "link") {
+            editor.setProgressState(false);
+            // Google Drive: use thumbnail endpoint for raster fallback
+            // Other providers (e.g. Dropbox): the item URL itself is the raw file URL
+            const isGoogleDrive = validatedResult.item.embedUrl?.includes("drive.google.com") ?? false;
+            const rasterUrl = isGoogleDrive
+                ? `https://drive.google.com/thumbnail?id=${validatedResult.item.id}&sz=w2000`
+                : validatedResult.item.url;
+            const chosen = await promptSvgInsertMode(editor, validatedResult, rasterUrl);
+            if (!chosen) return;
+            editor.setProgressState(true);
+            insertResult(editor, chosen, options.defaultInsertMode || "link");
+        } else {
+            console.log("Inserting into editor...");
+            insertResult(editor, validatedResult, options.defaultInsertMode || "link");
+            console.log("Insert complete");
+        }
     } catch (error) {
         const message =
             error instanceof Error
