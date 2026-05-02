@@ -187,34 +187,45 @@
       const LANG_SCRIPTS = { de: '../langs/de.js', it: '../langs/it.js' };
       const loadedLangs = new Set();
 
-      function loadLangAndReinit(lang) {
-        const doInit = () => {
-          tinymce.remove('#editor');
-          const initOptions = {
-            selector: '#editor',
-            height: calculateEditorHeight(),
-            skin: prefersDark ? 'oxide-dark' : 'oxide',
-            content_css: prefersDark ? 'dark' : 'default',
-            content_style: `@media(prefers-color-scheme:dark){thead tr{background:#2a2a2a!important;}tr[style*="fafafa"]{background:#1e1e1e!important;}small{color:#aaa!important;}p[style*="#555"]{color:#aaa!important;}span[style*="border: 1px solid black"]{border-color:#999!important;box-shadow:0 0 .25em rgba(200,200,200,0.4)!important;}span[style*="border: 1px solid black"] img{filter:invert(1);}}`,
-            plugins: 'link image media code multicloud',
-            toolbar: 'undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload | code',
-            multicloud_providers: config.providers,
-            multicloud_default_provider: config.defaultProvider,
-            multicloud_default_insert_mode: config.defaultInsertMode,
-            multicloud_dialog_title: config.dialogTitle,
-            multicloud_popup_timeout_ms: config.popupTimeoutMs,
-            setup: setupEditor,
-          };
-          if (lang) initOptions.language = lang;
-          tinymce.init(initOptions);
+      function buildInitOptions(lang) {
+        const opts = {
+          selector: '#editor',
+          height: calculateEditorHeight(),
+          skin: prefersDark ? 'oxide-dark' : 'oxide',
+          content_css: prefersDark ? 'dark' : 'default',
+          content_style: `@media(prefers-color-scheme:dark){thead tr{background:#2a2a2a!important;}tr[style*="fafafa"]{background:#1e1e1e!important;}small{color:#aaa!important;}p[style*="#555"]{color:#aaa!important;}span[style*="border: 1px solid black"]{border-color:#999!important;box-shadow:0 0 .25em rgba(200,200,200,0.4)!important;}span[style*="border: 1px solid black"] img{filter:invert(1);}}`,
+          plugins: 'link image media code multicloud',
+          toolbar: 'undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload | code',
+          multicloud_providers: config.providers,
+          multicloud_default_provider: config.defaultProvider,
+          multicloud_default_insert_mode: config.defaultInsertMode,
+          multicloud_dialog_title: config.dialogTitle,
+          multicloud_popup_timeout_ms: config.popupTimeoutMs,
+          setup: setupEditor,
         };
+        if (lang) opts.language = lang;
+        return opts;
+      }
+
+      function doReinit(lang) {
+        const activeEditor = tinymce.activeEditor;
+        const savedContent = activeEditor ? activeEditor.getContent() : null;
+        tinymce.remove(); // remove all editors
+        if (savedContent !== null) {
+          document.getElementById('editor').value = savedContent;
+        }
+        tinymce.init(buildInitOptions(lang));
+      }
+
+      function loadLangAndReinit(lang) {
         if (lang && LANG_SCRIPTS[lang] && !loadedLangs.has(lang)) {
           const s = document.createElement('script');
           s.src = LANG_SCRIPTS[lang];
-          s.onload = () => { loadedLangs.add(lang); doInit(); };
+          s.onload = () => { loadedLangs.add(lang); doReinit(lang); };
+          s.onerror = () => { console.warn('[multicloud] Failed to load lang:', lang); doReinit(lang); };
           document.head.appendChild(s);
         } else {
-          doInit();
+          doReinit(lang);
         }
       }
 
