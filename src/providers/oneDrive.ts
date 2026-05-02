@@ -500,7 +500,34 @@ const openOneDrivePicker = async (
     // Cross-origin images served via the Shares API or download URLs are blocked for SVG,
     // and non-image MIME type responses break <img> for other formats too.
     // The embed viewer works reliably for all image types including SVG.
-    if (mimeType.startsWith("image/")) {
+    // For SVGs specifically: store the viewer iframe URL in embedUrl and the thumbnail in url,
+    // so the SVG choice dialog can offer both options.
+    const isSvg = mimeType === "image/svg+xml" || /\.svg$/i.test(validated.name || "");
+    if (isSvg) {
+        console.log("[OneDrive] Detected SVG, fetching viewer URL and thumbnail...");
+        const [viewerUrl, thumbnailUrl] = await Promise.all([
+            getPublicEmbedUrl(accessToken, validated),
+            getThumbnailUrl(accessToken, validated.id),
+        ]);
+        if (viewerUrl) {
+            // url = thumbnail (raster fallback), embedUrl = viewer (permanent iframe)
+            url = thumbnailUrl || viewerUrl;
+        }
+        // embedUrl is stored below in the result; keep url as thumbnail for the raster option
+        const svgEmbedUrl = viewerUrl || undefined;
+        const svgResult: PickerResult = {
+            item: {
+                id: validated.id || validated.name,
+                name: validated.name || validated.id,
+                url,
+                embedUrl: svgEmbedUrl,
+                mimeType: "image/svg+xml",
+            },
+            mode: svgEmbedUrl ? "embed" as const : "link" as const,
+        };
+        console.log("[OneDrive] Returning SVG result:", svgResult);
+        return svgResult;
+    } else if (mimeType.startsWith("image/")) {
         console.log("[OneDrive] Detected image, creating embed viewer URL...");
         const embedUrl = await getPublicEmbedUrl(accessToken, validated);
         if (embedUrl) {
@@ -604,8 +631,32 @@ const uploadFile = async (
         const mimeType = uploadedItem.file?.mimeType || file.type;
         let url = uploadedItem.webUrl;
 
-        // For images, get thumbnail URL
-        if (mimeType.startsWith("image/")) {
+        // For SVGs: fetch viewer URL (permanent embed) + thumbnail (raster fallback)
+        // so the SVG choice dialog can offer both options.
+        const isUploadedSvg = mimeType === "image/svg+xml" || /\.svg$/i.test(file.name);
+        if (isUploadedSvg) {
+            console.log("[OneDrive] Uploaded SVG, fetching viewer URL and thumbnail...");
+            const [viewerUrl, thumbnailUrl] = await Promise.all([
+                getPublicEmbedUrl(accessToken, uploadedItem),
+                getThumbnailUrl(accessToken, uploadedItem.id),
+            ]);
+            const svgUrl = thumbnailUrl || viewerUrl || uploadedItem.webUrl;
+            const svgEmbedUrl = viewerUrl || undefined;
+            const svgResult: PickerResult = {
+                item: {
+                    id: uploadedItem.id,
+                    name: uploadedItem.name,
+                    url: svgUrl,
+                    embedUrl: svgEmbedUrl,
+                    mimeType: "image/svg+xml",
+                },
+                mode: svgEmbedUrl ? "embed" as const : "link" as const,
+            };
+            console.log("[OneDrive] Returning uploaded SVG result:", svgResult);
+            return svgResult;
+        }
+        // For non-SVG images, get thumbnail URL
+        else if (mimeType.startsWith("image/")) {
             console.log("[OneDrive] Fetching thumbnail for uploaded image...");
             const thumbnailUrl = await getThumbnailUrl(accessToken, uploadedItem.id);
             if (thumbnailUrl) {
