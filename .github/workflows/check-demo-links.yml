@@ -57,22 +57,12 @@ jobs:
             "https://fie.nl.tab.digital/s/PL6J2BsDkjLa2NF/download"
           )
 
-          # OneDrive links are checked with a relaxed rule:
-          # Microsoft blocks automated requests from CI IPs with 403, but a
-          # deleted/non-existent link returns 404 or 410.  So we only treat
-          # 000 (connection failure), 404, and 410 as broken.
-          ONEDRIVE_URLS=(
-            "https://1drv.ms/u/c/b1be7ad0cd77c81c/IQREdIjg5LaZSbL0_sQJxVnaAWqLAfmyjDjv6P2kFPH3clg"
-            "https://1drv.ms/v/c/b1be7ad0cd77c81c/IQSmeHCD_DrhS4YTZY3vxbVfAcJ9Xa56qJjKOqcwCmllop4"
-            "https://1drv.ms/x/c/b1be7ad0cd77c81c/IQRFskl-cMt3QIQoeXHK0V9iARsdhLTDaa3I5Ke8ixBG-qk"
-            "https://onedrive.live.com/personal/b1be7ad0cd77c81c/_layouts/15/doc.aspx?resid=2c7fb26c-a991-49a1-a8bb-9f597430970f&cid=b1be7ad0cd77c81c"
-            "https://1drv.ms/b/c/b1be7ad0cd77c81c/IQQ7lABnBWFdTrMR6rDo1BxPAWksi0rczKdjt6h0xk-PWGQ"
-            "https://onedrive.live.com?cid=b1be7ad0cd77c81c&id=B1BE7AD0CD77C81C!sdd015aea46f64fc891f1ab9d81bddada"
-            "https://1drv.ms/w/c/b1be7ad0cd77c81c/IQTSExjQztaJS6YxG_6-hYfSAVYnFgnTvGIoW1T57HiPo7o"
-            "https://1drv.ms/u/c/b1be7ad0cd77c81c/IQRMzaLzt1FuRpKuEs0-o-y3Ab4no8KRcH4ZKJ0OyWPTOuw"
-            "https://1drv.ms/i/c/b1be7ad0cd77c81c/IQQbWWCZ7YMNTJm7S4AE9IfkAfmWtH497vv_S-LFxcv_vIA"
-            "https://1drv.ms/i/c/b1be7ad0cd77c81c/IQQrGYA_71saT6T3MWNkyKS8AbWU7H0G5uFATXH0qnFF-MY"
-          )
+          # NOTE: OneDrive (1drv.ms / onedrive.live.com) links are intentionally
+          # excluded from this check. Microsoft blocks all HTTP requests from
+          # GitHub Actions datacenter IPs at the network level (connection
+          # timeout / 000), so no curl-based check can work reliably. The links
+          # are permanent 1drv.ms short URLs that would visibly break in the
+          # demo before any CI check would catch them.
 
           FAILED=0
           FAILED_URLS=()
@@ -90,22 +80,7 @@ jobs:
             fi
           done
 
-          # OneDrive: fail only on connection error (000), 404, or 410.
-          # 403 = Microsoft blocking CI IP, but the resource still exists.
-          for URL in "${ONEDRIVE_URLS[@]}"; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              -A "$AGENT" \
-              --max-time 20 --retry 1 "$URL")
-            if [[ "$STATUS" == "000" || "$STATUS" == "404" || "$STATUS" == "410" ]]; then
-              echo "FAIL $STATUS  $URL"
-              FAILED_URLS+=("$URL  →  HTTP $STATUS")
-              FAILED=1
-            else
-              echo "OK   $STATUS  $URL"
-            fi
-          done
-
-          TOTAL=$(( ${#URLS[@]} + ${#ONEDRIVE_URLS[@]} ))
+          TOTAL=${#URLS[@]}
 
           if [ "$FAILED" -ne 0 ]; then
             echo ""
