@@ -60,7 +60,6 @@ if (existsSync(localConfig)) {
         dropbox: {
             enabled: true,
             appKey: "${env("DROPBOX_APP_KEY", "DROPBOX_APP_KEY")}",
-            linkType: "direct",
             multiselect: false,
             extensions: [],
         },
