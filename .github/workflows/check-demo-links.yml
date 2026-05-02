@@ -57,10 +57,10 @@ jobs:
             "https://fie.nl.tab.digital/s/PL6J2BsDkjLa2NF/download"
           )
 
-          # OneDrive links are checked WITHOUT following redirects.
-          # 1drv.ms / onedrive.live.com return 301/302 for valid links and 404
-          # for deleted ones. Following the full redirect chain ends at a
-          # Microsoft bot-detection / login page that returns non-2xx in CI.
+          # OneDrive links are checked with a relaxed rule:
+          # Microsoft blocks automated requests from CI IPs with 403, but a
+          # deleted/non-existent link returns 404 or 410.  So we only treat
+          # 000 (connection failure), 404, and 410 as broken.
           ONEDRIVE_URLS=(
             "https://1drv.ms/u/c/b1be7ad0cd77c81c/IQREdIjg5LaZSbL0_sQJxVnaAWqLAfmyjDjv6P2kFPH3clg"
             "https://1drv.ms/v/c/b1be7ad0cd77c81c/IQSmeHCD_DrhS4YTZY3vxbVfAcJ9Xa56qJjKOqcwCmllop4"
@@ -90,17 +90,18 @@ jobs:
             fi
           done
 
-          # OneDrive: no redirect following — a 3xx proves the link exists.
+          # OneDrive: fail only on connection error (000), 404, or 410.
+          # 403 = Microsoft blocking CI IP, but the resource still exists.
           for URL in "${ONEDRIVE_URLS[@]}"; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
               -A "$AGENT" \
               --max-time 20 --retry 1 "$URL")
-            if [[ "$STATUS" =~ ^[23] ]]; then
-              echo "OK   $STATUS  $URL"
-            else
+            if [[ "$STATUS" == "000" || "$STATUS" == "404" || "$STATUS" == "410" ]]; then
               echo "FAIL $STATUS  $URL"
               FAILED_URLS+=("$URL  →  HTTP $STATUS")
               FAILED=1
+            else
+              echo "OK   $STATUS  $URL"
             fi
           done
 
