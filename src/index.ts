@@ -312,7 +312,7 @@ const openUploadDialog = (
     };
 
     editor.windowManager.open({
-        title: "Upload to Cloud",
+        title: editor.translate("Upload to Cloud"),
         body: {
             type: "panel",
             items: [
@@ -327,7 +327,7 @@ const openUploadDialog = (
                 {
                     type: "checkbox",
                     name: "insertAsLink",
-                    label: "Insert as link only (don't embed images/documents)",
+                    label: editor.translate("Insert as link only (don't embed images/documents)"),
                 },
             ],
         },
@@ -335,8 +335,8 @@ const openUploadDialog = (
             insertAsLink: false,
         },
         buttons: [
-            { type: "cancel", text: "Cancel" },
-            { type: "submit", text: "Upload", primary: true },
+            { type: "cancel", text: editor.translate("Cancel") },
+            { type: "submit", text: editor.translate("Upload"), primary: true },
         ],
         onSubmit: (api: any) => {
             const data = api.getData();
@@ -404,7 +404,7 @@ const openProviderDialog = (
     };
 
     editor.windowManager.open({
-        title: options.dialogTitle || "Insert From Cloud",
+        title: editor.translate(options.dialogTitle || "Insert From Cloud"),
         body: {
             type: "panel",
             items: [
@@ -415,7 +415,7 @@ const openProviderDialog = (
                 {
                     type: "checkbox",
                     name: "insertAsLink",
-                    label: "Insert as link only (don't embed images/documents)",
+                    label: editor.translate("Insert as link only (don't embed images/documents)"),
                 },
             ],
         },
@@ -423,8 +423,8 @@ const openProviderDialog = (
             insertAsLink: false,
         },
         buttons: [
-            { type: "cancel", text: "Cancel" },
-            { type: "submit", text: "Browse", primary: true },
+            { type: "cancel", text: editor.translate("Cancel") },
+            { type: "submit", text: editor.translate("Browse"), primary: true },
         ],
         onSubmit: (api: any) => {
             const data = api.getData();
