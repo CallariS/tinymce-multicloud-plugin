@@ -184,11 +184,17 @@ const launchPicker = async (
                         const validatedDoc = validateGoogleDocBoundary(doc);
                         const fallbackUrl = `https://drive.google.com/file/d/${doc.id}/view`;
 
-                        // Always use the stable public Drive URL as the stored URL.
-                        // thumbnailLink is session-bound (lh3.googleusercontent.com) and must
-                        // not be stored as the main URL — it breaks for other users and after logout.
+                        // Always use a stable public URL as the stored URL.
+                        // webContentLink (uc?export=download) sends Content-Disposition: attachment
+                        // so browsers won't render it as an <img>. For images, use the thumbnail
+                        // endpoint which serves content directly. For other files use webContentLink
+                        // or fall back to the public /view URL.
+                        const isImage = validatedDoc.mimeType?.startsWith("image/");
                         let directUrl: string;
-                        if (metadata?.webContentLink) {
+                        if (isImage) {
+                            directUrl = `https://drive.google.com/thumbnail?id=${validatedDoc.id}&sz=w2000`;
+                            console.log("Using thumbnail endpoint for image:", directUrl);
+                        } else if (metadata?.webContentLink) {
                             directUrl = metadata.webContentLink;
                             console.log("Using webContentLink:", directUrl);
                         } else {
