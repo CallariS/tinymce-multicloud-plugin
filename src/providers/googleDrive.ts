@@ -186,12 +186,14 @@ const launchPicker = async (
 
                         // Always use a stable public URL as the stored URL.
                         // webContentLink (uc?export=download) sends Content-Disposition: attachment
-                        // so browsers won't render it as an <img>. For images, use the thumbnail
-                        // endpoint which serves content directly. For other files use webContentLink
-                        // or fall back to the public /view URL.
-                        const isImage = validatedDoc.mimeType?.startsWith("image/");
+                        // so browsers won't render it as an <img>. For raster images, use the thumbnail
+                        // endpoint which serves content directly. SVG is treated as embed (iframe)
+                        // because the thumbnail endpoint rasterizes it, losing vector quality.
+                        const isSvg = validatedDoc.mimeType === "image/svg+xml" ||
+                            /\.svg$/i.test(validatedDoc.name || "");
+                        const isRasterImage = !isSvg && validatedDoc.mimeType?.startsWith("image/");
                         let directUrl: string;
-                        if (isImage) {
+                        if (isRasterImage) {
                             directUrl = `https://drive.google.com/thumbnail?id=${validatedDoc.id}&sz=w2000`;
                             console.log("Using thumbnail endpoint for image:", directUrl);
                         } else if (metadata?.webContentLink) {
@@ -202,16 +204,17 @@ const launchPicker = async (
                             console.log("Using fallback URL:", directUrl);
                         }
 
+                        const embedUrl = getEmbedUrl(validatedDoc.id, validatedDoc.mimeType);
                         const result = {
                             item: {
                                 id: validatedDoc.id,
                                 name: validatedDoc.name || validatedDoc.id,
-                                url: directUrl,
+                                url: isSvg ? embedUrl : directUrl,
                                 mimeType: validatedDoc.mimeType,
                                 thumbnailUrl: metadata?.thumbnailLink || validatedDoc.thumbnails?.[0]?.url,
-                                embedUrl: getEmbedUrl(validatedDoc.id, validatedDoc.mimeType),
+                                embedUrl,
                             },
-                            mode: detectInsertMode({
+                            mode: isSvg ? "embed" as const : detectInsertMode({
                                 id: validatedDoc.id,
                                 name: validatedDoc.name || validatedDoc.id,
                                 url: directUrl,
