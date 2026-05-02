@@ -500,30 +500,21 @@ const openOneDrivePicker = async (
     // Cross-origin images served via the Shares API or download URLs are blocked for SVG,
     // and non-image MIME type responses break <img> for other formats too.
     // The embed viewer works reliably for all image types including SVG.
-    // For SVGs specifically: store the viewer iframe URL in embedUrl and the thumbnail in url,
-    // so the SVG choice dialog can offer both options.
+    // For SVGs: use the permanent 1drv.ms viewer iframe directly.
+    // OneDrive has no stable public raster/thumbnail endpoint (all thumbnail URLs contain
+    // expiring tempauth tokens), so the SVG choice dialog is not offered here.
     const isSvg = mimeType === "image/svg+xml" || /\.svg$/i.test(validated.name || "");
     if (isSvg) {
-        console.log("[OneDrive] Detected SVG, fetching viewer URL and thumbnail...");
-        const [viewerUrl, thumbnailUrl] = await Promise.all([
-            getPublicEmbedUrl(accessToken, validated),
-            getThumbnailUrl(accessToken, validated.id),
-        ]);
-        if (viewerUrl) {
-            // url = thumbnail (raster fallback), embedUrl = viewer (permanent iframe)
-            url = thumbnailUrl || viewerUrl;
-        }
-        // embedUrl is stored below in the result; keep url as thumbnail for the raster option
-        const svgEmbedUrl = viewerUrl || undefined;
+        console.log("[OneDrive] Detected SVG, fetching permanent viewer URL...");
+        const viewerUrl = await getPublicEmbedUrl(accessToken, validated);
         const svgResult: PickerResult = {
             item: {
                 id: validated.id || validated.name,
                 name: validated.name || validated.id,
-                url,
-                embedUrl: svgEmbedUrl,
+                url: viewerUrl || validated.webUrl,
                 mimeType: "image/svg+xml",
             },
-            mode: svgEmbedUrl ? "embed" as const : "link" as const,
+            mode: viewerUrl ? "embed" as const : "link" as const,
         };
         console.log("[OneDrive] Returning SVG result:", svgResult);
         return svgResult;
@@ -632,25 +623,20 @@ const uploadFile = async (
         let url = uploadedItem.webUrl;
 
         // For SVGs: fetch viewer URL (permanent embed) + thumbnail (raster fallback)
-        // so the SVG choice dialog can offer both options.
+        // For SVGs: use the permanent 1drv.ms viewer iframe. No choice dialog since OneDrive
+        // has no stable public raster URL (all thumbnails contain expiring tempauth tokens).
         const isUploadedSvg = mimeType === "image/svg+xml" || /\.svg$/i.test(file.name);
         if (isUploadedSvg) {
-            console.log("[OneDrive] Uploaded SVG, fetching viewer URL and thumbnail...");
-            const [viewerUrl, thumbnailUrl] = await Promise.all([
-                getPublicEmbedUrl(accessToken, uploadedItem),
-                getThumbnailUrl(accessToken, uploadedItem.id),
-            ]);
-            const svgUrl = thumbnailUrl || viewerUrl || uploadedItem.webUrl;
-            const svgEmbedUrl = viewerUrl || undefined;
+            console.log("[OneDrive] Uploaded SVG, fetching permanent viewer URL...");
+            const viewerUrl = await getPublicEmbedUrl(accessToken, uploadedItem);
             const svgResult: PickerResult = {
                 item: {
                     id: uploadedItem.id,
                     name: uploadedItem.name,
-                    url: svgUrl,
-                    embedUrl: svgEmbedUrl,
+                    url: viewerUrl || uploadedItem.webUrl,
                     mimeType: "image/svg+xml",
                 },
-                mode: svgEmbedUrl ? "embed" as const : "link" as const,
+                mode: viewerUrl ? "embed" as const : "link" as const,
             };
             console.log("[OneDrive] Returning uploaded SVG result:", svgResult);
             return svgResult;
