@@ -30,8 +30,8 @@ jobs:
             "https://drive.google.com/uc?id=1zSJdUxDaOlQJLMAqAz1Bf3PO2zBjt24i&export=download"
 
             # ── OneDrive ──────────────────────────────────────────────────────
-            # Note: tempauth tokens in some URLs expire — a failure here means the token needs renewal
-            "https://onedrive.live.com?cid=b1be7ad0cd77c81c&id=B1BE7AD0CD77C81C!se0887444b6e44999b2f4fec409c559da"
+            "https://1drv.ms/u/c/b1be7ad0cd77c81c/IQREdIjg5LaZSbL0_sQJxVnaAWqLAfmyjDjv6P2kFPH3clg"
+            "https://1drv.ms/v/c/b1be7ad0cd77c81c/IQSmeHCD_DrhS4YTZY3vxbVfAcJ9Xa56qJjKOqcwCmllop4"
             "https://1drv.ms/x/c/b1be7ad0cd77c81c/IQRFskl-cMt3QIQoeXHK0V9iARsdhLTDaa3I5Ke8ixBG-qk"
             "https://onedrive.live.com/personal/b1be7ad0cd77c81c/_layouts/15/doc.aspx?resid=2c7fb26c-a991-49a1-a8bb-9f597430970f&cid=b1be7ad0cd77c81c"
             "https://1drv.ms/b/c/b1be7ad0cd77c81c/IQQ7lABnBWFdTrMR6rDo1BxPAWksi0rczKdjt6h0xk-PWGQ"
