@@ -164,23 +164,16 @@ Content-Security-Policy:
 
 > **Note:** `'unsafe-inline'` is **not** required by this plugin. All inline event handlers in the TinyMCE dialog HTML panels use the `onclick="window['handler']()"` pattern which invokes named global functions, not inline scripts. TinyMCE itself may require `'unsafe-inline'` depending on version and skin — check the TinyMCE CSP documentation for your version.
 
-## 7. TinyMCE 7 — iframe sandbox exclusions
+## 7. TinyMCE 7 — iframe sandbox
 
-TinyMCE 7 introduced `sandbox_iframes: true` as a default, which adds `sandbox=""` to every `<iframe>` inserted into the editor. This blocks script execution inside embedded viewers (Google Drive, Office Online, etc.).
+TinyMCE 7 introduced `sandbox_iframes: true` as a default, which adds `sandbox=""` to every `<iframe>` in the editor content. This blocks script execution inside embedded viewers (Google Drive, Office Online, OneDrive, Dropbox etc.) and causes hundreds of "Blocked script execution" errors in the browser console.
 
-Add `sandbox_iframes_exclusions` to your `tinymce.init()` call with the embed domains you use:
+The MultiCloud Plugin validates all embed sources via Zod boundary checks before they are ever inserted into the editor, making TinyMCE's generic sandbox redundant. Set `sandbox_iframes: false` in your `tinymce.init()`:
 
 ```js
 tinymce.init({
   plugins: 'multicloud',
-  // Required when using embed insert mode with TinyMCE 7:
-  sandbox_iframes_exclusions: [
-    'https://drive.google.com',       // Google Drive file viewer
-    'https://docs.google.com',        // Google Docs / Sheets / Slides preview
-    'https://view.officeapps.live.com', // Office Online (OneDrive + Dropbox Office docs)
-    'https://www.dropbox.com',        // Dropbox embed
-    // Add your Nextcloud origin here if using BayernCloud embeds
-  ],
+  sandbox_iframes: false, // required — plugin already validates all embed URLs
   // ...
 });
 ```

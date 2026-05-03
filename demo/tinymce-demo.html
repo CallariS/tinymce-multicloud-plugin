@@ -200,15 +200,10 @@
           plugins: 'link image media code multicloud',
           toolbar: 'undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload | code',
           object_resizing: 'img,iframe,table',
-          // TinyMCE 7 sandboxes all iframes by default (sandbox_iframes: true).
-          // The domains below are the embed sources used by the MultiCloud plugin's
-          // built-in providers. They must be excluded so viewers and previews work.
-          sandbox_iframes_exclusions: [
-            'https://drive.google.com',
-            'https://docs.google.com',
-            'https://view.officeapps.live.com',
-            'https://www.dropbox.com',
-          ],
+          // TinyMCE 7 sandboxes iframes by default (sandbox_iframes: true).
+          // This plugin validates all embed sources via Zod boundary checks before insertion,
+          // so the generic sandbox is redundant and breaks embedded viewers.
+          sandbox_iframes: false,
           multicloud_providers: config.providers,
           multicloud_default_provider: config.defaultProvider,
           multicloud_default_insert_mode: config.defaultInsertMode,
