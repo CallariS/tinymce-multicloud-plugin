@@ -11,8 +11,8 @@
         "LICENSE"
     ],
     "scripts": {
-        "build": "tsup src/index.ts --dts --format iife --global-name TinyMceMultiCloudPlugin --out-dir dist --clean --minify --sourcemap",
-        "dev": "tsup src/index.ts --dts --format iife --global-name TinyMceMultiCloudPlugin --out-dir dist --watch --sourcemap",
+        "build": "tsup",
+        "dev": "tsup --watch",
         "typecheck": "tsc --noEmit",
         "test": "jest",
         "test:watch": "jest --watch",

@@ -587,7 +587,11 @@ const openUploadDialog = (
 
     let selectedProvider = initialProvider;
 
-    (window as any).__mcSelectUploadProvider = (id: string) => {
+    // Use a per-dialog random key so the handler cannot be called by other scripts
+    // that guess the fixed "__mcSelectUploadProvider" name.
+    const uploadHandlerKey = `__mc_${Math.random().toString(36).slice(2)}`;
+
+    (window as any)[uploadHandlerKey] = (id: string) => {
         selectedProvider = id;
         document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
             btn.classList.toggle("mc-selected", btn.dataset.provider === id);
@@ -605,7 +609,7 @@ const openUploadDialog = (
             items: [
                 {
                     type: "htmlpanel",
-                    html: buildProviderButtonsHtml(uploadProviders, initialProvider, "__mcSelectUploadProvider"),
+                    html: buildProviderButtonsHtml(uploadProviders, initialProvider, uploadHandlerKey),
                 },
                 {
                     type: "htmlpanel",
@@ -659,7 +663,7 @@ const openUploadDialog = (
             void uploadAndInsert(editor, provider, pluginUrl, file, data.insertAsLink);
         },
         onClose: () => {
-            delete (window as any).__mcSelectUploadProvider;
+            delete (window as any)[uploadHandlerKey];
         },
     });
 };
@@ -698,7 +702,11 @@ const openProviderDialog = (
 
     let selectedProvider = initialProvider;
 
-    (window as any).__mcSelectProvider = (id: string) => {
+    // Use a per-dialog random key so the handler cannot be called by other scripts
+    // that guess the fixed "__mcSelectProvider" name.
+    const pickerHandlerKey = `__mc_${Math.random().toString(36).slice(2)}`;
+
+    (window as any)[pickerHandlerKey] = (id: string) => {
         selectedProvider = id;
         document.querySelectorAll<HTMLElement>(".mc-provider-btn").forEach((btn) => {
             btn.classList.toggle("mc-selected", btn.dataset.provider === id);
@@ -712,7 +720,7 @@ const openProviderDialog = (
             items: [
                 {
                     type: "htmlpanel",
-                    html: buildProviderButtonsHtml(providers, initialProvider, "__mcSelectProvider"),
+                    html: buildProviderButtonsHtml(providers, initialProvider, pickerHandlerKey),
                 },
                 {
                     type: "checkbox",
@@ -744,7 +752,7 @@ const openProviderDialog = (
             void pickAndInsert(editor, provider, pluginUrl, data.insertAsLink);
         },
         onClose: () => {
-            delete (window as any).__mcSelectProvider;
+            delete (window as any)[pickerHandlerKey];
         },
     });
 };

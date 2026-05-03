@@ -31,10 +31,19 @@ export const loadScript = async (
                 return;
             }
 
-            existing.addEventListener("load", () => resolve(), { once: true });
-            existing.addEventListener("error", () => reject(new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / Utils ] Unable to load ${src} ]`)), {
-                once: true,
-            });
+            // Guard against a pre-existing script element that never fires load/error
+            // (e.g. injected by a third party without completing). Reject after 15 s.
+            const waitTimeout = window.setTimeout(() => {
+                existing.removeEventListener("load", onLoad);
+                existing.removeEventListener("error", onError);
+                reject(new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / Utils ] Timed out waiting for ${src} ]`));
+            }, 15_000);
+
+            const onLoad = () => { window.clearTimeout(waitTimeout); resolve(); };
+            const onError = () => { window.clearTimeout(waitTimeout); reject(new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / Utils ] Unable to load ${src} ]`)); };
+
+            existing.addEventListener("load", onLoad, { once: true });
+            existing.addEventListener("error", onError, { once: true });
             return;
         }
 

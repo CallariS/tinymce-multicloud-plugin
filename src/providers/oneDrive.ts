@@ -69,16 +69,16 @@ const ensureMsal = async (): Promise<void> => {
  *
  * @author Salvatore Callari <Callari@WaXCode.net>
  */
-const getAccessToken = async (clientId: string): Promise<string> => {
+const getAccessToken = async (clientId: string, redirectUri?: string): Promise<string> => {
     if (!msalInstance) {
-        const redirectUri = window.location.origin + window.location.pathname;
-        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Initializing MSAL with redirectUri:", redirectUri, "]");
+        const resolvedRedirectUri = redirectUri ?? window.location.origin + window.location.pathname;
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Initializing MSAL with redirectUri:", resolvedRedirectUri, "]");
 
         msalInstance = new window.msal.PublicClientApplication({
             auth: {
                 clientId: clientId,
                 authority: "https://login.microsoftonline.com/common",
-                redirectUri: redirectUri,
+                redirectUri: resolvedRedirectUri,
             },
             cache: {
                 cacheLocation: "localStorage",
@@ -586,7 +586,7 @@ const openOneDrivePicker = async (
     }
 
     console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Getting access token... ]");
-    const accessToken = await getAccessToken(config.clientId);
+    const accessToken = await getAccessToken(config.clientId, config.redirectUri);
 
     console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Showing navigable file picker... ]");
     const selected = await showNavigablePicker(accessToken);
@@ -724,7 +724,7 @@ const uploadFile = async (
     try {
         console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Uploading file:", file.name, "]");
 
-        const accessToken = await getAccessToken(config.clientId!);
+        const accessToken = await getAccessToken(config.clientId!, config.redirectUri);
 
         // Upload the file using Microsoft Graph API
         // PUT /me/drive/root:/{filename}:/content
