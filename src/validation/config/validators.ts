@@ -62,18 +62,19 @@ class XdbcBoundary {
     }
 }
 
+@DBC.ParamvalueProvider
 abstract class BaseProviderConfigValidator {
     protected readonly prefix: string;
-    // Config validated in constructor via XdbcBoundary.ensurePlainObject
-    // INVARIANT decorators removed due to conflict with constructor property assignment
     protected readonly config: Record<string, unknown>;
 
     public constructor(
         protected readonly providerId: CloudProviderId,
+        @DEFINED.PRE(undefined, "Did you pass a provider config object?", VALIDATION_DBC_PATH)
+        @TYPE.PRE("object", undefined, "Did you pass a provider config as an object?", VALIDATION_DBC_PATH)
         config: Record<string, unknown>,
     ) {
         this.prefix = `providers.${providerId}`;
-        this.config = XdbcBoundary.ensurePlainObject(config, `${this.prefix} config`);
+        this.config = config;
     }
 
     public validate(): ProviderRuntimeConfig {
