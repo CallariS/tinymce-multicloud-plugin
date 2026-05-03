@@ -43,6 +43,39 @@ This plugin uses [xdbc](https://www.npmjs.com/package/xdbc) for Design-by-Contra
 - **Uniform error shape** — all validation failures throw `DBC.Infringement` (subclass of `Error`), making them easy to `catch` and distinguish from runtime errors.
 - **Configurable behaviour** — the entire contract layer uses a single named DBC instance at `globalThis.MultiCloud.Validation.DBC`, which can be reconfigured at runtime (see [Soft logging mode](#soft-logging-mode) below).
 
+## Zod boundary validation
+
+In addition to xdbc DBC contracts, the plugin uses [Zod](https://zod.dev/) to validate all data that crosses provider API boundaries at runtime. Where DBC validates *input configuration* before any logic runs, Zod validates *what providers return* before that data is trusted and used.
+
+### What is validated
+
+| Boundary | Schema | Validates |
+|---|---|---|
+| Any provider result | `pickerResultSchema` | `item.id`, `item.name`, `item.url` non-empty; all URL fields are valid URLs; `mode` is a known enum value |
+| Google Picker callback | `googleDocSchema` | `id` required and non-empty; `url`, `thumbnailLink` are valid URLs when present |
+| OneDrive navigable picker | `oneDriveFileSchema` | `name` required; `webUrl`, `@microsoft.graph.downloadUrl` are valid URLs when present; `file.mimeType` is a string when present |
+| Dropbox Chooser callback | `dropboxFileSchema` | `link` required and a valid URL; `thumbnailLink` is a valid URL when present |
+| BayernCloud WebDAV node | `webDavNodeSchema` | `id`, `name`, `url`, `webdavPath` non-empty; `url` is a valid URL; `isDirectory` is a boolean |
+
+### Error type
+
+Zod validation failures throw `ZodError` (from the `zod` package), distinct from the `DBC.Infringement` thrown by xdbc contracts. Both are subclasses of `Error` and can be caught and distinguished at runtime.
+
+```ts
+import { ZodError } from "zod";
+import { DBC } from "xdbc";
+
+try {
+  tinymce.init({ plugins: "multicloud", multicloud_providers: myConfig });
+} catch (e) {
+  if (e instanceof DBC.Infringement) {
+    // configuration contract violated
+  } else if (e instanceof ZodError) {
+    // provider returned unexpected data shape
+  }
+}
+```
+
 ## Install
 
 ```bash
