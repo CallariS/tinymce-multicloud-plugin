@@ -164,7 +164,30 @@ Content-Security-Policy:
 
 > **Note:** `'unsafe-inline'` is **not** required by this plugin. All inline event handlers in the TinyMCE dialog HTML panels use the `onclick="window['handler']()"` pattern which invokes named global functions, not inline scripts. TinyMCE itself may require `'unsafe-inline'` depending on version and skin — check the TinyMCE CSP documentation for your version.
 
-## 7. Recommended production security model
+## 7. TinyMCE 7 — iframe sandbox exclusions
+
+TinyMCE 7 introduced `sandbox_iframes: true` as a default, which adds `sandbox=""` to every `<iframe>` inserted into the editor. This blocks script execution inside embedded viewers (Google Drive, Office Online, etc.).
+
+Add `sandbox_iframes_exclusions` to your `tinymce.init()` call with the embed domains you use:
+
+```js
+tinymce.init({
+  plugins: 'multicloud',
+  // Required when using embed insert mode with TinyMCE 7:
+  sandbox_iframes_exclusions: [
+    'https://drive.google.com',       // Google Drive file viewer
+    'https://docs.google.com',        // Google Docs / Sheets / Slides preview
+    'https://view.officeapps.live.com', // Office Online (OneDrive + Dropbox Office docs)
+    'https://www.dropbox.com',        // Dropbox embed
+    // Add your Nextcloud origin here if using BayernCloud embeds
+  ],
+  // ...
+});
+```
+
+> **TinyMCE 6:** `sandbox_iframes` does not exist in v6 — no action needed.
+
+## 8. Recommended production security model
 
 Do this for all providers where possible:
 1. Keep long-lived secrets and refresh tokens on backend only.
