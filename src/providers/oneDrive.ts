@@ -45,13 +45,13 @@ let msalInstance: any = null;
 const ensureMsal = async (): Promise<void> => {
     if (msalInstance) return;
 
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Loading MSAL from:", MSAL_SDK, "]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Loading MSAL from:", MSAL_SDK, "]");
     await loadScript(MSAL_SDK);
 
     if (!window.msal?.PublicClientApplication) {
         throw new Error("MSAL library failed to load");
     }
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] MSAL loaded successfully ]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] MSAL loaded successfully ]");
 };
 
 /**
@@ -70,7 +70,7 @@ const ensureMsal = async (): Promise<void> => {
 const getAccessToken = async (clientId: string): Promise<string> => {
     if (!msalInstance) {
         const redirectUri = window.location.origin + window.location.pathname;
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Initializing MSAL with redirectUri:", redirectUri, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Initializing MSAL with redirectUri:", redirectUri, "]");
 
         msalInstance = new window.msal.PublicClientApplication({
             auth: {
@@ -95,17 +95,17 @@ const getAccessToken = async (clientId: string): Promise<string> => {
                 scopes,
                 account: accounts[0],
             });
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got token silently ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got token silently ]");
             return response.accessToken;
         }
     } catch (err) {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Silent token acquisition failed, will use popup ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Silent token acquisition failed, will use popup ]");
     }
 
     // Fall back to popup
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Opening auth popup... ]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Opening auth popup... ]");
     const response = await msalInstance.acquireTokenPopup({ scopes });
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Auth successful ]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Auth successful ]");
     return response.accessToken;
 };
 
@@ -124,7 +124,7 @@ const listFolderItems = async (accessToken: string, folderId?: string): Promise<
         ? `https://graph.microsoft.com/v1.0/me/drive/items/${folderId}/children`
         : "https://graph.microsoft.com/v1.0/me/drive/root/children";
 
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Fetching items from:", endpoint, "]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Fetching items from:", endpoint, "]");
     const response = await fetch(endpoint, {
         headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -138,8 +138,8 @@ const listFolderItems = async (accessToken: string, folderId?: string): Promise<
     }
 
     const data = await response.json();
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] API returned:", data, "]");
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Items count:", data.value?.length || 0, "]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] API returned:", data, "]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Items count:", data.value?.length || 0, "]");
     return data.value || [];
 };
 
@@ -216,7 +216,7 @@ const showNavigablePicker = async (
         const folders = items.filter(item => item.folder);
         const files = items.filter(item => item.file);
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Folders:", folders.length, "Files:", files.length, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Folders:", folders.length, "Files:", files.length, "]");
 
         // Show folders first
         folders.forEach(folder => {
@@ -379,7 +379,7 @@ const showNavigablePicker = async (
  */
 const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<string | null> => {
     try {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Fetching thumbnail for item:", itemId, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Fetching thumbnail for item:", itemId, "]");
         const response = await fetch(
             `https://graph.microsoft.com/v1.0/me/drive/items/${itemId}/thumbnails`,
             {
@@ -400,7 +400,7 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
         const largeUrl = thumbnail?.large?.url || thumbnail?.medium?.url || thumbnail?.small?.url;
 
         if (largeUrl) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got thumbnail URL:", largeUrl, "]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got thumbnail URL:", largeUrl, "]");
             return largeUrl;
         }
 
@@ -429,7 +429,7 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
  */
 const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string | null> => {
     try {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Creating public anonymous sharing link for:", item.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Creating public anonymous sharing link for:", item.name, "]");
 
         // Create an anonymous sharing link
         const response = await fetch(
@@ -454,7 +454,7 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
         }
 
         const data = await response.json();
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Sharing link created:", data.link?.webUrl, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Sharing link created:", data.link?.webUrl, "]");
 
         // Try to extract embeddable URL from the webHtml
         if (data.link?.webHtml) {
@@ -462,22 +462,22 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
             const srcMatch = data.link.webHtml.match(/src=["']([^"']+)["']/i);
             if (srcMatch && srcMatch[1]) {
                 const embedSrc = srcMatch[1];
-                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Extracted embed src:", embedSrc, "]");
+                console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Extracted embed src:", embedSrc, "]");
 
                 // If it's an officeapps.live.com URL, use it directly (CSP allows these)
                 if (embedSrc.includes('officeapps.live.com')) {
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Found Office Apps embed URL (CSP-friendly) ]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Found Office Apps embed URL (CSP-friendly) ]");
                     return embedSrc;
                 }
 
                 // If it's still onedrive.live.com, try to convert to Office Online Viewer
                 if (embedSrc.includes('onedrive.live.com')) {
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got onedrive.live.com URL, trying Office Online Viewer conversion... ]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got onedrive.live.com URL, trying Office Online Viewer conversion... ]");
                     // Try using the sharing URL with Office Online Viewer
                     const shareUrl = data.link?.webUrl;
                     if (shareUrl) {
                         const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(shareUrl)}`;
-                        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Converted to Office Online Viewer URL ]");
+                        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Converted to Office Online Viewer URL ]");
                         return viewerUrl;
                     }
                 }
@@ -490,7 +490,7 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
         if (data.link?.webUrl) {
             const shareUrl = data.link.webUrl;
             const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(shareUrl)}`;
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using Office Online Viewer with sharing URL ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using Office Online Viewer with sharing URL ]");
             return viewerUrl;
         }
 
@@ -516,7 +516,7 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
  */
 const getPublicDownloadUrl = async (accessToken: string, item: GraphDriveItem): Promise<string | null> => {
     try {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Creating public anonymous download link for:", item.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Creating public anonymous download link for:", item.name, "]");
 
         // Create an anonymous view link (download link type doesn't work for archives)
         const response = await fetch(
@@ -544,7 +544,7 @@ const getPublicDownloadUrl = async (accessToken: string, item: GraphDriveItem): 
         const shareUrl = data.link?.webUrl;
 
         if (shareUrl) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got public sharing URL:", shareUrl, "]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got public sharing URL:", shareUrl, "]");
             // Convert 1drv.ms short link to direct download URL
             // Add ?download=1 to force direct download
             const downloadUrl = shareUrl.replace('/view/', '/download/').replace('1drv.ms', 'onedrive.live.com');
@@ -583,18 +583,18 @@ const openOneDrivePicker = async (
         throw new Error("OneDrive requires clientId.");
     }
 
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Getting access token... ]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Getting access token... ]");
     const accessToken = await getAccessToken(config.clientId);
 
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Showing navigable file picker... ]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Showing navigable file picker... ]");
     const selected = await showNavigablePicker(accessToken);
 
     if (!selected) {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] User cancelled ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] User cancelled ]");
         return null;
     }
 
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] User selected:", selected.name, "]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] User selected:", selected.name, "]");
 
     const validated = validateOneDriveFileBoundary(selected);
     const mimeType = validated.file?.mimeType || "";
@@ -613,7 +613,7 @@ const openOneDrivePicker = async (
     // expiring tempauth tokens), so the SVG choice dialog is not offered here.
     const isSvg = mimeType === "image/svg+xml" || /\.svg$/i.test(validated.name || "");
     if (isSvg) {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Detected SVG, fetching permanent viewer URL... ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Detected SVG, fetching permanent viewer URL... ]");
         const viewerUrl = await getPublicEmbedUrl(accessToken, validated);
         const svgResult: PickerResult = {
             item: {
@@ -624,14 +624,14 @@ const openOneDrivePicker = async (
             },
             mode: viewerUrl ? "embed" as const : "link" as const,
         };
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Returning SVG result:", svgResult, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Returning SVG result:", svgResult, "]");
         return svgResult;
     } else if (mimeType.startsWith("image/")) {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Detected image, creating embed viewer URL... ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Detected image, creating embed viewer URL... ]");
         const embedUrl = await getPublicEmbedUrl(accessToken, validated);
         if (embedUrl) {
             url = embedUrl;
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using OneDrive embed viewer for image ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using OneDrive embed viewer for image ]");
         } else {
             console.warn("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Could not get embed URL for image, using webUrl ]");
         }
@@ -642,24 +642,24 @@ const openOneDrivePicker = async (
         mimeType.includes("excel") ||
         mimeType.includes("powerpoint") ||
         mimeType.includes("officedocument")) {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Detected document, attempting to create embeddable URL... ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Detected document, attempting to create embeddable URL... ]");
         const embedUrl = await getPublicEmbedUrl(accessToken, validated);
         if (embedUrl) {
             url = embedUrl;
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got embeddable URL, will try to embed ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got embeddable URL, will try to embed ]");
         } else {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Could not get embeddable URL, will insert as link ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Could not get embeddable URL, will insert as link ]");
         }
     }
     // For videos and audio, use the OneDrive embed viewer (iframe) instead of a direct
     // download URL. The @microsoft.graph.downloadUrl is a short-lived signed token that
     // expires within hours. A permanent anonymous sharing link (1drv.ms embed) is stable.
     else if (mimeType.startsWith("video/") || mimeType.startsWith("audio/")) {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Detected media, creating permanent embed URL... ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Detected media, creating permanent embed URL... ]");
         const embedUrl = await getPublicEmbedUrl(accessToken, validated);
         if (embedUrl) {
             url = embedUrl;
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using OneDrive embed viewer for media ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using OneDrive embed viewer for media ]");
         } else {
             console.warn("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Could not get embed URL for media, will insert as link ]");
         }
@@ -678,7 +678,7 @@ const openOneDrivePicker = async (
 
     // If we tried to embed but still have the original webUrl (embed URL unavailable), fall back to link
     if (insertMode === "embed" && url === validated.webUrl) {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Falling back to link mode (embed URL unavailable) ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Falling back to link mode (embed URL unavailable) ]");
         insertMode = "link";
     }
 
@@ -692,7 +692,7 @@ const openOneDrivePicker = async (
         mode: insertMode,
     };
 
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Returning result:", result, "]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Returning result:", result, "]");
     return result;
 };
 
@@ -720,7 +720,7 @@ const uploadFile = async (
     file: File,
 ): Promise<PickerResult | null> => {
     try {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Uploading file:", file.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Uploading file:", file.name, "]");
 
         const accessToken = await getAccessToken(config.clientId!);
 
@@ -744,7 +744,7 @@ const uploadFile = async (
         }
 
         const uploadedItem: GraphDriveItem = await uploadResponse.json();
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] File uploaded successfully:", uploadedItem.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] File uploaded successfully:", uploadedItem.name, "]");
 
         const mimeType = uploadedItem.file?.mimeType || file.type;
         let url = uploadedItem.webUrl;
@@ -754,7 +754,7 @@ const uploadFile = async (
         // has no stable public raster URL (all thumbnails contain expiring tempauth tokens).
         const isUploadedSvg = mimeType === "image/svg+xml" || /\.svg$/i.test(file.name);
         if (isUploadedSvg) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Uploaded SVG, fetching permanent viewer URL... ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Uploaded SVG, fetching permanent viewer URL... ]");
             const viewerUrl = await getPublicEmbedUrl(accessToken, uploadedItem);
             const svgResult: PickerResult = {
                 item: {
@@ -765,16 +765,16 @@ const uploadFile = async (
                 },
                 mode: viewerUrl ? "embed" as const : "link" as const,
             };
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Returning uploaded SVG result:", svgResult, "]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Returning uploaded SVG result:", svgResult, "]");
             return svgResult;
         }
         // For non-SVG images, get thumbnail URL
         else if (mimeType.startsWith("image/")) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Fetching thumbnail for uploaded image... ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Fetching thumbnail for uploaded image... ]");
             const thumbnailUrl = await getThumbnailUrl(accessToken, uploadedItem.id);
             if (thumbnailUrl) {
                 url = thumbnailUrl;
-                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using thumbnail URL for uploaded image ]");
+                console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using thumbnail URL for uploaded image ]");
             }
         }
         // For documents, try to get embeddable URL
@@ -783,21 +783,21 @@ const uploadFile = async (
             mimeType.includes("excel") ||
             mimeType.includes("powerpoint") ||
             mimeType.includes("officedocument")) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Creating embeddable URL for uploaded document... ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Creating embeddable URL for uploaded document... ]");
             const embedUrl = await getPublicEmbedUrl(accessToken, uploadedItem);
             if (embedUrl) {
                 url = embedUrl;
-                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got embeddable URL for uploaded document ]");
+                console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got embeddable URL for uploaded document ]");
             }
         }
         // For videos and audio, use the OneDrive embed viewer (permanent 1drv.ms iframe)
         // instead of the short-lived @microsoft.graph.downloadUrl signed token
         else if (mimeType.startsWith("video/") || mimeType.startsWith("audio/")) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Creating permanent embed URL for uploaded media... ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Creating permanent embed URL for uploaded media... ]");
             const embedUrl = await getPublicEmbedUrl(accessToken, uploadedItem);
             if (embedUrl) {
                 url = embedUrl;
-                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using OneDrive embed viewer for uploaded media ]");
+                console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using OneDrive embed viewer for uploaded media ]");
             } else {
                 console.warn("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Could not get embed URL for uploaded media, will insert as link ]");
             }
@@ -815,7 +815,7 @@ const uploadFile = async (
 
         // If we tried to embed but still have the original webUrl, fall back to link
         if (insertMode === "embed" && url === uploadedItem.webUrl) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Falling back to link mode for uploaded file ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Falling back to link mode for uploaded file ]");
             insertMode = "link";
         }
 
@@ -829,7 +829,7 @@ const uploadFile = async (
             mode: insertMode,
         };
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Returning upload result:", result, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Returning upload result:", result, "]");
         return result;
     } catch (error) {
         console.error("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Upload error:", error, "]");
@@ -856,22 +856,22 @@ export const oneDriveProvider = (): CloudProvider => ({
     pick: async (context) => {
         const config = context.providerConfig as OneDriveProviderConfig;
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] pick() called with config:", config, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] pick() called with config:", config, "]");
 
         if (config.pickerUrl) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using mock picker from:", config.pickerUrl, "]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Using mock picker from:", config.pickerUrl, "]");
             return await createPopupProvider("oneDrive", "OneDrive", "/pickers/onedrive.html").pick(context);
         }
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Loading MSAL library... ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Loading MSAL library... ]");
         await ensureMsal();
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] MSAL loaded, starting picker flow... ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] MSAL loaded, starting picker flow... ]");
         return await openOneDrivePicker(config);
     },
     upload: async (context, file) => {
         const config = context.providerConfig as OneDriveProviderConfig;
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] upload() called for file:", file.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] upload() called for file:", file.name, "]");
 
         await ensureMsal();
         return await uploadFile(config, file);

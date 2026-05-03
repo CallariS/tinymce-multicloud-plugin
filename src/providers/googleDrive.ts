@@ -222,34 +222,34 @@ const launchPicker = async (
             .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
             .addView(view)
             .setCallback((data: any) => {
-                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Google Picker callback:", data, "]");
+                console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Google Picker callback:", data, "]");
 
                 // Ignore intermediate events like 'loaded', only handle terminal actions
                 if (data.action === window.google.picker.Action.CANCEL) {
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Picker cancelled ]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Picker cancelled ]");
                     resolve(null);
                     return;
                 }
 
                 if (data.action !== window.google.picker.Action.PICKED) {
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Non-terminal action, ignoring:", data.action, "]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Non-terminal action, ignoring:", data.action, "]");
                     return; // Don't resolve, wait for PICKED or CANCEL
                 }
 
                 if (!data.docs?.length) {
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] No files in picked event ]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] No files in picked event ]");
                     resolve(null);
                     return;
                 }
 
                 const doc = data.docs[0];
-                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Selected document:", doc, "]");
+                console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Selected document:", doc, "]");
 
                 // Fetch file metadata asynchronously and resolve
                 (async () => {
                     try {
                         const metadata = await getFileMetadata(doc.id);
-                        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] File metadata from Drive API:", metadata, "]");
+                        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] File metadata from Drive API:", metadata, "]");
 
                         const validatedDoc = validateGoogleDocBoundary(doc);
                         const fallbackUrl = `https://drive.google.com/file/d/${doc.id}/view`;
@@ -265,13 +265,13 @@ const launchPicker = async (
                         let directUrl: string;
                         if (isRasterImage) {
                             directUrl = `https://drive.google.com/thumbnail?id=${validatedDoc.id}&sz=w2000`;
-                            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using thumbnail endpoint for image:", directUrl, "]");
+                            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using thumbnail endpoint for image:", directUrl, "]");
                         } else if (metadata?.webContentLink) {
                             directUrl = metadata.webContentLink;
-                            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using webContentLink:", directUrl, "]");
+                            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using webContentLink:", directUrl, "]");
                         } else {
                             directUrl = validatedDoc.url || fallbackUrl;
-                            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using fallback URL:", directUrl, "]");
+                            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using fallback URL:", directUrl, "]");
                         }
 
                         const embedUrl = getEmbedUrl(validatedDoc.id, validatedDoc.mimeType);
@@ -292,7 +292,7 @@ const launchPicker = async (
                             }),
                         };
 
-                        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Returning picker result:", result, "]");
+                        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Returning picker result:", result, "]");
                         resolve(result);
                     } catch (error) {
                         console.error("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Error processing picker result:", error, "]");
@@ -322,7 +322,7 @@ const uploadFile = async (
     file: File,
 ): Promise<PickerResult | null> => {
     try {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Uploading file to Google Drive:", file.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Uploading file to Google Drive:", file.name, "]");
 
         // Create metadata
         const metadata = {
@@ -353,7 +353,7 @@ const uploadFile = async (
         }
 
         const uploadedFile = await response.json();
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] File uploaded successfully:", uploadedFile, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] File uploaded successfully:", uploadedFile, "]");
 
         // Make the file publicly accessible
         try {
@@ -368,7 +368,7 @@ const uploadFile = async (
                     type: "anyone",
                 }),
             });
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] File set to public sharing ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] File set to public sharing ]");
         } catch (error) {
             console.warn("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Failed to set public sharing (file remains private):", error, "]");
         }

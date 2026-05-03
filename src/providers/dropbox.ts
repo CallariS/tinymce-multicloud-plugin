@@ -34,7 +34,7 @@ let cachedAccessToken: string | null = null;
 const clearDropboxToken = () => {
     cachedAccessToken = null;
     localStorage.removeItem('dropbox_access_token');
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Access token cleared (expired or invalid) ]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Access token cleared (expired or invalid) ]");
 };
 
 /**
@@ -121,7 +121,7 @@ const openDropboxChooser = async (
                     } else {
                         fileUrl += (fileUrl.includes("?") ? "&" : "?") + "raw=1";
                     }
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Converted to raw content URL:", fileUrl, "]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Converted to raw content URL:", fileUrl, "]");
                 }
 
                 // Use appropriate viewer for documents (Dropbox forces download with raw URLs)
@@ -187,7 +187,7 @@ const openDropboxChooser = async (
 const getAccessToken = async (appKey: string): Promise<string> => {
     // Check if we already have a token in cache or localStorage
     if (cachedAccessToken) {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Using cached access token ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Using cached access token ]");
         return cachedAccessToken;
     }
 
@@ -195,12 +195,12 @@ const getAccessToken = async (appKey: string): Promise<string> => {
     const storedToken = localStorage.getItem('dropbox_access_token');
     if (storedToken) {
         cachedAccessToken = storedToken;
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Using stored access token ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Using stored access token ]");
         return cachedAccessToken;
     }
 
     // Start OAuth flow
-    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Starting OAuth flow... ]");
+    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Starting OAuth flow... ]");
     const redirectUri = window.location.origin + window.location.pathname;
     const scopes = "files.metadata.read files.content.read files.content.write sharing.write";
     const authUrl = `${DROPBOX_AUTH_URL}?client_id=${appKey}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
@@ -230,7 +230,7 @@ const getAccessToken = async (appKey: string): Promise<string> => {
                     localStorage.setItem('dropbox_access_token', cachedAccessToken);
                     window.removeEventListener('message', messageHandler);
                     popup.close();
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] OAuth successful via postMessage ]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] OAuth successful via postMessage ]");
                     resolve(cachedAccessToken);
                 }
             }
@@ -251,7 +251,7 @@ const getAccessToken = async (appKey: string): Promise<string> => {
                         const storedToken = localStorage.getItem('dropbox_access_token');
                         if (storedToken) {
                             cachedAccessToken = storedToken;
-                            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] OAuth successful (token found in localStorage) ]");
+                            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] OAuth successful (token found in localStorage) ]");
                             resolve(cachedAccessToken);
                         } else {
                             reject(new Error("Dropbox auth popup was closed without authorization"));
@@ -273,7 +273,7 @@ const getAccessToken = async (appKey: string): Promise<string> => {
                                 clearInterval(checkInterval);
                                 window.removeEventListener('message', messageHandler);
                                 popup.close();
-                                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] OAuth successful (token from popup URL) ]");
+                                console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] OAuth successful (token from popup URL) ]");
                                 resolve(cachedAccessToken);
                             }
                         }
@@ -325,7 +325,7 @@ const uploadFile = async (
     file: File,
 ): Promise<PickerResult | null> => {
     try {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Uploading file:", file.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Uploading file:", file.name, "]");
 
         const accessToken = await getAccessToken(config.appKey);
 
@@ -358,7 +358,7 @@ const uploadFile = async (
         }
 
         const uploadData = await uploadResponse.json();
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] File uploaded successfully:", uploadData.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] File uploaded successfully:", uploadData.name, "]");
 
         // Create a shared link for the file
         let sharedUrl = "";
@@ -409,11 +409,11 @@ const uploadFile = async (
                 if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type) || odfTypes.includes(file.type)) {
                     // Convert www.dropbox.com to dl.dropboxusercontent.com and add ?raw=1
                     sharedUrl = baseUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace(/[?&]dl=[01]/g, (m) => m[0] + "raw=1");
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Created raw content URL:", sharedUrl, "]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Created raw content URL:", sharedUrl, "]");
                 } else {
                     // For other files, use direct download link
                     sharedUrl = baseUrl.replace("?dl=0", "?dl=1");
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Created direct download link:", sharedUrl, "]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Created direct download link:", sharedUrl, "]");
                 }
             } else {
                 const errorText = await sharingResponse.text();
@@ -421,7 +421,7 @@ const uploadFile = async (
 
                 // Check if link already exists
                 if (errorText.includes("shared_link_already_exists")) {
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Shared link already exists, trying to get existing link... ]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Shared link already exists, trying to get existing link... ]");
                     try {
                         const getLinksResponse = await fetch("https://api.dropboxapi.com/2/sharing/list_shared_links", {
                             method: "POST",
@@ -465,7 +465,7 @@ const uploadFile = async (
                                 } else {
                                     sharedUrl = existingLink.replace("?dl=0", "?dl=1");
                                 }
-                                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Using existing shared link:", sharedUrl, "]");
+                                console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Using existing shared link:", sharedUrl, "]");
                             }
                         }
                     } catch (e) {
@@ -540,7 +540,7 @@ const uploadFile = async (
             }),
         };
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Returning upload result:", result, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Returning upload result:", result, "]");
         return result;
     } catch (error) {
         console.error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Upload error:", error, "]");
@@ -579,7 +579,7 @@ export const dropboxProvider = (): CloudProvider => ({
     upload: async (context, file) => {
         const config = context.providerConfig as DropboxProviderConfig;
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] upload() called for file:", file.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] upload() called for file:", file.name, "]");
 
         return await uploadFile(config, file);
     },
@@ -593,7 +593,7 @@ if (typeof window !== 'undefined') {
         const match = hash.match(/access_token=([^&]+)/);
         if (match && match[1]) {
             const token = match[1];
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Captured OAuth token from URL ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Captured OAuth token from URL ]");
 
             // Store token
             localStorage.setItem('dropbox_access_token', token);
@@ -606,7 +606,7 @@ if (typeof window !== 'undefined') {
                         type: 'dropbox_oauth_token',
                         token: token
                     }, window.location.origin);
-                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Sent token to opener via postMessage ]");
+                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Sent token to opener via postMessage ]");
                     // Close popup after a short delay
                     setTimeout(() => window.close(), 500);
                 } catch (e) {

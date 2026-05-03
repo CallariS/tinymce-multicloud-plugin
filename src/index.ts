@@ -344,7 +344,7 @@ const pickAndInsert = async (
     const providerConfig = options.providers?.[provider.id] || {};
 
     try {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Calling provider.pick for:", provider.id, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Calling provider.pick for:", provider.id, "]");
         const result = await provider.pick({
             editor,
             pluginUrl,
@@ -352,24 +352,24 @@ const pickAndInsert = async (
             providerConfig,
         });
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Provider.pick returned:", result, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Provider.pick returned:", result, "]");
 
         if (!result) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] No result from picker, aborting ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] No result from picker, aborting ]");
             return;
         }
 
         // Only show progress state when actually processing/inserting
         editor.setProgressState(true);
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Validating result... ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Validating result... ]");
         const validatedResult = validatePickerResultBoundary(provider.id, result);
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Validated result:", validatedResult, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Validated result:", validatedResult, "]");
 
         // Override mode to "link" if user requested it
         if (forceLinkMode) {
             validatedResult.mode = "link";
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Forcing link mode as requested ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Forcing link mode as requested ]");
         }
 
         // For SVG files from providers that cannot serve raw SVG, prompt the user
@@ -389,9 +389,9 @@ const pickAndInsert = async (
             editor.setProgressState(true);
             insertResult(editor, chosen, options.defaultInsertMode || "link");
         } else {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Inserting into editor... ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Inserting into editor... ]");
             insertResult(editor, validatedResult, options.defaultInsertMode || "link");
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Insert complete ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Insert complete ]");
         }
     } catch (error) {
         const message =
@@ -444,7 +444,7 @@ const uploadAndInsert = async (
     const providerConfig = options.providers?.[provider.id] || {};
 
     try {
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Uploading file:", file.name, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Uploading file:", file.name, "]");
         const result = await provider.upload({
             editor,
             pluginUrl,
@@ -452,29 +452,29 @@ const uploadAndInsert = async (
             providerConfig,
         }, file);
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Upload returned:", result, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Upload returned:", result, "]");
 
         if (!result) {
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] No result from upload, aborting ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] No result from upload, aborting ]");
             return;
         }
 
         // Only show progress state when actually processing/inserting
         editor.setProgressState(true);
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Validating result... ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Validating result... ]");
         const validatedResult = validatePickerResultBoundary(provider.id, result);
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Validated result:", validatedResult, "]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Validated result:", validatedResult, "]");
 
         // Override mode to "link" if user requested it
         if (forceLinkMode) {
             validatedResult.mode = "link";
-            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Forcing link mode as requested ]");
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Forcing link mode as requested ]");
         }
 
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Inserting into editor... ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Inserting into editor... ]");
         insertResult(editor, validatedResult, options.defaultInsertMode || "link");
-        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Insert complete ]");
+        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Plugin ] Insert complete ]");
     } catch (error) {
         const message =
             error instanceof Error
