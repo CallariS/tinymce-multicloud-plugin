@@ -426,8 +426,14 @@ const uploadFile = async (
                     "application/vnd.oasis.opendocument.presentation",
                 ];
                 if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type) || odfTypes.includes(file.type)) {
-                    // Convert www.dropbox.com to dl.dropboxusercontent.com and add ?raw=1
-                    sharedUrl = baseUrl.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace(/[?&]dl=[01]/g, (m) => m[0] + "raw=1");
+                    // Add raw=1 so Dropbox serves file content directly instead of a preview/download page.
+                    // Do NOT swap the domain to dl.dropboxusercontent.com — newer scl/fi/... links with
+                    // rlkey params return 403 on that CDN domain.
+                    if (/[?&]dl=[01]/.test(baseUrl)) {
+                        sharedUrl = baseUrl.replace(/([?&])dl=[01]/, "$1raw=1");
+                    } else {
+                        sharedUrl = baseUrl + (baseUrl.includes("?") ? "&" : "?") + "raw=1";
+                    }
                     console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Created raw content URL:", sharedUrl, "]");
                 } else {
                     // For other files, use direct download link
@@ -480,7 +486,12 @@ const uploadFile = async (
                                     "application/vnd.oasis.opendocument.presentation",
                                 ];
                                 if (file.type.startsWith("image/") || file.type === "application/pdf" || officeTypes.includes(file.type) || archiveTypes.includes(file.type) || odfTypes2.includes(file.type)) {
-                                    sharedUrl = existingLink.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace(/[?&]dl=[01]/g, (m) => m[0] + "raw=1");
+                                    // Keep www.dropbox.com domain; dl.dropboxusercontent.com returns 403 on scl/fi/ links with rlkey params.
+                                    if (/[?&]dl=[01]/.test(existingLink)) {
+                                        sharedUrl = existingLink.replace(/([?&])dl=[01]/, "$1raw=1");
+                                    } else {
+                                        sharedUrl = existingLink + (existingLink.includes("?") ? "&" : "?") + "raw=1";
+                                    }
                                 } else {
                                     sharedUrl = existingLink.replace("?dl=0", "?dl=1");
                                 }
