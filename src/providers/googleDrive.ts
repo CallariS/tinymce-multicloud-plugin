@@ -7,6 +7,7 @@ import { createPopupProvider } from "./popupProvider";
 import { detectInsertMode, loadScript } from "./utils";
 import { validateGoogleDocBoundary } from "../validation/boundary";
 
+/** Shape of the OAuth 2.0 token response returned by the Google Identity Services token client. */
 type TokenResponse = { access_token?: string; error?: string };
 
 declare global {
@@ -16,12 +17,29 @@ declare global {
     }
 }
 
+/** URL of the Google API JavaScript client (gapi). Loaded lazily at first use. */
 const GAPI_SCRIPT = "https://apis.google.com/js/api.js";
+/** URL of the Google Identity Services (GIS) authentication script. Loaded lazily at first use. */
 const GIS_SCRIPT = "https://accounts.google.com/gsi/client";
 
+/** Guards against re-initialising the gapi `client:picker` module on subsequent calls. */
 let gapiClientReady = false;
+/** The GIS token client instance, created once and reused across pick calls. */
 let tokenClient: any;
 
+/**
+ * Ensures the Google APIs (gapi client + GIS) are loaded and initialised.
+ *
+ * On first call: loads both SDK scripts, initialises the gapi client with the Drive v3
+ * discovery document, and creates the GIS token client.
+ * On subsequent calls: returns immediately if everything is already ready.
+ *
+ * @param config - Provider config supplying `clientId`, `apiKey`, and optionally `scopes`.
+ * @throws {Error} If `clientId` or `apiKey` are missing.
+ * @throws {Error} If the Google API scripts fail to load or initialise.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const ensureGoogleApis = async (config: GoogleDriveProviderConfig): Promise<void> => {
     if (!config.clientId || !config.apiKey) {
         throw new Error("Google Drive requires clientId and apiKey.");
@@ -63,6 +81,17 @@ const ensureGoogleApis = async (config: GoogleDriveProviderConfig): Promise<void
     }
 };
 
+/**
+ * Requests a Google OAuth 2.0 access token via the GIS token client.
+ *
+ * If a token is already cached by gapi (from a previous consent), the silent
+ * `prompt: ""` flow is used. Otherwise, the full consent screen is shown.
+ *
+ * @returns A promise resolving to the raw access token string.
+ * @throws {Error} If the token request fails or the user denies consent.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const requestToken = async (): Promise<string> =>
     new Promise((resolve, reject) => {
         tokenClient.callback = (response: TokenResponse) => {
@@ -78,6 +107,17 @@ const requestToken = async (): Promise<string> =>
         tokenClient.requestAccessToken({ prompt: existingToken ? "" : "consent" });
     });
 
+/**
+ * Fetches file metadata from the Drive v3 REST API for the given file ID.
+ *
+ * Returns `null` on failure (e.g. permission error, network issue) rather than throwing,
+ * so callers can fall back gracefully.
+ *
+ * @param fileId - The Google Drive file ID.
+ * @returns A promise resolving to the raw Drive API file object, or `null` on failure.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const getFileMetadata = async (fileId: string): Promise<any> => {
     try {
         const response = await window.gapi.client.drive.files.get({
@@ -91,6 +131,18 @@ const getFileMetadata = async (fileId: string): Promise<any> => {
     }
 };
 
+/**
+ * Returns the appropriate Google-hosted embed/preview URL for a file based on its MIME type.
+ *
+ * Google Workspace files (Docs, Sheets, Slides, Forms, Drawings) each have dedicated
+ * `/preview` endpoints. All other files fall back to the generic Drive viewer.
+ *
+ * @param fileId - The Google Drive file ID.
+ * @param mimeType - MIME type of the file (case-insensitive). May be `undefined`.
+ * @returns Absolute embed URL string.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const getEmbedUrl = (fileId: string, mimeType: string | undefined): string => {
     const mime = mimeType?.toLowerCase() || "";
 
@@ -115,6 +167,24 @@ const getEmbedUrl = (fileId: string, mimeType: string | undefined): string => {
     return `https://drive.google.com/file/d/${fileId}/preview`;
 };
 
+/**
+ * Builds and displays the Google Picker UI, then resolves with the user's selection.
+ *
+ * Injects a one-time CSS rule to raise the Picker dialog above TinyMCE's own modals
+ * (z-index fix). After the user picks a file the Drive v3 API is called to obtain full
+ * metadata, and the result is assembled into a {@link PickerResult}.
+ *
+ * URL strategy:
+ * - Raster images — thumbnail endpoint (`sz=w2000`) for direct `<img>` rendering.
+ * - SVG — embed URL (browser renders SVG natively in an iframe at full vector quality).
+ * - Other files — `webContentLink` if available, then `webViewLink`, then a fallback view URL.
+ *
+ * @param config - Provider config supplying `apiKey`, `pickerLocale`, and `viewMimeTypes`.
+ * @param accessToken - OAuth 2.0 access token obtained from {@link requestToken}.
+ * @returns A promise resolving to the {@link PickerResult}, or `null` if the user cancelled.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const launchPicker = async (
     config: GoogleDriveProviderConfig,
     accessToken: string,
@@ -235,6 +305,18 @@ const launchPicker = async (
         picker.setVisible(true);
     });
 
+/**
+ * Uploads a file to Google Drive using the multipart upload API, then optionally
+ * sets the file to public-reader sharing so embedded URLs are accessible without auth.
+ *
+ * @param config - Provider config (access token is read from the gapi client cache).
+ * @param file - The `File` object to upload.
+ * @returns A promise resolving to the {@link PickerResult} for the uploaded file, or `null` on failure.
+ * @throws {Error} If no access token is available, if the upload request fails, or if metadata
+ *   cannot be fetched after a successful upload.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const uploadFile = async (
     config: GoogleDriveProviderConfig,
     file: File,

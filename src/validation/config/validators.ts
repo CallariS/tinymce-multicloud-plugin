@@ -11,11 +11,30 @@ import type {
     ProviderRuntimeConfig,
 } from "../../types";
 
+/** Matches any string that contains at least one non-whitespace character. */
 const rxNonEmpty = /^.*\S.*$/;
+/** Matches strings that look like a relative or root-relative file path (starts with `./`, `../`, or `/`). */
 const rxRelativePath = /^(?:\.{1,2}\/|\/)[^\s]+$/;
+/** Matches strings that could plausibly be an API key (8+ alphanumeric/punctuation characters). */
 const rxApiKeyLike = /^[A-Za-z0-9._\-~]{8,}$/;
+/**
+ * Dot-separated global path at which the shared {@link DBC} instance is registered
+ * (i.e. `globalThis.MultiCloud.Validation.DBC`).
+ */
 const VALIDATION_DBC_PATH = "MultiCloud.Validation.DBC";
 
+/**
+ * Ensures the shared {@link DBC} instance exists at `globalThis.MultiCloud.Validation.DBC`.
+ *
+ * On first call the function walks or creates each intermediate object along the
+ * `VALIDATION_DBC_PATH` segment chain, then instantiates a `new DBC()` at the final
+ * leaf node. Subsequent calls are no-ops because the leaf is already a `DBC` instance.
+ *
+ * This function is called once at module load time so that all tsCheck / decorator
+ * calls in this file operate against a consistent DBC instance.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const ensureDBCInstance = (): void => {
     const host = globalThis as Record<string, unknown>;
     const segments = VALIDATION_DBC_PATH.split(".");
@@ -42,11 +61,30 @@ const ensureDBCInstance = (): void => {
 
 ensureDBCInstance();
 
+/**
+ * Abstract base class for all per-provider configuration validators.
+ *
+ * Uses xdbc `@DBC.ParamvalueProvider` so that constructor parameter decorators
+ * (`@DEFINED.PRE`, `@PLAIN_OBJECT.PRE`) are resolved through the registered DBC
+ * instance at {@link VALIDATION_DBC_PATH}.
+ *
+ * Subclasses implement {@link validateSdkModeRequirements} to enforce provider-specific
+ * required fields (e.g. `clientId`, `appKey`). SDK-mode checks are skipped when
+ * `config.enabled === false` or a `pickerUrl` popup override is present.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 @DBC.ParamvalueProvider
 abstract class BaseProviderConfigValidator {
     protected readonly prefix: string;
     protected readonly config: Record<string, unknown>;
 
+    /**
+     * @param providerId - The cloud provider identifier (used for error context paths).
+     * @param config - The raw provider configuration object.
+     * @throws {DBC.Infringement} If `config` is `undefined` or not a plain object
+     *   (unless soft logging mode is active via {@link configureMultiCloudValidation}).
+     */
     public constructor(
         protected readonly providerId: CloudProviderId,
         @DEFINED.PRE(undefined, "Did you pass a provider config object?", VALIDATION_DBC_PATH)
@@ -57,6 +95,16 @@ abstract class BaseProviderConfigValidator {
         this.config = config;
     }
 
+    /**
+     * Validates the provider configuration and returns a typed {@link ProviderRuntimeConfig}.
+     *
+     * SDK-mode field checks (see {@link validateSdkModeRequirements}) are run only when the
+     * provider is both enabled and does not have a `pickerUrl` popup override.
+     *
+     * @returns The validated, narrowed {@link ProviderRuntimeConfig} object.
+     * @throws {DBC.Infringement} If any required SDK-mode field is absent or invalid
+     *   (unless soft logging mode is active via {@link configureMultiCloudValidation}).
+     */
     public validate(): ProviderRuntimeConfig {
         const enabled = this.config.enabled !== false;
         const hasPopupOverride = Boolean(this.config.pickerUrl);
@@ -68,12 +116,27 @@ abstract class BaseProviderConfigValidator {
         return this.config as ProviderRuntimeConfig;
     }
 
+    /**
+     * Validates provider-specific fields that are required in SDK mode (i.e. when no
+     * `pickerUrl` popup override is configured and the provider is enabled).
+     *
+     * @param config - The raw provider configuration object.
+     * @param context - Dot-separated xdbc context path used in infringement messages.
+     * @throws {DBC.Infringement} If any required SDK-mode field is absent or invalid
+     *   (unless soft logging mode is active via {@link configureMultiCloudValidation}).
+     */
     protected abstract validateSdkModeRequirements(
         config: Record<string, unknown>,
         context: string,
     ): void;
 }
 
+/**
+ * Validator for providers that have no provider-specific SDK-mode requirements
+ * beyond the common base checks (i.e. popup-only or custom providers).
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 class GenericProviderConfigValidator extends BaseProviderConfigValidator {
     protected validateSdkModeRequirements(
         config: Record<string, unknown>,
@@ -85,6 +148,12 @@ class GenericProviderConfigValidator extends BaseProviderConfigValidator {
     }
 }
 
+/**
+ * Validator for the Google Drive provider. Enforces that `clientId` and `apiKey` are
+ * both present, string-typed, and at least superficially key-shaped in SDK mode.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 class GoogleDriveConfigValidator extends BaseProviderConfigValidator {
     protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
         DEFINED.tsCheck(config.clientId, "Did you set Google Drive clientId?", `${context}.clientId`, VALIDATION_DBC_PATH);
@@ -96,6 +165,12 @@ class GoogleDriveConfigValidator extends BaseProviderConfigValidator {
     }
 }
 
+/**
+ * Validator for the OneDrive provider. Enforces that `clientId` is present,
+ * a string, and at least superficially key-shaped in SDK mode.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 class OneDriveConfigValidator extends BaseProviderConfigValidator {
     protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
         DEFINED.tsCheck(config.clientId, "Did you set OneDrive clientId?", `${context}.clientId`, VALIDATION_DBC_PATH);
@@ -104,6 +179,12 @@ class OneDriveConfigValidator extends BaseProviderConfigValidator {
     }
 }
 
+/**
+ * Validator for the Dropbox provider. Enforces that `appKey` is present,
+ * a string, and at least superficially key-shaped in SDK mode.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 class DropboxConfigValidator extends BaseProviderConfigValidator {
     protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
         DEFINED.tsCheck(config.appKey, "Did you set Dropbox appKey?", `${context}.appKey`, VALIDATION_DBC_PATH);
@@ -112,6 +193,13 @@ class DropboxConfigValidator extends BaseProviderConfigValidator {
     }
 }
 
+/**
+ * Validator for the BayernCloud/Nextcloud provider. Enforces that `baseUrl` is a valid URL,
+ * `username` is non-empty, and that at least one of `password` or `bearerToken` is supplied
+ * in SDK mode.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 class BayernCloudConfigValidator extends BaseProviderConfigValidator {
     protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
         DEFINED.tsCheck(config.baseUrl, "Did you set BayernCloud baseUrl?", `${context}.baseUrl`, VALIDATION_DBC_PATH);
@@ -135,6 +223,18 @@ class BayernCloudConfigValidator extends BaseProviderConfigValidator {
     }
 }
 
+/**
+ * Returns the appropriate {@link BaseProviderConfigValidator} subclass for the given provider.
+ *
+ * Falls back to {@link GenericProviderConfigValidator} for unrecognised provider IDs
+ * (e.g. custom providers registered by integrators).
+ *
+ * @param providerId - The cloud provider identifier.
+ * @param config - The raw (already normalised) provider configuration object.
+ * @returns A validator instance ready to call `.validate()` on.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const createProviderValidator = (
     providerId: CloudProviderId,
     config: Record<string, unknown>,
@@ -147,6 +247,24 @@ const createProviderValidator = (
     return new GenericProviderConfigValidator(providerId, config);
 };
 
+/**
+ * Normalises a raw provider configuration value to a plain `Record<string, unknown>`.
+ *
+ * Accepted input forms:
+ * - `undefined` / `null` → `{ enabled: false }`
+ * - `boolean` → `{ enabled: <value> }`
+ * - `object` (non-array) → shallow copy of the object
+ *
+ * Any other value triggers a DBC infringement.
+ *
+ * @param providerId - The cloud provider identifier (used in error context paths).
+ * @param value - The raw value from `MultiCloudPluginOptions.providers[providerId]`.
+ * @returns A normalised plain object config record.
+ * @throws {DBC.Infringement} If `value` is not one of the accepted forms
+ *   (unless soft logging mode is active via {@link configureMultiCloudValidation}).
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const normalizeProviderConfig = (
     providerId: CloudProviderId,
     value: unknown,
@@ -180,6 +298,28 @@ const normalizeProviderConfig = (
     return { ...value } as Record<string, unknown>;
 };
 
+/**
+ * Configures the shared xdbc {@link DBC} instance used by the MultiCloud validation layer.
+ *
+ * By default the DBC instance throws a `DBC.Infringement` on contract violations.
+ * Call this function to switch to soft logging mode (log to console instead of throwing)
+ * or to turn off all violation output entirely.
+ *
+ * Must be called **before** any plugin initialisation to take effect.
+ *
+ * @param options.throwOnInfringement - When `true` (default), DBC violations throw.
+ *   Set to `false` to enable soft logging mode.
+ * @param options.logToConsole - When `true` (default), DBC violations are logged to the
+ *   browser console. Set to `false` to suppress all output.
+ *
+ * @example
+ * ```ts
+ * // Enable soft logging mode (no exceptions thrown)
+ * configureMultiCloudValidation({ throwOnInfringement: false, logToConsole: true });
+ * ```
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 export const configureMultiCloudValidation = (options: {
     throwOnInfringement?: boolean;
     logToConsole?: boolean;
@@ -199,7 +339,22 @@ export const configureMultiCloudValidation = (options: {
         dbc.infringementSettings.logToConsole = options.logToConsole;
 };
 
+/**
+ * Top-level validator for the full {@link MultiCloudPluginOptions} object passed by
+ * the integrator to the plugin at registration time.
+ *
+ * Uses xdbc `INVARIANT` decorators on the `boundaryOptions` property to declare
+ * structural contracts that are evaluated every time `boundaryOptions` is assigned.
+ * All provider entries are normalised (via {@link normalizeProviderConfig}) and then
+ * delegated to the appropriate {@link BaseProviderConfigValidator} subclass.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 export class PluginOptionsValidator {
+    /**
+     * Internal staging field used by the xdbc `INVARIANT` decorators.
+     * Writing to this field triggers all declared structural contract checks.
+     */
     @TYPE.INVARIANT("object", undefined, "Did you pass a plugin options object?", VALIDATION_DBC_PATH)
     @PLAIN_OBJECT.INVARIANT("providers", "Did you set plugin options.providers as an object?", VALIDATION_DBC_PATH)
     @TYPE.INVARIANT("string", "defaultProvider::dialogTitle", "Did you set defaultProvider/dialogTitle as strings?", VALIDATION_DBC_PATH)
@@ -254,6 +409,19 @@ export class PluginOptionsValidator {
     )
     private boundaryOptions: Record<string, unknown> = {};
 
+    /**
+     * Validates raw plugin options, runs all xdbc DBC contract checks, normalises
+     * every provider configuration entry, and returns a fully-typed
+     * {@link MultiCloudPluginOptions} object ready for use by the plugin internals.
+     *
+     * @param options - The raw (untyped) options object passed by the integrator.
+     * @returns A validated and normalised {@link MultiCloudPluginOptions}.
+     * @throws {DBC.Infringement} If any contract check fails
+     *   (unless soft logging mode is active via {@link configureMultiCloudValidation}).
+     * @throws {ZodError} If a Zod schema check (e.g. via `validatePickerResultBoundary`) fails.
+     *
+     * @author Salvatore Callari <Callari@WaXCode.net>
+     */
     public validate(options: unknown): MultiCloudPluginOptions {
         const raw = PLAIN_OBJECT.tsCheck(
             DEFINED.tsCheck(options, "Did you pass plugin options?", "plugin options", VALIDATION_DBC_PATH) as Record<string, unknown>,

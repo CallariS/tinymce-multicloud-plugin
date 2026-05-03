@@ -13,8 +13,14 @@ declare global {
     }
 }
 
+/** URL of the MSAL Browser library (v2.38.0) loaded lazily at first use. */
 const MSAL_SDK = "https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js";
 
+/**
+ * Represents a file or folder item returned by the Microsoft Graph Drive API.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 interface GraphDriveItem {
     id: string;
     name: string;
@@ -26,8 +32,16 @@ interface GraphDriveItem {
     folder?: any;
 }
 
+/** Singleton MSAL `PublicClientApplication` instance, created on first use and reused thereafter. */
 let msalInstance: any = null;
 
+/**
+ * Ensures the MSAL Browser SDK script is loaded and exposes `window.msal.PublicClientApplication`.
+ *
+ * @throws {Error} If the MSAL script fails to load or `window.msal.PublicClientApplication` is absent.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const ensureMsal = async (): Promise<void> => {
     if (msalInstance) return;
 
@@ -40,6 +54,19 @@ const ensureMsal = async (): Promise<void> => {
     console.log("[OneDrive] MSAL loaded successfully");
 };
 
+/**
+ * Acquires a Microsoft Graph access token for OneDrive operations.
+ *
+ * On first call: initialises the MSAL `PublicClientApplication` with the given `clientId`,
+ * sets `redirectUri` to the current page origin + pathname, and attempts silent token
+ * acquisition if a cached account is present. Falls back to an interactive popup.
+ *
+ * @param clientId - Azure AD / Entra application (client) ID.
+ * @returns A promise resolving to the raw access token string.
+ * @throws {Error} If the MSAL SDK is unavailable or the interactive popup fails.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const getAccessToken = async (clientId: string): Promise<string> => {
     if (!msalInstance) {
         const redirectUri = window.location.origin + window.location.pathname;
@@ -82,6 +109,16 @@ const getAccessToken = async (clientId: string): Promise<string> => {
     return response.accessToken;
 };
 
+/**
+ * Lists the children of a OneDrive folder via the Microsoft Graph API.
+ *
+ * @param accessToken - Bearer access token with at least `Files.Read` scope.
+ * @param folderId - Graph item ID of the folder to list. Omit or pass `undefined` to list the drive root.
+ * @returns A promise resolving to an array of {@link GraphDriveItem}.
+ * @throws {Error} If the Graph API request fails.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const listFolderItems = async (accessToken: string, folderId?: string): Promise<GraphDriveItem[]> => {
     const endpoint = folderId
         ? `https://graph.microsoft.com/v1.0/me/drive/items/${folderId}/children`
@@ -106,6 +143,20 @@ const listFolderItems = async (accessToken: string, folderId?: string): Promise<
     return data.value || [];
 };
 
+/**
+ * Renders a custom overlay file-picker dialog that allows the user to navigate
+ * the OneDrive folder tree and select a file.
+ *
+ * Folders are shown before files. Clicking a folder navigates into it (recursive call).
+ * A breadcrumb shows the current path. A "Back" button is shown when not at the root.
+ *
+ * @param accessToken - Bearer access token used for listing folder contents.
+ * @param currentPath - Breadcrumb path segments accumulated during navigation. Defaults to `[]` (root).
+ * @param folderId - Graph item ID of the folder to list. `undefined` = drive root.
+ * @returns A promise resolving to the selected {@link GraphDriveItem}, or `null` if the user cancelled.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const showNavigablePicker = async (
     accessToken: string,
     currentPath: string[] = [],
@@ -314,6 +365,18 @@ const showNavigablePicker = async (
     });
 };
 
+/**
+ * Fetches the largest available thumbnail URL for a OneDrive item.
+ *
+ * Returns `null` rather than throwing if the thumbnail endpoint fails, so callers
+ * can fall back gracefully (e.g. use `webUrl` instead).
+ *
+ * @param accessToken - Bearer access token with `Files.Read` scope.
+ * @param itemId - Graph item ID of the file.
+ * @returns A promise resolving to the thumbnail URL string, or `null` if unavailable.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<string | null> => {
     try {
         console.log("[OneDrive] Fetching thumbnail for item:", itemId);
@@ -348,6 +411,22 @@ const getThumbnailUrl = async (accessToken: string, itemId: string): Promise<str
     }
 };
 
+/**
+ * Creates an anonymous "embed" sharing link for a OneDrive item via the Graph `createLink` API
+ * and extracts a stable embeddable URL from the response.
+ *
+ * For Office documents the `webHtml` in the response is parsed for an `<iframe src="...">` attribute.
+ * `officeapps.live.com` URLs are used directly (CSP-friendly). `onedrive.live.com` URLs are
+ * converted to an Office Online Viewer URL.
+ *
+ * Returns `null` rather than throwing on failure, allowing callers to fall back to link mode.
+ *
+ * @param accessToken - Bearer access token with `Files.ReadWrite` or `Files.ReadWrite.All` scope.
+ * @param item - The {@link GraphDriveItem} to create a sharing link for.
+ * @returns A promise resolving to the embed URL string, or `null` if unavailable.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Promise<string | null> => {
     try {
         console.log("[OneDrive] Creating public anonymous sharing link for:", item.name);
@@ -423,6 +502,18 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
     }
 };
 
+/**
+ * Creates an anonymous "view" sharing link for a OneDrive item and converts it into a
+ * direct-download URL by appending `?download=1`.
+ *
+ * Returns `null` rather than throwing on failure.
+ *
+ * @param accessToken - Bearer access token with `Files.ReadWrite` or `Files.ReadWrite.All` scope.
+ * @param item - The {@link GraphDriveItem} to create a download link for.
+ * @returns A promise resolving to the download URL string, or `null` if unavailable.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const getPublicDownloadUrl = async (accessToken: string, item: GraphDriveItem): Promise<string | null> => {
     try {
         console.log("[OneDrive] Creating public anonymous download link for:", item.name);
@@ -468,6 +559,23 @@ const getPublicDownloadUrl = async (accessToken: string, item: GraphDriveItem): 
     }
 };
 
+/**
+ * Full SDK-mode pick flow for the OneDrive provider:
+ * 1. Acquires an MSAL access token.
+ * 2. Shows the navigable file picker overlay.
+ * 3. Fetches an embeddable/thumbnail URL based on the selected file's MIME type.
+ * 4. Assembles and returns a {@link PickerResult}.
+ *
+ * SVG files always use the permanent OneDrive viewer iframe (no raster choice dialog,
+ * because OneDrive thumbnail URLs contain expiring auth tokens).
+ * Audio/video files use the embed viewer for the same reason.
+ *
+ * @param config - OneDrive provider runtime configuration.
+ * @returns A promise resolving to the {@link PickerResult}, or `null` if the user cancelled.
+ * @throws {Error} If `clientId` is missing, MSAL fails, or the selected file has no usable URL.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const openOneDrivePicker = async (
     config: OneDriveProviderConfig,
 ): Promise<PickerResult | null> => {
@@ -588,6 +696,25 @@ const openOneDrivePicker = async (
     return result;
 };
 
+/**
+ * Uploads a file to the authenticated user's OneDrive root via the Microsoft Graph API
+ * (`PUT /me/drive/root:/{filename}:/content`) and derives an appropriate embeddable or
+ * linkable URL based on the file's MIME type.
+ *
+ * URL strategy after upload:
+ * - **SVG** — fetches a permanent anonymous embed viewer URL; falls back to `webUrl`.
+ * - **Other images** — attempts {@link getThumbnailUrl}; uses `webUrl` if unavailable.
+ * - **PDF / OOXML documents** — attempts {@link getPublicEmbedUrl} (Office Online Viewer).
+ * - **Audio / video** — attempts {@link getPublicEmbedUrl} (permanent 1drv.ms iframe).
+ * - **Archives / other** — `webUrl` (link mode).
+ *
+ * @param config - OneDrive provider runtime configuration (must include `clientId`).
+ * @param file - The `File` object to upload.
+ * @returns A promise resolving to the {@link PickerResult}, or `null` on cancellation.
+ * @throws {Error} If the Graph API PUT request fails.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const uploadFile = async (
     config: OneDriveProviderConfig,
     file: File,
@@ -710,6 +837,19 @@ const uploadFile = async (
     }
 };
 
+/**
+ * Factory that creates the OneDrive {@link CloudProvider} instance.
+ *
+ * In SDK mode (`pickerUrl` absent), loads MSAL lazily on first use, then delegates
+ * picking to {@link openOneDrivePicker} and uploading to {@link uploadFile}.
+ *
+ * In mock/popup mode (`pickerUrl` present), delegates pick operations to a custom
+ * popup URL via {@link createPopupProvider}.
+ *
+ * @returns A fully-configured {@link CloudProvider} with `id: "oneDrive"`.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 export const oneDriveProvider = (): CloudProvider => ({
     id: "oneDrive",
     label: "OneDrive",

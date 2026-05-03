@@ -8,11 +8,27 @@ import { createPopupProvider } from "./popupProvider";
 import { basicAuthHeader, combineUrl, detectInsertMode, toAbsoluteUrl } from "./utils";
 import { validateWebDavNodeBoundary } from "../validation/boundary";
 
+/**
+ * Represents a WebDAV node (file or directory) returned by a Nextcloud PROPFIND listing,
+ * extended with directory and path metadata.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 type WebDavNode = CloudItem & {
     isDirectory: boolean;
     webdavPath: string;
 };
 
+/**
+ * Asserts that `value` is a non-empty string and returns it.
+ *
+ * @param value - The string to test.
+ * @param fieldName - Human-readable name of the field, used in the error message.
+ * @returns The original `value` string if truthy.
+ * @throws {Error} If `value` is `undefined` or empty.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const required = (value: string | undefined, fieldName: string): string => {
     if (!value) {
         throw new Error(`BayernCloud requires ${fieldName}.`);
@@ -20,6 +36,16 @@ const required = (value: string | undefined, fieldName: string): string => {
     return value;
 };
 
+/**
+ * Builds the HTTP `Authorization` header map for a Nextcloud request.
+ *
+ * Priority: `bearerToken` &gt; Basic auth (`username` + `password`) &gt; empty object.
+ *
+ * @param config - BayernCloud/Nextcloud provider configuration.
+ * @returns A `Record<string, string>` containing an `Authorization` header, or `{}` if no credentials.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const getAuthHeaders = (config: BayernCloudNextcloudProviderConfig): Record<string, string> => {
     if (config.bearerToken) {
         return { Authorization: `Bearer ${config.bearerToken}` };
@@ -32,6 +58,19 @@ const getAuthHeaders = (config: BayernCloudNextcloudProviderConfig): Record<stri
     return {};
 };
 
+/**
+ * Builds the full WebDAV endpoint URL for listing the configured root folder.
+ *
+ * Combines `config.baseUrl` with the canonical Nextcloud WebDAV path
+ * (`remote.php/dav/files/<username>/<webdavPath>`). `config.webdavPath`
+ * defaults to the drive root if omitted.
+ *
+ * @param config - BayernCloud/Nextcloud provider configuration.
+ * @returns The absolute WebDAV endpoint URL string.
+ * @throws {Error} If `config.baseUrl` or `config.username` is absent (via {@link required}).
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const getWebDavEndpoint = (config: BayernCloudNextcloudProviderConfig): string => {
     const baseUrl = required(config.baseUrl, "baseUrl");
     const username = required(config.username, "username");
@@ -39,6 +78,20 @@ const getWebDavEndpoint = (config: BayernCloudNextcloudProviderConfig): string =
     return combineUrl(baseUrl, `remote.php/dav/files/${encodeURIComponent(username)}/${path}`);
 };
 
+/**
+ * Parses a WebDAV `PROPFIND` XML response body into an array of {@link WebDavNode}.
+ *
+ * The `<d:response>` element whose `<d:href>` matches the requested `endpoint` is skipped
+ * (it represents the listing root itself, not a child). Relative HREFs are resolved against
+ * `baseUrl`. Directories are detected by the presence of a `<d:collection>` element.
+ *
+ * @param baseUrl - The Nextcloud instance base URL (used to resolve relative HREFs).
+ * @param endpoint - The PROPFIND endpoint URL (used to filter the root response entry).
+ * @param xmlText - The raw XML response body from the PROPFIND request.
+ * @returns An array of {@link WebDavNode} objects (may include both files and directories).
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const parseWebDavListing = (
     baseUrl: string,
     endpoint: string,
@@ -89,6 +142,17 @@ const parseWebDavListing = (
     return nodes.sort((a, b) => Number(b.isDirectory) - Number(a.isDirectory) || a.name.localeCompare(b.name));
 };
 
+/**
+ * Performs a WebDAV `PROPFIND` request (depth 1) against the configured folder and
+ * returns the parsed list of child nodes.
+ *
+ * @param config - BayernCloud/Nextcloud provider configuration.
+ * @returns A promise resolving to an array of {@link WebDavNode}.
+ * @throws {Error} If `config.baseUrl` or `config.username` is absent.
+ * @throws {Error} If the PROPFIND request returns a non-OK HTTP status.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const listWebDavNodes = async (
     config: BayernCloudNextcloudProviderConfig,
 ): Promise<WebDavNode[]> => {
@@ -119,12 +183,36 @@ const listWebDavNodes = async (
     return parseWebDavListing(required(config.baseUrl, "baseUrl"), endpoint, xml);
 };
 
+/**
+ * Extracts the public share URL from a Nextcloud OCS Sharing API XML response.
+ *
+ * @param xmlText - The raw XML body of the OCS API response.
+ * @returns The share URL string if found, or `null` if the `<url>` element is absent.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const parseShareUrl = (xmlText: string): string | null => {
     const doc = new DOMParser().parseFromString(xmlText, "application/xml");
     const urlNode = doc.getElementsByTagName("url")[0];
     return urlNode?.textContent?.trim() || null;
 };
 
+/**
+ * Creates a public (anonymous-view) share link for a file on the Nextcloud instance
+ * using the OCS Sharing API.
+ *
+ * Does nothing and returns `null` when `config.createPublicShare` is `false` or absent.
+ * The WebDAV path is converted to a root-relative Nextcloud file path before the API call.
+ * Optional password protection and expiry date can be set via `config.sharePassword`
+ * and `config.shareExpireDate`. The Nextcloud `sharingApiPath` defaults to
+ * `/ocs/v2.php/apps/files_sharing/api/v1/shares`.
+ *
+ * @param config - BayernCloud/Nextcloud provider configuration.
+ * @param fileWebDavPath - The server-side WebDAV path of the file to share (e.g. `/remote.php/dav/files/user/file.pdf`).
+ * @returns A promise resolving to the public share URL, or `null` if sharing is disabled or fails.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const createPublicShare = async (
     config: BayernCloudNextcloudProviderConfig,
     fileWebDavPath: string,
@@ -173,6 +261,19 @@ const createPublicShare = async (
     return parseShareUrl(await response.text());
 };
 
+/**
+ * Shows a TinyMCE selectbox dialog that lets the user choose a file from the
+ * already-fetched WebDAV listing.
+ *
+ * Only non-directory nodes are presented. The dialog returns the chosen
+ * {@link WebDavNode} on submit, or `null` on cancel / close.
+ *
+ * @param editor - The active TinyMCE editor instance.
+ * @param nodes - The WebDAV nodes (files and folders) retrieved from the server.
+ * @returns A promise resolving to the selected {@link WebDavNode}, or `null` if cancelled.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const selectBayernCloudNode = async (
     editor: any,
     nodes: WebDavNode[],
@@ -218,8 +319,29 @@ const selectBayernCloudNode = async (
         api.focus("fileId");
     });
 
+/**
+ * Uploads a file to the configured Nextcloud WebDAV path via HTTP `PUT`, optionally
+ * creates a public share link, and resolves the appropriate insert mode.
+ *
+ * Upload destination: `<baseUrl>/remote.php/dav/files/<username>/<webdavPath>/<filename>`.
+ *
+ * If `config.createPublicShare` is `true` and a share URL is obtained:
+ * - **Image files**: share URL used as-is (no `/download` suffix, to avoid
+ *   `Content-Disposition: attachment` which breaks `<img>` rendering).
+ * - **Other files**: `/download` appended to force direct content delivery.
+ *
+ * PDF and OOXML documents with a public share URL are wrapped in a Google Docs Viewer
+ * `<iframe>` embed URL for preview. For all other types, {@link detectInsertMode} selects
+ * the insert mode based on file extension / MIME type.
+ *
+ * @param config - BayernCloud/Nextcloud provider configuration.
+ * @param file - The `File` object to upload.
+ * @returns A promise resolving to the {@link PickerResult}, or `null` on cancellation.
+ * @throws {Error} If `baseUrl` or `username` is absent, or if the PUT request fails.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const uploadFile = async (
-    config: BayernCloudNextcloudProviderConfig,
     file: File,
 ): Promise<PickerResult | null> => {
     try {
@@ -307,6 +429,23 @@ const uploadFile = async (
     }
 };
 
+/**
+ * Factory that creates the BayernCloud/Nextcloud {@link CloudProvider} instance.
+ *
+ * In SDK mode (`pickerUrl` absent), lists the configured WebDAV folder with a PROPFIND
+ * request, shows a TinyMCE selectbox dialog for file selection, and optionally creates a
+ * public share link via the OCS Sharing API. Uploading uses WebDAV PUT.
+ *
+ * Only `mode: "nextcloud-webdav"` is supported (this is also the default when `mode` is
+ * omitted). Any other value throws.
+ *
+ * In mock/popup mode (`pickerUrl` present), delegates pick operations to a custom
+ * popup URL via {@link createPopupProvider}.
+ *
+ * @returns A fully-configured {@link CloudProvider} with `id: "bayerncloud"`.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 export const bayerncloudProvider = (): CloudProvider => ({
     id: "bayerncloud",
     label: "Nextcloud / BayernCloud",

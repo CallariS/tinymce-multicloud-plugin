@@ -13,19 +13,39 @@ declare global {
     }
 }
 
+/** URL of the Dropbox Chooser SDK (Dropins). Loaded lazily at first use. */
 const DROPBOX_DROPINS = "https://www.dropbox.com/static/api/2/dropins.js";
+/** Dropbox OAuth 2.0 implicit-grant authorisation endpoint. */
 const DROPBOX_AUTH_URL = "https://www.dropbox.com/oauth2/authorize";
+/** Dropbox Content API upload endpoint. */
 const DROPBOX_UPLOAD_URL = "https://content.dropboxapi.com/2/files/upload";
+/** Dropbox API endpoint for creating shared links. */
 const DROPBOX_SHARING_URL = "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings";
 
+/** In-memory cache of the Dropbox OAuth access token for the current page session. */
 let cachedAccessToken: string | null = null;
 
+/**
+ * Clears the in-memory and `localStorage`-persisted Dropbox access token.
+ * Called whenever a token is detected to be expired or rejected by the API.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const clearDropboxToken = () => {
     cachedAccessToken = null;
     localStorage.removeItem('dropbox_access_token');
     console.log("[Dropbox] Access token cleared (expired or invalid)");
 };
 
+/**
+ * Ensures the Dropbox Chooser SDK (Dropins) script is loaded.
+ *
+ * @param appKey - Dropbox application key, passed as `data-app-key` on the script element.
+ * @throws {Error} If `appKey` is empty.
+ * @throws {Error} If the SDK script fails to load or `window.Dropbox.choose` is absent.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const ensureDropboxSdk = async (appKey: string): Promise<void> => {
     if (!appKey) {
         throw new Error("Dropbox requires appKey.");
@@ -38,6 +58,24 @@ const ensureDropboxSdk = async (appKey: string): Promise<void> => {
     }
 };
 
+/**
+ * Opens the Dropbox Chooser dialog and resolves with the selected file's result.
+ *
+ * Converts the returned `www.dropbox.com/scl/fi/...` preview link to a raw-content URL
+ * by appending `raw=1` so that browsers can fetch file bytes directly (images, PDFs, etc.).
+ *
+ * Embed URL resolution:
+ * - SVG — raw URL used directly in an `<iframe>` (browsers render SVG natively at full vector quality).
+ * - PDF — raw URL opened natively in the browser `<iframe>` renderer.
+ * - OOXML Office docs — wrapped in an `https://view.officeapps.live.com/op/embed.aspx?src=...` URL.
+ * - ODF and archives — inserted as links only (no viewer support).
+ *
+ * @param config - Dropbox provider runtime configuration (`linkType`, `multiselect`, `extensions`, `timeoutMs`).
+ * @returns A promise resolving to the {@link PickerResult}, or `null` if the user cancelled.
+ * @throws {Error} If the Chooser does not return a result within `config.timeoutMs` (default 180 s).
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const openDropboxChooser = async (
     config: DropboxProviderConfig,
 ): Promise<PickerResult | null> =>
@@ -128,6 +166,24 @@ const openDropboxChooser = async (
         });
     });
 
+/**
+ * Acquires a Dropbox OAuth 2.0 access token using the implicit-grant flow.
+ *
+ * Token resolution order:
+ * 1. In-memory `cachedAccessToken`.
+ * 2. `localStorage` key `"dropbox_access_token"`.
+ * 3. Interactive OAuth popup pointing to `DROPBOX_AUTH_URL`.
+ *
+ * The popup communicates the token back via `postMessage` (`type: "dropbox_oauth_token"`)
+ * or by writing it to `localStorage` during the redirect callback. The token is then
+ * cached in memory and in `localStorage` for subsequent calls.
+ *
+ * @param appKey - Dropbox application key used as `client_id` in the OAuth request.
+ * @returns A promise resolving to the raw access token string.
+ * @throws {Error} If the auth popup is blocked or the user closes it without authorising.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const getAccessToken = async (appKey: string): Promise<string> => {
     // Check if we already have a token in cache or localStorage
     if (cachedAccessToken) {
@@ -245,6 +301,25 @@ const getAccessToken = async (appKey: string): Promise<string> => {
     });
 };
 
+/**
+ * Uploads a file to the authenticated user's Dropbox root via the Dropbox Content API
+ * and creates a publicly accessible shared link.
+ *
+ * After uploading the file to `/<filename>` the function calls the sharing API to create
+ * a `viewer`-role public shared link, then converts the resulting `www.dropbox.com` URL
+ * to a raw-content URL (`raw=1`) so browser assets can be fetched directly.
+ * If the shared link already exists (HTTP 409 conflict) the existing URL is reused.
+ *
+ * The {@link detectInsertMode} utility is used to derive the appropriate insert mode
+ * from the file's MIME type and name.
+ *
+ * @param config - Dropbox provider runtime configuration (must include a valid `appKey`).
+ * @param file - The `File` object to upload.
+ * @returns A promise resolving to the {@link PickerResult}, or `null` on cancellation.
+ * @throws {Error} If the upload or sharing API call fails.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const uploadFile = async (
     config: DropboxProviderConfig,
     file: File,
@@ -473,6 +548,21 @@ const uploadFile = async (
     }
 };
 
+/**
+ * Factory that creates the Dropbox {@link CloudProvider} instance.
+ *
+ * In SDK mode (`pickerUrl` absent), uses the Dropbox Chooser (Dropins SDK) for picking
+ * and the Dropbox Content API for uploading. Selecting files requires the `appKey`;
+ * uploading additionally requires a valid OAuth 2.0 access token (acquired interactively
+ * on first call via {@link getAccessToken}).
+ *
+ * In mock/popup mode (`pickerUrl` present), delegates pick operations to a custom
+ * popup URL via {@link createPopupProvider}.
+ *
+ * @returns A fully-configured {@link CloudProvider} with `id: "dropbox"`.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 export const dropboxProvider = (): CloudProvider => ({
     id: "dropbox",
     label: "Dropbox",

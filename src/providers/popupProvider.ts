@@ -5,8 +5,19 @@ import type {
     PickerResult,
 } from "../types";
 
+/** Default `window.open` features string for picker popups. */
 const DEFAULT_POPUP_FEATURES = "popup=yes,width=1120,height=760,resizable=yes,scrollbars=yes";
 
+/**
+ * Opens a popup window at the given URL.
+ *
+ * @param url - Absolute URL to open in the popup.
+ * @param features - `window.open` features string controlling popup size and chrome.
+ * @returns The `Window` object for the opened popup.
+ * @throws {Error} If the browser blocked the popup (e.g. no prior user gesture).
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const openPopup = (url: string, features: string): Window => {
     const popup = window.open(url, "tinymce_multicloud_picker", features);
 
@@ -17,6 +28,21 @@ const openPopup = (url: string, features: string): Window => {
     return popup;
 };
 
+/**
+ * Returns a promise that resolves (or rejects) when the popup picker page sends a
+ * {@link PickerMessage} via `window.postMessage`.
+ *
+ * Messages are filtered by both `source === "tinymce-multicloud-plugin"` and the
+ * expected `providerId` to prevent cross-provider or unrelated message interference.
+ *
+ * @param providerId - The provider ID to wait for. Messages from other providers are ignored.
+ * @param timeoutMs - Maximum wait time in milliseconds. Rejects with a timeout error if no
+ *   valid message arrives within this window.
+ * @returns A promise resolving to the {@link PickerResult} on success, or `null` on cancellation.
+ * @throws {Error} If the picker timed out or returned a message without a file URL.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 const awaitPickerMessage = (
     providerId: CloudProviderId,
     timeoutMs: number,
@@ -63,6 +89,30 @@ const awaitPickerMessage = (
         }, timeoutMs);
     });
 
+/**
+ * Creates a {@link CloudProvider} that delegates all file selection to an external popup page
+ * communicating via the {@link PickerMessage} `postMessage` protocol.
+ *
+ * This is both the fallback mechanism for every built-in provider (when `pickerUrl` is set
+ * in the runtime config) and the sole mechanism for providers that have no built-in SDK mode.
+ *
+ * URL resolution order for the picker page:
+ * 1. Absolute `http(s)://...` URL — used as-is.
+ * 2. Relative `./` or `../` URL — resolved against the current page (`window.location.href`).
+ * 3. Other relative path — resolved against `context.pluginUrl` (the plugin bundle directory).
+ * 4. No `pickerUrl` in config — `defaultPickerPath` appended to `context.pluginUrl`.
+ *
+ * @param id - Provider ID for this popup provider.
+ * @param label - Human-readable label shown in the picker dialog.
+ * @param defaultPickerPath - Path appended to `context.pluginUrl` when no `pickerUrl` override is configured
+ *   (e.g. `"/pickers/dropbox.html"`).
+ * @returns A {@link CloudProvider} whose `pick` method opens a popup and awaits a `postMessage` result.
+ *
+ * @throws {Error} If the popup is blocked by the browser.
+ * @throws {Error} If the picker times out or returns a message without a file URL.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
 export const createPopupProvider = (
     id: CloudProviderId,
     label: string,
