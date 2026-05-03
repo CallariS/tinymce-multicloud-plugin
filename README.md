@@ -18,6 +18,31 @@ Built-in provider adapters:
 
 Different cloud providers have different OAuth flows, SDKs, and picker UX constraints. The plugin uses a provider adapter contract and popup bridge protocol, so each provider can implement its own picker while TinyMCE integration stays consistent.
 
+## Design-by-Contract validation (xdbc)
+
+This plugin uses [xdbc](https://www.npmjs.com/package/xdbc) for Design-by-Contract (DBC) validation of all plugin options and provider configurations. Instead of scattered `if`/`throw` guards, every precondition is expressed as a typed contract that fires before any plugin logic runs.
+
+### What is validated
+
+- **Plugin options object** — must be a plain object (not null, not array)
+- **`providers` map** — must be a plain object if provided
+- **`defaultProvider`** — must be a string and must exist in the `providers` map
+- **`defaultInsertMode`** — must be `"link"`, `"image"`, or `"embed"` if provided
+- **`popupTimeoutMs`** — must be a positive number if provided
+- **`dialogTitle` / `defaultProvider`** — must be non-empty strings if provided
+- **Per-provider SDK credentials** — validated when SDK mode is active (i.e. `enabled: true` and no `pickerUrl` override):
+  - Google Drive: `clientId` and `apiKey` must be defined, string, and match the API-key pattern
+  - OneDrive: `clientId` must be defined, string, and match the API-key pattern
+  - Dropbox: `appKey` must be defined, string, and match the API-key pattern
+  - BayernCloud: `baseUrl` (valid URL), `username`, and either `password` or `bearerToken` (at least one non-empty)
+
+### Advantages
+
+- **Fail-fast with actionable messages** — errors are surfaced at plugin init with a clear hint (e.g. *"Did you set Google Drive clientId?"*), not as opaque SDK failures deep in an OAuth flow.
+- **Contracts as documentation** — the decorator stack on each validator class is a machine-readable, always-up-to-date specification of what the configuration must look like.
+- **Uniform error shape** — all validation failures throw `DBC.Infringement` (subclass of `Error`), making them easy to `catch` and distinguish from runtime errors.
+- **Configurable behaviour** — the entire contract layer uses a single named DBC instance at `globalThis.MultiCloud.Validation.DBC`, which can be reconfigured at runtime (see [Soft logging mode](#soft-logging-mode) below).
+
 ## Install
 
 ```bash
@@ -273,6 +298,40 @@ Every built-in provider supports `pickerUrl`. If `pickerUrl` is set, the plugin 
 - Prefer backend endpoints for OAuth code exchange and token management.
 - Explicitly inform users before changing sharing permissions (public link/embed).
 - Validate inserted URLs server-side if your application later renders them in high-trust contexts.
+
+## Soft logging mode
+
+By default, all DBC contract violations throw a `DBC.Infringement` error, which halts plugin initialization immediately. If your integration is stable and you prefer contract violations to be logged as warnings rather than hard errors — for example in a production environment where you want the plugin to degrade gracefully rather than break — you can switch to soft logging mode:
+
+```js
+import { configureMultiCloudValidation } from 'tinymce-multicloud-plugin';
+
+configureMultiCloudValidation({
+    throwOnInfringement: false,
+    logToConsole: true,
+});
+
+// Then initialize TinyMCE as usual
+tinymce.init({ ... });
+```
+
+Or using the global bundle:
+
+```html
+<script src="./dist/index.global.js"></script>
+<script>
+  TinyMceMultiCloudPlugin.configureMultiCloudValidation({
+    throwOnInfringement: false,
+    logToConsole: true,
+  });
+
+  tinymce.init({ ... });
+</script>
+```
+
+> **Note:** `configureMultiCloudValidation` must be called **before** `tinymce.init()`. Contract checks run at plugin initialization time — once the plugin is registered and your options have been validated, changing these settings has no retroactive effect.
+
+> **Recommendation:** Keep the default `throwOnInfringement: true` during development. Soft logging mode is intended for hardened production integrations where all configuration has been verified and you want to avoid breaking the editor if a future plugin update tightens a validation rule.
 
 ## Demo
 

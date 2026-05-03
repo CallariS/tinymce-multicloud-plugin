@@ -87,41 +87,41 @@ class GenericProviderConfigValidator extends BaseProviderConfigValidator {
 
 class GoogleDriveConfigValidator extends BaseProviderConfigValidator {
     protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
-        DEFINED.tsCheck(config.clientId, "Did you set Google Drive clientId?", `${context}.clientId`);
-        DEFINED.tsCheck(config.apiKey, "Did you set Google Drive apiKey?", `${context}.apiKey`);
-        TYPE.tsCheck(config.clientId, "string", "Did you set Google Drive clientId as a string?", `${context}.clientId`);
-        TYPE.tsCheck(config.apiKey, "string", "Did you set Google Drive apiKey as a string?", `${context}.apiKey`);
-        REGEX.tsCheck(config.clientId, rxApiKeyLike, "Did you provide a valid Google Drive clientId?", `${context}.clientId`);
-        REGEX.tsCheck(config.apiKey, rxApiKeyLike, "Did you provide a valid Google Drive apiKey?", `${context}.apiKey`);
+        DEFINED.tsCheck(config.clientId, "Did you set Google Drive clientId?", `${context}.clientId`, VALIDATION_DBC_PATH);
+        DEFINED.tsCheck(config.apiKey, "Did you set Google Drive apiKey?", `${context}.apiKey`, VALIDATION_DBC_PATH);
+        TYPE.tsCheck(config.clientId, "string", "Did you set Google Drive clientId as a string?", `${context}.clientId`, VALIDATION_DBC_PATH);
+        TYPE.tsCheck(config.apiKey, "string", "Did you set Google Drive apiKey as a string?", `${context}.apiKey`, VALIDATION_DBC_PATH);
+        REGEX.tsCheck(config.clientId, rxApiKeyLike, "Did you provide a valid Google Drive clientId?", `${context}.clientId`, VALIDATION_DBC_PATH);
+        REGEX.tsCheck(config.apiKey, rxApiKeyLike, "Did you provide a valid Google Drive apiKey?", `${context}.apiKey`, VALIDATION_DBC_PATH);
     }
 }
 
 class OneDriveConfigValidator extends BaseProviderConfigValidator {
     protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
-        DEFINED.tsCheck(config.clientId, "Did you set OneDrive clientId?", `${context}.clientId`);
-        TYPE.tsCheck(config.clientId, "string", "Did you set OneDrive clientId as a string?", `${context}.clientId`);
-        REGEX.tsCheck(config.clientId, rxApiKeyLike, "Did you provide a valid OneDrive clientId?", `${context}.clientId`);
+        DEFINED.tsCheck(config.clientId, "Did you set OneDrive clientId?", `${context}.clientId`, VALIDATION_DBC_PATH);
+        TYPE.tsCheck(config.clientId, "string", "Did you set OneDrive clientId as a string?", `${context}.clientId`, VALIDATION_DBC_PATH);
+        REGEX.tsCheck(config.clientId, rxApiKeyLike, "Did you provide a valid OneDrive clientId?", `${context}.clientId`, VALIDATION_DBC_PATH);
     }
 }
 
 class DropboxConfigValidator extends BaseProviderConfigValidator {
     protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
-        DEFINED.tsCheck(config.appKey, "Did you set Dropbox appKey?", `${context}.appKey`);
-        TYPE.tsCheck(config.appKey, "string", "Did you set Dropbox appKey as a string?", `${context}.appKey`);
-        REGEX.tsCheck(config.appKey, rxApiKeyLike, "Did you provide a valid Dropbox appKey?", `${context}.appKey`);
+        DEFINED.tsCheck(config.appKey, "Did you set Dropbox appKey?", `${context}.appKey`, VALIDATION_DBC_PATH);
+        TYPE.tsCheck(config.appKey, "string", "Did you set Dropbox appKey as a string?", `${context}.appKey`, VALIDATION_DBC_PATH);
+        REGEX.tsCheck(config.appKey, rxApiKeyLike, "Did you provide a valid Dropbox appKey?", `${context}.appKey`, VALIDATION_DBC_PATH);
     }
 }
 
 class BayernCloudConfigValidator extends BaseProviderConfigValidator {
     protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
-        DEFINED.tsCheck(config.baseUrl, "Did you set BayernCloud baseUrl?", `${context}.baseUrl`);
-        DEFINED.tsCheck(config.username, "Did you set BayernCloud username?", `${context}.username`);
-        TYPE.tsCheck(config.baseUrl, "string", "Did you set BayernCloud baseUrl as a string?", `${context}.baseUrl`);
-        TYPE.tsCheck(config.username, "string", "Did you set BayernCloud username as a string?", `${context}.username`);
-        REGEX.tsCheck(config.baseUrl, REGEX.stdExp.url, "Did you set BayernCloud baseUrl to a valid URL?", `${context}.baseUrl`);
-        REGEX.tsCheck(config.username, rxNonEmpty, "Did you leave BayernCloud username empty?", `${context}.username`);
-        REGEX.tsCheck(config.password, rxNonEmpty, "Did you leave BayernCloud password empty?", `${context}.password`);
-        REGEX.tsCheck(config.bearerToken, rxNonEmpty, "Did you leave BayernCloud bearerToken empty?", `${context}.bearerToken`);
+        DEFINED.tsCheck(config.baseUrl, "Did you set BayernCloud baseUrl?", `${context}.baseUrl`, VALIDATION_DBC_PATH);
+        DEFINED.tsCheck(config.username, "Did you set BayernCloud username?", `${context}.username`, VALIDATION_DBC_PATH);
+        TYPE.tsCheck(config.baseUrl, "string", "Did you set BayernCloud baseUrl as a string?", `${context}.baseUrl`, VALIDATION_DBC_PATH);
+        TYPE.tsCheck(config.username, "string", "Did you set BayernCloud username as a string?", `${context}.username`, VALIDATION_DBC_PATH);
+        REGEX.tsCheck(config.baseUrl, REGEX.stdExp.url, "Did you set BayernCloud baseUrl to a valid URL?", `${context}.baseUrl`, VALIDATION_DBC_PATH);
+        REGEX.tsCheck(config.username, rxNonEmpty, "Did you leave BayernCloud username empty?", `${context}.username`, VALIDATION_DBC_PATH);
+        REGEX.tsCheck(config.password, rxNonEmpty, "Did you leave BayernCloud password empty?", `${context}.password`, VALIDATION_DBC_PATH);
+        REGEX.tsCheck(config.bearerToken, rxNonEmpty, "Did you leave BayernCloud bearerToken empty?", `${context}.bearerToken`, VALIDATION_DBC_PATH);
         OR.tsCheck(
             config,
             [
@@ -130,6 +130,7 @@ class BayernCloudConfigValidator extends BaseProviderConfigValidator {
             ],
             "Did you provide BayernCloud password or bearerToken?",
             `${context}.password|bearerToken`,
+            VALIDATION_DBC_PATH,
         );
     }
 }
@@ -165,6 +166,7 @@ const normalizeProviderConfig = (
         ],
         "Did you pass a valid provider config (object, boolean, or undefined)?",
         `providers.${providerId}`,
+        VALIDATION_DBC_PATH,
     );
 
     if (value === undefined || value === null) {
@@ -176,6 +178,25 @@ const normalizeProviderConfig = (
     }
 
     return { ...value } as Record<string, unknown>;
+};
+
+export const configureMultiCloudValidation = (options: {
+    throwOnInfringement?: boolean;
+    logToConsole?: boolean;
+}): void => {
+    const host = globalThis as Record<string, unknown>;
+    const segments = VALIDATION_DBC_PATH.split(".");
+    let cursor: Record<string, unknown> = host;
+    for (const segment of segments) {
+        if (typeof cursor[segment] !== "object" || cursor[segment] === null) return;
+        cursor = cursor[segment] as Record<string, unknown>;
+    }
+    if (!(cursor instanceof DBC)) return;
+    const dbc = cursor as unknown as DBC;
+    if (options.throwOnInfringement !== undefined)
+        dbc.infringementSettings.throwException = options.throwOnInfringement;
+    if (options.logToConsole !== undefined)
+        dbc.infringementSettings.logToConsole = options.logToConsole;
 };
 
 export class PluginOptionsValidator {
@@ -235,9 +256,10 @@ export class PluginOptionsValidator {
 
     public validate(options: unknown): MultiCloudPluginOptions {
         const raw = PLAIN_OBJECT.tsCheck(
-            DEFINED.tsCheck(options, "Did you pass plugin options?", "plugin options") as Record<string, unknown>,
+            DEFINED.tsCheck(options, "Did you pass plugin options?", "plugin options", VALIDATION_DBC_PATH) as Record<string, unknown>,
             "Did you pass a plain object for plugin options?",
             "plugin options",
+            VALIDATION_DBC_PATH,
         );
 
         OR.tsCheck(
@@ -245,15 +267,17 @@ export class PluginOptionsValidator {
             [{ check: (v) => v === undefined || v === "link" || v === "image" || v === "embed" ? true : "Value has to be one of: link, image, embed" }],
             "Did you set defaultInsertMode to link, image, or embed?",
             "plugin options.defaultInsertMode",
+            VALIDATION_DBC_PATH,
         );
 
         if (raw.popupTimeoutMs !== undefined) {
-            TYPE.tsCheck(raw.popupTimeoutMs, "number", "Did you set popupTimeoutMs as a number?", "plugin options.popupTimeoutMs");
+            TYPE.tsCheck(raw.popupTimeoutMs, "number", "Did you set popupTimeoutMs as a number?", "plugin options.popupTimeoutMs", VALIDATION_DBC_PATH);
             OR.tsCheck(
                 raw.popupTimeoutMs,
                 [{ check: (v) => typeof v === "number" && v > 0 ? true : "Value must be greater than 0" }],
                 "Did you set popupTimeoutMs greater than 0?",
                 "plugin options.popupTimeoutMs",
+                VALIDATION_DBC_PATH,
             );
         }
 
@@ -273,6 +297,7 @@ export class PluginOptionsValidator {
                 }],
                 "Did you configure defaultProvider inside providers map?",
                 "plugin options.defaultProvider",
+                VALIDATION_DBC_PATH,
             );
         }
 
@@ -282,9 +307,10 @@ export class PluginOptionsValidator {
             raw.providers === undefined
                 ? {}
                 : PLAIN_OBJECT.tsCheck(
-                      DEFINED.tsCheck(raw.providers, "Did you set providers as a plain object?", "plugin options.providers") as Record<string, unknown>,
+                      DEFINED.tsCheck(raw.providers, "Did you set providers as a plain object?", "plugin options.providers", VALIDATION_DBC_PATH) as Record<string, unknown>,
                       "Did you set providers as a plain object?",
                       "plugin options.providers",
+                      VALIDATION_DBC_PATH,
                   );
 
         const providers: Partial<Record<CloudProviderId, ProviderRuntimeConfig>> = {};

@@ -622,3 +622,5 @@ export type {
     PickerResult,
     ProviderRuntimeConfig,
 } from "./types";
+
+export { configureMultiCloudValidation } from "./validation/config/validators";
