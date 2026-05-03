@@ -15,8 +15,6 @@ declare global {
 
 /** URL of the Dropbox Chooser SDK (Dropins). Loaded lazily at first use. */
 const DROPBOX_DROPINS = "https://www.dropbox.com/static/api/2/dropins.js";
-// SRI hash computed 2026-05-03. This URL is NOT version-pinned; verify periodically.
-const DROPBOX_DROPINS_INTEGRITY = "sha384-FYdTk4z6haguJbp0cnzHmzw5ITlci/vX2pyfHhAOC1SkWk/JGXpCWixhBBefpyKn";
 /** Dropbox OAuth 2.0 implicit-grant authorisation endpoint. */
 const DROPBOX_AUTH_URL = "https://www.dropbox.com/oauth2/authorize";
 /** Dropbox Content API upload endpoint. */
@@ -54,7 +52,7 @@ const ensureDropboxSdk = async (appKey: string): Promise<void> => {
         throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Dropbox requires appKey. ]");
     }
 
-    await loadScript(DROPBOX_DROPINS, { "data-app-key": appKey, id: "dropboxjs" }, DROPBOX_DROPINS_INTEGRITY);
+    await loadScript(DROPBOX_DROPINS, { "data-app-key": appKey, id: "dropboxjs" });
 
     if (!window.Dropbox?.choose) {
         throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Dropbox chooser SDK is unavailable. ]");
