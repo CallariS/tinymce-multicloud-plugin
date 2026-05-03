@@ -63,15 +63,6 @@ const webDavNodeSchema = z.object({
     webdavPath: z.string().min(1),
 });
 
-const validate = <T>(name: string, value: unknown, schema: z.ZodType<T>): T => {
-    const result = ZOD.checkAlgorithm(value, schema);
-    if (result !== true) {
-        throw new Error(`[XDBC Boundary] ${name}: ${result}`);
-    }
-
-    return schema.parse(value);
-};
-
 export const validatePluginOptionsBoundary = (
     options: unknown,
 ): MultiCloudPluginOptions => new PluginOptionsValidator().validate(options);
@@ -79,16 +70,16 @@ export const validatePluginOptionsBoundary = (
 export const validatePickerResultBoundary = (
     providerId: CloudProviderId,
     result: unknown,
-): PickerResult => validate(`${providerId} picker result`, result, pickerResultSchema);
+): PickerResult => ZOD.tsCheck<PickerResult>(result, pickerResultSchema, `${providerId} picker result`);
 
 export const validateGoogleDocBoundary = (doc: unknown) =>
-    validate("google picker doc", doc, googleDocSchema);
+    ZOD.tsCheck<z.infer<typeof googleDocSchema>>(doc, googleDocSchema, "google picker doc");
 
 export const validateOneDriveFileBoundary = (file: unknown) =>
-    validate("onedrive selection", file, oneDriveFileSchema);
+    ZOD.tsCheck<z.infer<typeof oneDriveFileSchema>>(file, oneDriveFileSchema, "onedrive selection");
 
 export const validateDropboxFileBoundary = (file: unknown) =>
-    validate("dropbox selection", file, dropboxFileSchema);
+    ZOD.tsCheck<z.infer<typeof dropboxFileSchema>>(file, dropboxFileSchema, "dropbox selection");
 
 export const validateWebDavNodeBoundary = (node: unknown) =>
-    validate("bayerncloud webdav node", node, webDavNodeSchema);
+    ZOD.tsCheck<z.infer<typeof webDavNodeSchema>>(node, webDavNodeSchema, "bayerncloud webdav node");
