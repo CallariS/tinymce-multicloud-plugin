@@ -472,18 +472,10 @@ const getPublicEmbedUrl = async (accessToken: string, item: GraphDriveItem): Pro
                     return embedSrc;
                 }
 
-                // If it's still onedrive.live.com, try to convert to Office Online Viewer
-                if (embedSrc.includes('onedrive.live.com')) {
-                    console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Got onedrive.live.com URL, trying Office Online Viewer conversion... ]");
-                    // Try using the sharing URL with Office Online Viewer
-                    const shareUrl = data.link?.webUrl;
-                    if (shareUrl) {
-                        const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(shareUrl)}`;
-                        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Converted to Office Online Viewer URL ]");
-                        return viewerUrl;
-                    }
-                }
-
+                // Return the embed URL as-is — the type:"embed" link produces viewer URLs designed
+                // for iframe embedding regardless of file type. Do NOT convert onedrive.live.com
+                // URLs to view.officeapps.live.com: Office Online only handles OOXML formats and
+                // will show an empty frame for PDFs, images, audio, video, and other types.
                 return embedSrc;
             }
         }

@@ -473,11 +473,21 @@ export const bayerncloudProvider = (): CloudProvider => ({
         // For images, do NOT append /download — that adds Content-Disposition: attachment which prevents <img> rendering
         const targetUrl = shareUrl ? (isImage ? shareUrl : shareUrl + "/download") : selected.url;
 
+        const pickerIsPdf = /\.pdf$/i.test(selected.name);
+        const pickerIsOfficeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp)$/i.test(selected.name);
+        // Wrap PDFs and Office docs in Google Docs Viewer so the iframe renders the content
+        // instead of triggering a download (the /download URL sends Content-Disposition: attachment).
+        // Only possible when a public share URL exists — without it the WebDAV URL requires auth.
+        const pickerEmbedUrl = (pickerIsPdf || pickerIsOfficeDoc) && shareUrl
+            ? `https://docs.google.com/viewer?url=${encodeURIComponent(targetUrl)}&embedded=true`
+            : undefined;
+
         const result: PickerResult = {
             item: {
                 id: selected.id,
                 name: selected.name,
                 url: targetUrl,
+                embedUrl: pickerEmbedUrl,
                 mimeType: selected.mimeType,
             },
             mode: isSvg ? "link" : detectInsertMode({
