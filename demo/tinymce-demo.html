@@ -248,29 +248,29 @@
           });
           // Scroll to top after content is loaded
           editor.on('init', () => {
-            editor.getBody().scrollTop = 0;
-            const doc = editor.getDoc();
             const body = editor.getBody();
-            let idleTimer;
+            const win = editor.getWin();
+            const doc = editor.getDoc();
 
-            const scrollToTop = () => {
-              clearTimeout(idleTimer);
-              idleTimer = setTimeout(() => {
-                doc.removeEventListener('load', scrollToTop, true);
-                resizeObserver.disconnect();
-                body.scrollTop = 0;
-                const iframeEl = editor.getContainer().querySelector('iframe');
-                if (iframeEl?.contentWindow) iframeEl.contentWindow.scrollTo(0, 0);
-              }, 500);
+            const scrollToTop = () => { body.scrollTop = 0; win.scrollTo?.(0, 0); };
+
+            const cleanup = () => {
+              doc.removeEventListener('scroll', scrollToTop, true);
+              doc.removeEventListener('mousedown', cleanup, true);
+              doc.removeEventListener('keydown', cleanup, true);
+              doc.removeEventListener('touchstart', cleanup, true);
             };
 
-            // Catch individual resource loads (images, iframes) as they complete
-            doc.addEventListener('load', scrollToTop, true);
-            // Also catch layout reflows from lazy-loaded/async resources
-            const resizeObserver = new ResizeObserver(scrollToTop);
-            resizeObserver.observe(body);
-            // Kick off the initial debounce
             scrollToTop();
+            // After TinyMCE's own post-init work settles, intercept any scroll
+            // caused by resource loading and keep resetting until the user interacts.
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              scrollToTop();
+              doc.addEventListener('scroll', scrollToTop, true);
+              doc.addEventListener('mousedown', cleanup, true);
+              doc.addEventListener('keydown', cleanup, true);
+              doc.addEventListener('touchstart', cleanup, true);
+            }));
           });
         }
 
