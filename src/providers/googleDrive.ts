@@ -19,8 +19,12 @@ declare global {
 
 /** URL of the Google API JavaScript client (gapi). Loaded lazily at first use. */
 const GAPI_SCRIPT = "https://apis.google.com/js/api.js";
+// SRI hash computed 2026-05-03. This URL is NOT version-pinned; verify periodically.
+const GAPI_SCRIPT_INTEGRITY = "sha384-e1d2OhuILK70N6p1bgFnbbf9COGUl1Ac65wf4qVGjUcP3YVhqxkJQK9adCkMn0AL";
 /** URL of the Google Identity Services (GIS) authentication script. Loaded lazily at first use. */
 const GIS_SCRIPT = "https://accounts.google.com/gsi/client";
+// SRI hash computed 2026-05-03. This URL is NOT version-pinned; verify periodically.
+const GIS_SCRIPT_INTEGRITY = "sha384-F38eXYzO+QvUfvwrKe1SMagfhK1nSX4fg2ksgmsbgt/MR34mpxNdqX0feac3RnWy";
 
 /** Guards against re-initialising the gapi `client:picker` module on subsequent calls. */
 let gapiClientReady = false;
@@ -45,8 +49,8 @@ const ensureGoogleApis = async (config: GoogleDriveProviderConfig): Promise<void
         throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Google Drive requires clientId and apiKey. ]");
     }
 
-    await loadScript(GAPI_SCRIPT);
-    await loadScript(GIS_SCRIPT);
+    await loadScript(GAPI_SCRIPT, {}, GAPI_SCRIPT_INTEGRITY);
+    await loadScript(GIS_SCRIPT, {}, GIS_SCRIPT_INTEGRITY);
 
     if (!window.gapi || !window.google?.accounts?.oauth2) {
         throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Google APIs are not available in this browser. ]");

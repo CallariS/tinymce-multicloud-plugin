@@ -11,14 +11,17 @@ import type { CloudItem, InsertMode } from "../types";
  * @param src - Absolute URL of the script to load.
  * @param attrs - Optional additional HTML attributes to set on the `<script>` element
  *   (e.g. `{ "data-app-key": "abc123" }` for the Dropbox SDK).
+ * @param integrity - Optional SRI hash (e.g. `"sha384-…"`). When provided, `integrity`
+ *   and `crossorigin="anonymous"` are set on the element so the browser enforces the hash.
  * @returns A promise that resolves when the script has loaded.
- * @throws {Error} If the script fails to load (network error, 404, etc.).
+ * @throws {Error} If the script fails to load (network error, 404, SRI mismatch, etc.).
  *
  * @author Salvatore Callari <Callari@WaXCode.net>
  */
 export const loadScript = async (
     src: string,
     attrs: Record<string, string> = {},
+    integrity?: string,
 ): Promise<void> =>
     new Promise((resolve, reject) => {
         const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
@@ -38,6 +41,11 @@ export const loadScript = async (
         const script = document.createElement("script");
         script.src = src;
         script.async = true;
+
+        if (integrity) {
+            script.integrity = integrity;
+            script.crossOrigin = "anonymous";
+        }
 
         Object.entries(attrs).forEach(([key, value]) => {
             script.setAttribute(key, value);

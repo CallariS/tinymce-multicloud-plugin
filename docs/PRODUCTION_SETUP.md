@@ -184,26 +184,36 @@ tinymce.init({
 
 Three providers load external JavaScript SDKs at runtime from third-party CDNs. These scripts execute in the same page as the TinyMCE editor, so a compromised CDN would allow arbitrary code execution.
 
-| Provider | Script URL | Risk |
-|---|---|---|
-| Google Drive | `https://apis.google.com/js/api.js` | High — gapi + Picker |
-| Google Drive (auth) | `https://accounts.google.com/gsi/client` | High — GIS token client |
-| OneDrive | `https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js` | High — MSAL auth |
-| Dropbox | `https://www.dropbox.com/static/api/2/dropins.js` | Medium — Chooser only |
+The plugin enforces SRI by setting `integrity` and `crossorigin="anonymous"` on every dynamically injected `<script>` element. The hashes below were computed on **2026-05-03**:
 
-### Why SRI is not applied by default
+| Provider | Script URL | SRI hash | Stability |
+|---|---|---|---|
+| Google Drive | `https://apis.google.com/js/api.js` | `sha384-e1d2OhuILK70N6p1bgFnbbf9COGUl1Ac65wf4qVGjUcP3YVhqxkJQK9adCkMn0AL` | ⚠ URL not version-pinned |
+| Google Drive (auth) | `https://accounts.google.com/gsi/client` | `sha384-F38eXYzO+QvUfvwrKe1SMagfhK1nSX4fg2ksgmsbgt/MR34mpxNdqX0feac3RnWy` | ⚠ URL not version-pinned |
+| OneDrive | `https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js` | `sha384-mz+8Q3jA4XBFbnyAsyQegn/0LHvziH7qHLBa9GzcU3HzeWj9J16SXM5S+TsmPBy0` | ✓ Version-pinned (2.38.0) |
+| Dropbox | `https://www.dropbox.com/static/api/2/dropins.js` | `sha384-FYdTk4z6haguJbp0cnzHmzw5ITlci/vX2pyfHhAOC1SkWk/JGXpCWixhBBefpyKn` | ⚠ URL not version-pinned |
 
-These scripts are loaded lazily at runtime via `loadScript()` rather than `<script>` tags in HTML. The URLs are either versioned by Google dynamically (no stable hash) or include per-account query parameters. Static SRI hashes cannot be computed in advance for these CDN patterns.
+### Hash stability
 
-### Mitigations available to integrators
+The **MSAL hash is stable** — the URL embeds a semantic version (`2.38.0`) so the served bytes never change. The plugin will need to be updated when MSAL is upgraded.
 
-**Option A — Proxy / self-host the SDKs** (highest security): Download pinned versions of the SDK scripts, serve them from your own origin, and pass custom `pickerUrl` options (for providers that support it) to bypass the built-in SDK loading. Use SRI on your own `<script>` tags.
+The **Google and Dropbox hashes are ephemeral** — those CDN paths serve whatever the vendors currently deploy, with no version in the URL. If either vendor updates their script, the browser will block loading and the affected provider will stop working. Monitor those endpoints and update the constants in `src/providers/googleDrive.ts` and `src/providers/dropbox.ts` when the hashes change. To recompute:
 
-**Option B — Strict Content Security Policy**: Restrict `script-src` to only the specific CDN origins listed above (see section 6). This does not prevent a CDN compromise but limits which scripts can execute.
+```bash
+curl -sL https://apis.google.com/js/api.js | openssl dgst -sha384 -binary | base64
+curl -sL https://accounts.google.com/gsi/client | openssl dgst -sha384 -binary | base64
+curl -sL https://www.dropbox.com/static/api/2/dropins.js | openssl dgst -sha384 -binary | base64
+```
 
-**Option C — Subagent monitoring**: Use a service (e.g. Snyk, Dependabot, or manual review) to detect unexpected changes in the SDK files served by these CDN endpoints.
+### Additional mitigations available to integrators
 
-> **Practical guidance:** For most deployments, Option B (strict CSP) combined with the Zod boundary validation already present in the plugin provides adequate defence-in-depth. The Zod schemas validate all provider API responses before any data is inserted into the editor. Only environments with formal FIPS or zero-trust requirements need to pursue Options A or C.
+**Option A — Self-host the SDKs** (most stable): Download pinned SDK versions, serve from your own origin, and use `pickerUrl` overrides to bypass built-in SDK loading. Your own `<script>` tags carry stable, self-managed SRI hashes.
+
+**Option B — Strict Content Security Policy**: Restrict `script-src` to only the specific CDN origins listed above (see section 6). This complements the SRI already in place.
+
+**Option C — Automated hash monitoring**: Use a scheduled job to fetch each un-versioned URL nightly and alert on hash changes (e.g. via Snyk, a custom CI step, or `sri-hash` npm package). Update the plugin constants on any change.
+
+> **Practical guidance:** SRI enforcement is active for all four scripts. For environments requiring stronger guarantees on the Google and Dropbox scripts, pursue Option A (self-hosting) to eliminate reliance on CDN stability entirely.
 
 ## 9. Recommended production security model
 

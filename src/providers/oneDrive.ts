@@ -15,6 +15,8 @@ declare global {
 
 /** URL of the MSAL Browser library (v2.38.0) loaded lazily at first use. */
 const MSAL_SDK = "https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js";
+/** SRI hash for {@link MSAL_SDK}. Stable: the URL is version-pinned to 2.38.0. */
+const MSAL_SDK_INTEGRITY = "sha384-mz+8Q3jA4XBFbnyAsyQegn/0LHvziH7qHLBa9GzcU3HzeWj9J16SXM5S+TsmPBy0";
 
 /**
  * Represents a file or folder item returned by the Microsoft Graph Drive API.
@@ -46,7 +48,7 @@ const ensureMsal = async (): Promise<void> => {
     if (msalInstance) return;
 
     console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Loading MSAL from:", MSAL_SDK, "]");
-    await loadScript(MSAL_SDK);
+    await loadScript(MSAL_SDK, {}, MSAL_SDK_INTEGRITY);
 
     if (!window.msal?.PublicClientApplication) {
         throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] MSAL library failed to load. ]");
