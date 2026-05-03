@@ -90,6 +90,7 @@ writeFileSync(
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="MoKF_0cX0PRgbpAr9fCcT6X67UDf0sE-ggwYgAsPnNs" />
     <title>TinyMCE MultiCloud Plugin</title>
     <style>
       body { font-family: Segoe UI, Arial, sans-serif; margin: 2rem; line-height: 1.5; }
