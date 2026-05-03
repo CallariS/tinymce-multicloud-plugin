@@ -1,4 +1,4 @@
-import { PluginOptionsValidator } from '../../../src/validation/config/validators';
+import { PluginOptionsValidator, configureMultiCloudValidation } from '../../../src/validation/config/validators';
 
 const baseOptions = {
     providers: {},
@@ -318,5 +318,41 @@ describe('PluginOptionsValidator — return value', () => {
             providers: { googleDrive: false },
         });
         expect(result.providers?.googleDrive?.enabled).toBe(false);
+    });
+});
+
+// ─── configureMultiCloudValidation — config layer ─────────────────────────────
+
+describe('configureMultiCloudValidation — config layer', () => {
+    afterEach(() => {
+        // Restore defaults so other tests are not affected.
+        configureMultiCloudValidation({ config: { throwOnInfringement: true, logToConsole: true } });
+    });
+
+    it('suppresses config violations when throwOnInfringement is false', () => {
+        configureMultiCloudValidation({ config: { throwOnInfringement: false, logToConsole: false } });
+        // Uses an invalid defaultInsertMode (not null) so that after the suppressed DBC check
+        // the code can continue executing without a native TypeError.
+        expect(() =>
+            new PluginOptionsValidator().validate({ ...baseOptions, defaultInsertMode: 'invalid' as never }),
+        ).not.toThrow();
+    });
+
+    it('restores throwing when throwOnInfringement is set back to true', () => {
+        configureMultiCloudValidation({ config: { throwOnInfringement: false, logToConsole: false } });
+        configureMultiCloudValidation({ config: { throwOnInfringement: true } });
+        expect(() =>
+            new PluginOptionsValidator().validate({ ...baseOptions, defaultInsertMode: 'invalid' as never }),
+        ).toThrow('XDBC Infringement');
+    });
+
+    it('applies only the keys provided — partial update leaves other settings unchanged', () => {
+        // Disable throwing; then update only logToConsole — throwOnInfringement should stay false.
+        configureMultiCloudValidation({ config: { throwOnInfringement: false, logToConsole: false } });
+        configureMultiCloudValidation({ config: { logToConsole: true } });
+        // Still should not throw because throwOnInfringement was not changed back.
+        expect(() =>
+            new PluginOptionsValidator().validate({ ...baseOptions, defaultInsertMode: 'invalid' as never }),
+        ).not.toThrow();
     });
 });

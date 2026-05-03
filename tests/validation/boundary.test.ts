@@ -6,6 +6,7 @@ import {
     validateWebDavNodeBoundary,
     validatePluginOptionsBoundary,
 } from '../../src/validation/boundary';
+import { configureMultiCloudValidation } from '../../src/validation/config/validators';
 
 // ─── validatePickerResultBoundary ────────────────────────────────────────────
 
@@ -357,5 +358,66 @@ describe('validatePluginOptionsBoundary', () => {
             expect(result.dialogTitle).toBe('My Picker');
             expect(result.popupTimeoutMs).toBe(60000);
         });
+    });
+});
+
+// ─── configureMultiCloudValidation — boundary layer ──────────────────────────
+
+describe('configureMultiCloudValidation — boundary layer', () => {
+    afterEach(() => {
+        configureMultiCloudValidation({ boundary: { throwOnInfringement: true, logToConsole: true } });
+    });
+
+    it('suppresses boundary violations when throwOnInfringement is false', () => {
+        configureMultiCloudValidation({ boundary: { throwOnInfringement: false, logToConsole: false } });
+        expect(() => validatePickerResultBoundary('googleDrive', null)).not.toThrow();
+    });
+
+    it('restores throwing when throwOnInfringement is set back to true', () => {
+        configureMultiCloudValidation({ boundary: { throwOnInfringement: false, logToConsole: false } });
+        configureMultiCloudValidation({ boundary: { throwOnInfringement: true } });
+        expect(() => validatePickerResultBoundary('googleDrive', null)).toThrow();
+    });
+
+    it('applies only the keys provided — partial update leaves other settings unchanged', () => {
+        configureMultiCloudValidation({ boundary: { throwOnInfringement: false, logToConsole: false } });
+        configureMultiCloudValidation({ boundary: { logToConsole: true } });
+        // throwOnInfringement was not changed back — should still not throw.
+        expect(() => validatePickerResultBoundary('googleDrive', null)).not.toThrow();
+    });
+});
+
+// ─── configureMultiCloudValidation — layer independence ────────────────────────
+
+describe('configureMultiCloudValidation — layer independence', () => {
+    afterEach(() => {
+        configureMultiCloudValidation({
+            config:   { throwOnInfringement: true, logToConsole: true },
+            boundary: { throwOnInfringement: true, logToConsole: true },
+        });
+    });
+
+    it('silencing the boundary layer does not suppress config violations', () => {
+        configureMultiCloudValidation({ boundary: { throwOnInfringement: false, logToConsole: false } });
+        // Config layer is still strict — null input must throw.
+        expect(() => validatePluginOptionsBoundary(null)).toThrow('XDBC Infringement');
+    });
+
+    it('silencing the config layer does not suppress boundary violations', () => {
+        configureMultiCloudValidation({ config: { throwOnInfringement: false, logToConsole: false } });
+        // Boundary layer is still strict — invalid picker result must throw.
+        expect(() => validatePickerResultBoundary('googleDrive', null)).toThrow();
+    });
+
+    it('silencing both layers suppresses all violations independently', () => {
+        configureMultiCloudValidation({
+            config:   { throwOnInfringement: false, logToConsole: false },
+            boundary: { throwOnInfringement: false, logToConsole: false },
+        });
+        const baseOptions = { providers: {}, defaultInsertMode: 'link' as const, dialogTitle: 'Test', popupTimeoutMs: 120000 };
+        // Config violation (invalid defaultInsertMode): code can continue after suppressed check.
+        expect(() => validatePluginOptionsBoundary({ ...baseOptions, defaultInsertMode: 'invalid' as never })).not.toThrow();
+        // Boundary violation (null picker result): ZOD.tsCheck returns null as cast without crashing.
+        expect(() => validatePickerResultBoundary('googleDrive', null)).not.toThrow();
     });
 });
