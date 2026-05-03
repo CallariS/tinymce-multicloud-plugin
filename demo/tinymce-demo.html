@@ -199,6 +199,7 @@
           content_style: `@media(prefers-color-scheme:dark){thead tr{background:#2a2a2a!important;}tr[style*="fafafa"]{background:#1e1e1e!important;}small{color:#aaa!important;}p[style*="#555"]{color:#aaa!important;}span[style*="border: 1px solid black"]{border-color:#999!important;box-shadow:0 0 .25em rgba(200,200,200,0.4)!important;}span[style*="border: 1px solid black"] img{filter:invert(1);}}`,
           plugins: 'link image media code multicloud',
           toolbar: 'undo redo | styles | bold italic | alignleft aligncenter alignright | link image media | multicloud multicloud_upload | code',
+          object_resizing: 'img,iframe,table',
           multicloud_providers: config.providers,
           multicloud_default_provider: config.defaultProvider,
           multicloud_default_insert_mode: config.defaultInsertMode,
@@ -248,12 +249,28 @@
           // Scroll to top after content is loaded
           editor.on('init', () => {
             editor.getBody().scrollTop = 0;
-            const iframe = editor.getContainer().querySelector('iframe');
-            if (iframe && iframe.contentWindow) {
-              iframe.addEventListener('load', () => {
-                iframe.contentWindow.scrollTo(0, 0);
-              });
-            }
+            const doc = editor.getDoc();
+            const body = editor.getBody();
+            let idleTimer;
+
+            const scrollToTop = () => {
+              clearTimeout(idleTimer);
+              idleTimer = setTimeout(() => {
+                doc.removeEventListener('load', scrollToTop, true);
+                resizeObserver.disconnect();
+                body.scrollTop = 0;
+                const iframeEl = editor.getContainer().querySelector('iframe');
+                if (iframeEl?.contentWindow) iframeEl.contentWindow.scrollTo(0, 0);
+              }, 500);
+            };
+
+            // Catch individual resource loads (images, iframes) as they complete
+            doc.addEventListener('load', scrollToTop, true);
+            // Also catch layout reflows from lazy-loaded/async resources
+            const resizeObserver = new ResizeObserver(scrollToTop);
+            resizeObserver.observe(body);
+            // Kick off the initial debounce
+            scrollToTop();
           });
         }
 
