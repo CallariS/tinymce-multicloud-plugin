@@ -32,10 +32,16 @@ const openPopup = (url: string, features: string): Window => {
  * Returns a promise that resolves (or rejects) when the popup picker page sends a
  * {@link PickerMessage} via `window.postMessage`.
  *
- * Messages are filtered by both `source === "tinymce-multicloud-plugin"` and the
- * expected `providerId` to prevent cross-provider or unrelated message interference.
+ * Messages are filtered by:
+ * 1. `source === "tinymce-multicloud-plugin"` — rejects unrelated messages.
+ * 2. `providerId` — rejects messages from other providers.
+ * 3. `event.origin` — rejects messages from any origin other than the one the popup was
+ *    opened at. This prevents a page on a different origin from injecting a result by
+ *    forging the `source` discriminator.
  *
  * @param providerId - The provider ID to wait for. Messages from other providers are ignored.
+ * @param expectedOrigin - The origin (`scheme + host + port`) of the popup page. Only
+ *   messages sent from this exact origin are accepted.
  * @param timeoutMs - Maximum wait time in milliseconds. Rejects with a timeout error if no
  *   valid message arrives within this window.
  * @returns A promise resolving to the {@link PickerResult} on success, or `null` on cancellation.
@@ -45,6 +51,7 @@ const openPopup = (url: string, features: string): Window => {
  */
 const awaitPickerMessage = (
     providerId: CloudProviderId,
+    expectedOrigin: string,
     timeoutMs: number,
 ): Promise<PickerResult | null> =>
     new Promise((resolve, reject) => {
@@ -58,6 +65,11 @@ const awaitPickerMessage = (
         };
 
         const onMessage = (event: MessageEvent) => {
+            // Reject messages from unexpected origins to prevent cross-origin injection.
+            if (event.origin !== expectedOrigin) {
+                return;
+            }
+
             const message = event.data as PickerMessage;
             if (!message || message.source !== "tinymce-multicloud-plugin") {
                 return;
@@ -149,6 +161,7 @@ export const createPopupProvider = (
 
         openPopup(pickerUrl, popupFeatures);
 
-        return await awaitPickerMessage(id, timeoutMs);
+        const expectedOrigin = new URL(pickerUrl).origin;
+        return await awaitPickerMessage(id, expectedOrigin, timeoutMs);
     },
 });
