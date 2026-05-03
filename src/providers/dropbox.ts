@@ -34,6 +34,7 @@ let cachedAccessToken: string | null = null;
 const clearDropboxToken = () => {
     cachedAccessToken = null;
     localStorage.removeItem('dropbox_access_token');
+    localStorage.removeItem('dropbox_token_expiry');
     console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Access token cleared (expired or invalid) ]");
 };
 
@@ -194,9 +195,15 @@ const getAccessToken = async (appKey: string): Promise<string> => {
     // Check localStorage for persisted token
     const storedToken = localStorage.getItem('dropbox_access_token');
     if (storedToken) {
-        cachedAccessToken = storedToken;
-        console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Using stored access token ]");
-        return cachedAccessToken;
+        const storedExpiry = localStorage.getItem('dropbox_token_expiry');
+        if (storedExpiry && Date.now() >= parseInt(storedExpiry, 10)) {
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Stored token is expired, clearing... ]");
+            clearDropboxToken();
+        } else {
+            cachedAccessToken = storedToken;
+            console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Using stored access token ]");
+            return cachedAccessToken;
+        }
     }
 
     // Start OAuth flow
@@ -228,6 +235,9 @@ const getAccessToken = async (appKey: string): Promise<string> => {
                     resolved = true;
                     cachedAccessToken = event.data.token;
                     localStorage.setItem('dropbox_access_token', cachedAccessToken);
+                    if (event.data.expiresIn) {
+                        localStorage.setItem('dropbox_token_expiry', String(Date.now() + event.data.expiresIn * 1000));
+                    }
                     window.removeEventListener('message', messageHandler);
                     popup.close();
                     console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] OAuth successful via postMessage ]");
@@ -266,10 +276,14 @@ const getAccessToken = async (appKey: string): Promise<string> => {
                         const popupHash = popup.location.hash;
                         if (popupHash && popupHash.includes("access_token=")) {
                             const match = popupHash.match(/access_token=([^&]+)/);
+                            const expiryMatch = popupHash.match(/expires_in=(\d+)/);
                             if (match && match[1] && !resolved) {
                                 resolved = true;
                                 cachedAccessToken = match[1];
                                 localStorage.setItem('dropbox_access_token', cachedAccessToken);
+                                if (expiryMatch && expiryMatch[1]) {
+                                    localStorage.setItem('dropbox_token_expiry', String(Date.now() + parseInt(expiryMatch[1], 10) * 1000));
+                                }
                                 clearInterval(checkInterval);
                                 window.removeEventListener('message', messageHandler);
                                 popup.close();
@@ -323,6 +337,7 @@ const getAccessToken = async (appKey: string): Promise<string> => {
 const uploadFile = async (
     config: DropboxProviderConfig,
     file: File,
+    _retried = false,
 ): Promise<PickerResult | null> => {
     try {
         console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Uploading file:", file.name, "]");
@@ -347,9 +362,13 @@ const uploadFile = async (
         });
 
         if (uploadResponse.status === 401) {
-            // Token expired — clear it so next attempt triggers re-authentication
+            // Token expired — clear it and retry once with a fresh token
             clearDropboxToken();
-            throw new Error("Dropbox access token expired. Please try uploading again to re-authenticate.");
+            if (!_retried) {
+                console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Upload 401 - token expired, re-authenticating and retrying... ]");
+                return uploadFile(config, file, true);
+            }
+            throw new Error("Dropbox authentication failed after re-authentication attempt.");
         }
 
         if (!uploadResponse.ok) {
@@ -593,10 +612,14 @@ if (typeof window !== 'undefined') {
         const match = hash.match(/access_token=([^&]+)/);
         if (match && match[1]) {
             const token = match[1];
+            const expiryMatch = hash.match(/expires_in=(\d+)/);
             console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Captured OAuth token from URL ]");
 
-            // Store token
+            // Store token and expiry
             localStorage.setItem('dropbox_access_token', token);
+            if (expiryMatch && expiryMatch[1]) {
+                localStorage.setItem('dropbox_token_expiry', String(Date.now() + parseInt(expiryMatch[1], 10) * 1000));
+            }
             cachedAccessToken = token;
 
             // If we're in a popup, send token to opener
@@ -604,7 +627,8 @@ if (typeof window !== 'undefined') {
                 try {
                     window.opener.postMessage({
                         type: 'dropbox_oauth_token',
-                        token: token
+                        token: token,
+                        expiresIn: expiryMatch ? parseInt(expiryMatch[1], 10) : undefined
                     }, window.location.origin);
                     console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Sent token to opener via postMessage ]");
                     // Close popup after a short delay
