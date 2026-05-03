@@ -42,12 +42,6 @@ const ensureDBCInstance = (): void => {
 ensureDBCInstance();
 
 class XdbcBoundary {
-    public static assertXdbc(result: boolean | string, context: string): void {
-        if (result !== true) {
-            throw new Error(`[XDBC Boundary] ${context}: ${result}`);
-        }
-    }
-
     public static ensurePlainObject(value: unknown, context: string): Record<string, unknown> {
         if (
             value === undefined ||
@@ -106,67 +100,51 @@ class GenericProviderConfigValidator extends BaseProviderConfigValidator {
 }
 
 class GoogleDriveConfigValidator extends BaseProviderConfigValidator {
-    @DBC.ParamvalueProvider
-    protected validateSdkModeRequirements(
-        @DEFINED.PRE("clientId::apiKey", "Did you set Google Drive clientId and apiKey?", VALIDATION_DBC_PATH)
-        @TYPE.PRE("string", "clientId::apiKey", "Did you set Google Drive clientId and apiKey as strings?", VALIDATION_DBC_PATH)
-        @REGEX.PRE(rxApiKeyLike, "clientId::apiKey", "Did you provide valid Google Drive clientId and apiKey values?", VALIDATION_DBC_PATH)
-        config: Record<string, unknown>,
-        context: string,
-    ): void {
-        void config;
-        void context;
+    protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
+        DEFINED.tsCheck(config.clientId, "Did you set Google Drive clientId?", `${context}.clientId`);
+        DEFINED.tsCheck(config.apiKey, "Did you set Google Drive apiKey?", `${context}.apiKey`);
+        TYPE.tsCheck(config.clientId, "string", "Did you set Google Drive clientId as a string?", `${context}.clientId`);
+        TYPE.tsCheck(config.apiKey, "string", "Did you set Google Drive apiKey as a string?", `${context}.apiKey`);
+        REGEX.tsCheck(config.clientId, rxApiKeyLike, "Did you provide a valid Google Drive clientId?", `${context}.clientId`);
+        REGEX.tsCheck(config.apiKey, rxApiKeyLike, "Did you provide a valid Google Drive apiKey?", `${context}.apiKey`);
     }
 }
 
 class OneDriveConfigValidator extends BaseProviderConfigValidator {
-    @DBC.ParamvalueProvider
-    protected validateSdkModeRequirements(
-        @DEFINED.PRE("clientId", "Did you set OneDrive clientId?", VALIDATION_DBC_PATH)
-        @TYPE.PRE("string", "clientId", "Did you set OneDrive clientId as a string?", VALIDATION_DBC_PATH)
-        @REGEX.PRE(rxApiKeyLike, "clientId", "Did you provide a valid OneDrive clientId?", VALIDATION_DBC_PATH)
-        config: Record<string, unknown>,
-        context: string,
-    ): void {
-        void config;
-        void context;
+    protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
+        DEFINED.tsCheck(config.clientId, "Did you set OneDrive clientId?", `${context}.clientId`);
+        TYPE.tsCheck(config.clientId, "string", "Did you set OneDrive clientId as a string?", `${context}.clientId`);
+        REGEX.tsCheck(config.clientId, rxApiKeyLike, "Did you provide a valid OneDrive clientId?", `${context}.clientId`);
     }
 }
 
 class DropboxConfigValidator extends BaseProviderConfigValidator {
-    @DBC.ParamvalueProvider
-    protected validateSdkModeRequirements(
-        @DEFINED.PRE("appKey", "Did you set Dropbox appKey?", VALIDATION_DBC_PATH)
-        @TYPE.PRE("string", "appKey", "Did you set Dropbox appKey as a string?", VALIDATION_DBC_PATH)
-        @REGEX.PRE(rxApiKeyLike, "appKey", "Did you provide a valid Dropbox appKey?", VALIDATION_DBC_PATH)
-        config: Record<string, unknown>,
-        context: string,
-    ): void {
-        void config;
-        void context;
+    protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
+        DEFINED.tsCheck(config.appKey, "Did you set Dropbox appKey?", `${context}.appKey`);
+        TYPE.tsCheck(config.appKey, "string", "Did you set Dropbox appKey as a string?", `${context}.appKey`);
+        REGEX.tsCheck(config.appKey, rxApiKeyLike, "Did you provide a valid Dropbox appKey?", `${context}.appKey`);
     }
 }
 
 class BayernCloudConfigValidator extends BaseProviderConfigValidator {
-    @DBC.ParamvalueProvider
-    protected validateSdkModeRequirements(
-        @DEFINED.PRE("baseUrl::username", "Did you set BayernCloud baseUrl and username?", VALIDATION_DBC_PATH)
-        @TYPE.PRE("string", "baseUrl::username", "Did you set BayernCloud baseUrl and username as strings?", VALIDATION_DBC_PATH)
-        @REGEX.PRE(REGEX.stdExp.url, "baseUrl", "Did you set BayernCloud baseUrl to a valid URL?", VALIDATION_DBC_PATH)
-        @REGEX.PRE(rxNonEmpty, "username::password::bearerToken", "Did you leave BayernCloud credentials empty?", VALIDATION_DBC_PATH)
-        config: Record<string, unknown>,
-        context: string,
-    ): void {
-        void context;
-
-        const authRule = OR.checkAlgorithm(
+    protected validateSdkModeRequirements(config: Record<string, unknown>, context: string): void {
+        DEFINED.tsCheck(config.baseUrl, "Did you set BayernCloud baseUrl?", `${context}.baseUrl`);
+        DEFINED.tsCheck(config.username, "Did you set BayernCloud username?", `${context}.username`);
+        TYPE.tsCheck(config.baseUrl, "string", "Did you set BayernCloud baseUrl as a string?", `${context}.baseUrl`);
+        TYPE.tsCheck(config.username, "string", "Did you set BayernCloud username as a string?", `${context}.username`);
+        REGEX.tsCheck(config.baseUrl, REGEX.stdExp.url, "Did you set BayernCloud baseUrl to a valid URL?", `${context}.baseUrl`);
+        REGEX.tsCheck(config.username, rxNonEmpty, "Did you leave BayernCloud username empty?", `${context}.username`);
+        REGEX.tsCheck(config.password, rxNonEmpty, "Did you leave BayernCloud password empty?", `${context}.password`);
+        REGEX.tsCheck(config.bearerToken, rxNonEmpty, "Did you leave BayernCloud bearerToken empty?", `${context}.bearerToken`);
+        OR.tsCheck(
+            config,
             [
                 { check: (v) => DEFINED.checkAlgorithm((v as Record<string, unknown>)?.password) },
                 { check: (v) => DEFINED.checkAlgorithm((v as Record<string, unknown>)?.bearerToken) },
             ],
-            config,
+            "Did you provide BayernCloud password or bearerToken?",
+            `${context}.password|bearerToken`,
         );
-        XdbcBoundary.assertXdbc(authRule, `${this.prefix}.password|bearerToken`);
     }
 }
 
