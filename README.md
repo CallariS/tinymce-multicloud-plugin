@@ -229,9 +229,15 @@ Some providers support uploading local files directly to the cloud:
 - Embeds PDFs and Office documents
 - Requires CORS proxy for browser deployments (see docs)
 
-**OneDrive**: ❌ Upload not yet implemented
+**OneDrive**: ✅ Full upload support
+- Uploads files to the user's OneDrive via the Microsoft Graph API
+- Creates a public sharing link
+- Embeds PDFs and Office documents
 
-**Dropbox**: ❌ Upload not yet implemented
+**Dropbox**: ✅ Full upload support
+- Uploads files to the user's Dropbox via the Dropbox API
+- Uses OAuth implicit grant flow; token is cached in `localStorage` with expiry tracking
+- Creates a shared link for embedding
 
 To use upload, add `multicloud_upload` to your toolbar:
 
