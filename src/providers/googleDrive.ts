@@ -19,7 +19,7 @@ declare global {
 
 /** URL of the Google API JavaScript client (gapi). Loaded lazily at first use. */
 const GAPI_SCRIPT = "https://apis.google.com/js/api.js";
-const GIS_SCRIPT = "https://accounts.google.com/gsi/client";/** URL of the Google Identity Services (GIS) authentication script. Loaded lazily at first use. */
+/** URL of the Google Identity Services (GIS) authentication script. Loaded lazily at first use. */
 const GIS_SCRIPT = "https://accounts.google.com/gsi/client";
 
 /** Guards against re-initialising the gapi `client:picker` module on subsequent calls. */
