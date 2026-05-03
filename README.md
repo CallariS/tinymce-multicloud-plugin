@@ -45,7 +45,9 @@ This plugin uses [xdbc](https://www.npmjs.com/package/xdbc) for Design-by-Contra
 
 ## Zod boundary validation
 
-In addition to xdbc DBC contracts, the plugin uses [Zod](https://zod.dev/) to validate all data that crosses provider API boundaries at runtime. Where DBC validates *input configuration* before any logic runs, Zod validates *what providers return* before that data is trusted and used.
+In addition to xdbc DBC contracts on configuration, the plugin validates all data that crosses provider API boundaries at runtime using **xdbc's Zod integration** (`ZOD.tsCheck` from `xdbc/src/DBC/ZOD`). Zod schemas are defined with the `zod` library but validation is always run through xdbc — keeping the error shape and behaviour consistent with the rest of the contract layer.
+
+Where DBC validates *input configuration* before any logic runs, Zod validates *what providers return* before that data is trusted and used.
 
 ### What is validated
 
@@ -59,7 +61,7 @@ In addition to xdbc DBC contracts, the plugin uses [Zod](https://zod.dev/) to va
 
 ### Error type
 
-Zod validation failures throw `ZodError` (from the `zod` package), distinct from the `DBC.Infringement` thrown by xdbc contracts. Both are subclasses of `Error` and can be caught and distinguished at runtime.
+Because validation is run through `ZOD.tsCheck`, failures throw `ZodError` (from the `zod` package) — consistent with xdbc's own Zod integration behaviour. Both `ZodError` and `DBC.Infringement` are subclasses of `Error`.
 
 ```ts
 import { ZodError } from "zod";
@@ -69,9 +71,9 @@ try {
   tinymce.init({ plugins: "multicloud", multicloud_providers: myConfig });
 } catch (e) {
   if (e instanceof DBC.Infringement) {
-    // configuration contract violated
+    // configuration contract violated (xdbc DBC)
   } else if (e instanceof ZodError) {
-    // provider returned unexpected data shape
+    // provider returned unexpected data shape (xdbc ZOD.tsCheck)
   }
 }
 ```
