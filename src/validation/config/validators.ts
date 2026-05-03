@@ -4,6 +4,7 @@ import { GREATER } from "xdbc/src/DBC/COMPARISON/GREATER";
 import { OR } from "xdbc/src/DBC/OR";
 import { REGEX } from "xdbc/src/DBC/REGEX";
 import { TYPE } from "xdbc/src/DBC/TYPE";
+import { PLAIN_OBJECT } from "xdbc/src/DBC/ARR/PLAIN_OBJECT";
 import type {
     CloudProviderId,
     MultiCloudPluginOptions,
@@ -41,21 +42,6 @@ const ensureDBCInstance = (): void => {
 
 ensureDBCInstance();
 
-class XdbcBoundary {
-    public static ensurePlainObject(value: unknown, context: string): Record<string, unknown> {
-        if (
-            value === undefined ||
-            value === null ||
-            Array.isArray(value) ||
-            typeof value !== "object"
-        ) {
-            throw new Error(`[XDBC Boundary] ${context}: expected a plain object.`);
-        }
-
-        return value as Record<string, unknown>;
-    }
-}
-
 @DBC.ParamvalueProvider
 abstract class BaseProviderConfigValidator {
     protected readonly prefix: string;
@@ -64,7 +50,7 @@ abstract class BaseProviderConfigValidator {
     public constructor(
         protected readonly providerId: CloudProviderId,
         @DEFINED.PRE(undefined, "Did you pass a provider config object?", VALIDATION_DBC_PATH)
-        @TYPE.PRE("object", undefined, "Did you pass a provider config as an object?", VALIDATION_DBC_PATH)
+        @PLAIN_OBJECT.PRE(undefined, "Did you pass a provider config as an object?", VALIDATION_DBC_PATH)
         config: Record<string, unknown>,
     ) {
         this.prefix = `providers.${providerId}`;
@@ -185,7 +171,7 @@ const normalizeProviderConfig = (
 
 export class PluginOptionsValidator {
     @TYPE.INVARIANT("object", undefined, "Did you pass a plugin options object?", VALIDATION_DBC_PATH)
-    @TYPE.INVARIANT("object", "providers", "Did you set plugin options.providers as an object?", VALIDATION_DBC_PATH)
+    @PLAIN_OBJECT.INVARIANT("providers", "Did you set plugin options.providers as an object?", VALIDATION_DBC_PATH)
     @TYPE.INVARIANT("string", "defaultProvider::dialogTitle", "Did you set defaultProvider/dialogTitle as strings?", VALIDATION_DBC_PATH)
     @REGEX.INVARIANT(rxNonEmpty, "defaultProvider::dialogTitle", "Did you leave defaultProvider or dialogTitle empty?", VALIDATION_DBC_PATH)
     @TYPE.INVARIANT("number", "popupTimeoutMs", "Did you set popupTimeoutMs as a number?", VALIDATION_DBC_PATH)
@@ -239,7 +225,11 @@ export class PluginOptionsValidator {
     private boundaryOptions: Record<string, unknown> = {};
 
     public validate(options: unknown): MultiCloudPluginOptions {
-        const raw = XdbcBoundary.ensurePlainObject(options, "plugin options");
+        const raw = PLAIN_OBJECT.tsCheck(
+            DEFINED.tsCheck(options, "Did you pass plugin options?", "plugin options") as Record<string, unknown>,
+            "Did you pass a plain object for plugin options?",
+            "plugin options",
+        );
 
         const insertMode = raw.defaultInsertMode;
         if (insertMode !== undefined && insertMode !== "link" && insertMode !== "image" && insertMode !== "embed") {
@@ -278,7 +268,11 @@ export class PluginOptionsValidator {
         const providersRaw =
             raw.providers === undefined
                 ? {}
-                : XdbcBoundary.ensurePlainObject(raw.providers, "plugin options.providers");
+                : PLAIN_OBJECT.tsCheck(
+                      DEFINED.tsCheck(raw.providers, "Did you set providers as a plain object?", "plugin options.providers") as Record<string, unknown>,
+                      "Did you set providers as a plain object?",
+                      "plugin options.providers",
+                  );
 
         const providers: Partial<Record<CloudProviderId, ProviderRuntimeConfig>> = {};
 

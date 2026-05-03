@@ -34,7 +34,7 @@
         "tinymce": ">=6"
     },
     "dependencies": {
-        "xdbc": "^1.0.215",
+        "xdbc": "^1.0.216",
         "zod": "^3.25.0"
     },
     "devDependencies": {

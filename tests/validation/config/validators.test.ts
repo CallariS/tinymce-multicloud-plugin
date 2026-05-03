@@ -11,19 +11,19 @@ const baseOptions = {
 
 describe('PluginOptionsValidator — input type checks', () => {
     it('throws for null input', () => {
-        expect(() => new PluginOptionsValidator().validate(null)).toThrow('[XDBC Boundary]');
+        expect(() => new PluginOptionsValidator().validate(null)).toThrow('XDBC Infringement');
     });
 
     it('throws for an array input', () => {
-        expect(() => new PluginOptionsValidator().validate([])).toThrow('[XDBC Boundary]');
+        expect(() => new PluginOptionsValidator().validate([])).toThrow('XDBC Infringement');
     });
 
     it('throws for a string input', () => {
-        expect(() => new PluginOptionsValidator().validate('options')).toThrow('[XDBC Boundary]');
+        expect(() => new PluginOptionsValidator().validate('options')).toThrow('XDBC Infringement');
     });
 
     it('throws for a number input', () => {
-        expect(() => new PluginOptionsValidator().validate(42)).toThrow('[XDBC Boundary]');
+        expect(() => new PluginOptionsValidator().validate(42)).toThrow('XDBC Infringement');
     });
 });
 
