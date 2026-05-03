@@ -1,0 +1,15 @@
+{
+    "entryPoints": ["src/index.ts", "src/types.ts"],
+    "out": "docs/api",
+    "tsconfig": "tsconfig.json",
+    "readme": "README.md",
+    "name": "TinyMCE MultiCloud Plugin",
+    "includeVersion": true,
+    "excludeInternal": true,
+    "excludePrivate": true,
+    "navigationLinks": {
+        "GitHub": "https://github.com/waxcode/tinymce-multicloud-plugin",
+        "Production Setup": "../PRODUCTION_SETUP.md"
+    },
+    "skipErrorChecking": true
+}

@@ -180,7 +180,32 @@ tinymce.init({
 
 > **TinyMCE 6:** `sandbox_iframes` does not exist in v6 — no action needed.
 
-## 8. Recommended production security model
+## 8. Third-party SDK Subresource Integrity (SRI)
+
+Three providers load external JavaScript SDKs at runtime from third-party CDNs. These scripts execute in the same page as the TinyMCE editor, so a compromised CDN would allow arbitrary code execution.
+
+| Provider | Script URL | Risk |
+|---|---|---|
+| Google Drive | `https://apis.google.com/js/api.js` | High — gapi + Picker |
+| Google Drive (auth) | `https://accounts.google.com/gsi/client` | High — GIS token client |
+| OneDrive | `https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js` | High — MSAL auth |
+| Dropbox | `https://www.dropbox.com/static/api/2/dropins.js` | Medium — Chooser only |
+
+### Why SRI is not applied by default
+
+These scripts are loaded lazily at runtime via `loadScript()` rather than `<script>` tags in HTML. The URLs are either versioned by Google dynamically (no stable hash) or include per-account query parameters. Static SRI hashes cannot be computed in advance for these CDN patterns.
+
+### Mitigations available to integrators
+
+**Option A — Proxy / self-host the SDKs** (highest security): Download pinned versions of the SDK scripts, serve them from your own origin, and pass custom `pickerUrl` options (for providers that support it) to bypass the built-in SDK loading. Use SRI on your own `<script>` tags.
+
+**Option B — Strict Content Security Policy**: Restrict `script-src` to only the specific CDN origins listed above (see section 6). This does not prevent a CDN compromise but limits which scripts can execute.
+
+**Option C — Subagent monitoring**: Use a service (e.g. Snyk, Dependabot, or manual review) to detect unexpected changes in the SDK files served by these CDN endpoints.
+
+> **Practical guidance:** For most deployments, Option B (strict CSP) combined with the Zod boundary validation already present in the plugin provides adequate defence-in-depth. The Zod schemas validate all provider API responses before any data is inserted into the editor. Only environments with formal FIPS or zero-trust requirements need to pursue Options A or C.
+
+## 9. Recommended production security model
 
 Do this for all providers where possible:
 1. Keep long-lived secrets and refresh tokens on backend only.
@@ -188,7 +213,7 @@ Do this for all providers where possible:
 3. Add strict CSP and trusted domains for scripts and frames (see section 6 above).
 4. Add explicit user confirmation before making files public.
 
-## 8. Validation checklist before go-live
+## 10. Validation checklist before go-live
 
 1. Picker opens for all providers in production domain.
 2. Selected file is inserted as expected (link/image/embed).

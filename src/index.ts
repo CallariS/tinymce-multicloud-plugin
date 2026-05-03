@@ -1,4 +1,5 @@
-﻿import { builtInProviders } from "./providers";
+﻿import type { TinyMCE } from "tinymce";
+import { builtInProviders } from "./providers";
 import type {
     CloudProvider,
     CloudProviderId,
@@ -12,7 +13,7 @@ import {
     validatePluginOptionsBoundary,
 } from "./validation/boundary";
 
-declare const tinymce: any;
+declare const tinymce: TinyMCE;
 
 /** Registered plugin name used with `tinymce.PluginManager.add`. */
 const PLUGIN_NAME = "multicloud";

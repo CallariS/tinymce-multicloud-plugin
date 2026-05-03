@@ -81,6 +81,10 @@ if (existsSync(localConfig)) {
 copyDir(docsDir, join(outDir, "docs"));
 copyDir(tinyMceDir, join(outDir, "node_modules", "tinymce"));
 
+// Include API reference docs if they have been generated
+const apiDocsDir = join(root, "docs", "api");
+const hasApiDocs = existsSync(apiDocsDir);
+
 writeFileSync(
     join(outDir, "index.html"),
     `<!doctype html>
@@ -103,6 +107,7 @@ writeFileSync(
       <ul>
         <li><a href="./demo/tinymce-demo.html">Open demo editor</a></li>
         <li><a href="./docs/PRODUCTION_SETUP.md">Production setup guide</a></li>
+        ${hasApiDocs ? '<li><a href="./docs/api/index.html">API reference</a></li>' : ''}
       </ul>
     </div>
   </body>
