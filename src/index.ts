@@ -18,6 +18,57 @@ declare const tinymce: any;
 const PLUGIN_NAME = "multicloud";
 
 /**
+ * Custom provider registry. Providers added here are merged with the built-in
+ * providers at plugin registration time. Keys are provider IDs; last write wins
+ * for a given ID (allowing built-in providers to be overridden).
+ *
+ * @internal
+ */
+const customProviders: Map<string, CloudProvider> = new Map();
+
+/**
+ * Registers a custom cloud provider with the MultiCloud Plugin.
+ *
+ * Must be called **before** `tinymce.init()`. The provider is merged with the
+ * built-in provider list and will appear in both the picker and upload dialogs
+ * (if it implements `upload`). Registering a provider with the same `id` as a
+ * built-in provider overrides the built-in one.
+ *
+ * @param provider - A {@link CloudProvider} implementation to register.
+ *
+ * @example
+ * ```ts
+ * registerProvider({
+ *   id: 'myS3',
+ *   label: 'Company S3',
+ *   pick: async (ctx) => { ... },
+ *   upload: async (ctx, file) => { ... },
+ * });
+ * tinymce.init({ plugins: 'multicloud', ... });
+ * ```
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
+export const registerProvider = (provider: CloudProvider): void => {
+    customProviders.set(provider.id, provider);
+};
+
+/**
+ * Removes a previously registered custom provider by its ID.
+ *
+ * Has no effect if the ID is not in the custom registry. Built-in providers
+ * cannot be removed with this function; to disable a built-in provider set
+ * `enabled: false` in its runtime config instead.
+ *
+ * @param id - The provider ID to remove.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
+export const unregisterProvider = (id: string): void => {
+    customProviders.delete(id);
+};
+
+/**
  * Escapes HTML special characters in a string to prevent XSS when injecting
  * values into HTML markup via string concatenation.
  *
@@ -743,8 +794,13 @@ const register = (): void => {
             default: 120000,
         });
 
+        const allProviders: CloudProvider[] = [
+            ...builtInProviders().filter((p) => !customProviders.has(p.id)),
+            ...Array.from(customProviders.values()),
+        ];
+
         const providers = resolveActiveProviders(
-            builtInProviders(),
+            allProviders,
             getOptions(editor).providers || {},
         );
 
