@@ -49,7 +49,7 @@ const ensureMsal = async (): Promise<void> => {
     await loadScript(MSAL_SDK);
 
     if (!window.msal?.PublicClientApplication) {
-        throw new Error("MSAL library failed to load");
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] MSAL library failed to load. ]");
     }
     console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] MSAL loaded successfully ]");
 };
@@ -134,7 +134,7 @@ const listFolderItems = async (accessToken: string, folderId?: string): Promise<
     if (!response.ok) {
         const errorText = await response.text();
         console.error("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Graph API error:", response.status, errorText, "]");
-        throw new Error(`Graph API error: ${response.status} ${response.statusText}`);
+        throw new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Graph API error: ${response.status} ${response.statusText} ]`);
     }
 
     const data = await response.json();
@@ -580,7 +580,7 @@ const openOneDrivePicker = async (
     config: OneDriveProviderConfig,
 ): Promise<PickerResult | null> => {
     if (!config.clientId) {
-        throw new Error("OneDrive requires clientId.");
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] OneDrive requires clientId. ]");
     }
 
     console.info("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Getting access token... ]");
@@ -601,7 +601,7 @@ const openOneDrivePicker = async (
 
     let url = validated.webUrl || validated["@microsoft.graph.downloadUrl"] || "";
     if (!url) {
-        throw new Error("OneDrive file does not have a usable URL.");
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] OneDrive file does not have a usable URL. ]");
     }
 
     // For images, use the OneDrive embed viewer (iframe) instead of direct <img> embedding.
@@ -740,7 +740,7 @@ const uploadFile = async (
 
         if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text();
-            throw new Error(`Upload failed: ${uploadResponse.status} ${errorText}`);
+            throw new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Upload failed: ${uploadResponse.status} ${errorText} ]`);
         }
 
         const uploadedItem: GraphDriveItem = await uploadResponse.json();

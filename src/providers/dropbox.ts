@@ -49,13 +49,13 @@ const clearDropboxToken = () => {
  */
 const ensureDropboxSdk = async (appKey: string): Promise<void> => {
     if (!appKey) {
-        throw new Error("Dropbox requires appKey.");
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Dropbox requires appKey. ]");
     }
 
     await loadScript(DROPBOX_DROPINS, { "data-app-key": appKey, id: "dropboxjs" });
 
     if (!window.Dropbox?.choose) {
-        throw new Error("Dropbox chooser SDK is unavailable.");
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Dropbox chooser SDK is unavailable. ]");
     }
 };
 
@@ -82,7 +82,7 @@ const openDropboxChooser = async (
 ): Promise<PickerResult | null> =>
     new Promise((resolve, reject) => {
         const timeoutRef = window.setTimeout(() => {
-            reject(new Error("Dropbox chooser did not return a selection."));
+            reject(new Error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Dropbox chooser did not return a selection. ]"));
         }, config.timeoutMs || 180000);
 
         const clear = () => window.clearTimeout(timeoutRef);
@@ -216,7 +216,7 @@ const getAccessToken = async (appKey: string): Promise<string> => {
     const popup = window.open(authUrl, "Dropbox Auth", "width=600,height=700,scrollbars=yes");
 
     if (!popup) {
-        throw new Error("Failed to open Dropbox auth popup. Please allow popups for this site.");
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Failed to open Dropbox auth popup. Please allow popups for this site. ]");
     }
 
     // Wait for OAuth callback via postMessage or by checking URL after redirect
@@ -264,7 +264,7 @@ const getAccessToken = async (appKey: string): Promise<string> => {
                             console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] OAuth successful (token found in localStorage) ]");
                             resolve(cachedAccessToken);
                         } else {
-                            reject(new Error("Dropbox auth popup was closed without authorization"));
+                            reject(new Error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Dropbox auth popup was closed without authorization. ]"));
                         }
                     }
                     return;
@@ -309,7 +309,7 @@ const getAccessToken = async (appKey: string): Promise<string> => {
                 if (!popup.closed) {
                     popup.close();
                 }
-                reject(new Error("Dropbox auth timeout"));
+                reject(new Error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Dropbox auth timeout. ]"));
             }
         }, 300000);
     });
@@ -368,12 +368,12 @@ const uploadFile = async (
                 console.info("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Upload 401 - token expired, re-authenticating and retrying... ]");
                 return uploadFile(config, file, true);
             }
-            throw new Error("Dropbox authentication failed after re-authentication attempt.");
+            throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Dropbox authentication failed after re-authentication attempt. ]");
         }
 
         if (!uploadResponse.ok) {
             const errorText = await uploadResponse.text();
-            throw new Error(`Upload failed: ${uploadResponse.status} ${errorText}`);
+            throw new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / Dropbox ] Upload failed: ${uploadResponse.status} ${errorText} ]`);
         }
 
         const uploadData = await uploadResponse.json();

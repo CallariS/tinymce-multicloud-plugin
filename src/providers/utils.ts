@@ -29,7 +29,7 @@ export const loadScript = async (
             }
 
             existing.addEventListener("load", () => resolve(), { once: true });
-            existing.addEventListener("error", () => reject(new Error(`Unable to load ${src}`)), {
+            existing.addEventListener("error", () => reject(new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / Utils ] Unable to load ${src} ]`)), {
                 once: true,
             });
             return;
@@ -47,7 +47,7 @@ export const loadScript = async (
             script.dataset.mcLoaded = "true";
             resolve();
         });
-        script.addEventListener("error", () => reject(new Error(`Unable to load ${src}`)));
+        script.addEventListener("error", () => reject(new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / Utils ] Unable to load ${src} ]`)));
 
         document.head.appendChild(script);
     });

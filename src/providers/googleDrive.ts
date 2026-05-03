@@ -42,14 +42,14 @@ let tokenClient: any;
  */
 const ensureGoogleApis = async (config: GoogleDriveProviderConfig): Promise<void> => {
     if (!config.clientId || !config.apiKey) {
-        throw new Error("Google Drive requires clientId and apiKey.");
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Google Drive requires clientId and apiKey. ]");
     }
 
     await loadScript(GAPI_SCRIPT);
     await loadScript(GIS_SCRIPT);
 
     if (!window.gapi || !window.google?.accounts?.oauth2) {
-        throw new Error("Google APIs are not available in this browser.");
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Google APIs are not available in this browser. ]");
     }
 
     if (!gapiClientReady) {
@@ -96,7 +96,7 @@ const requestToken = async (): Promise<string> =>
     new Promise((resolve, reject) => {
         tokenClient.callback = (response: TokenResponse) => {
             if (response.error || !response.access_token) {
-                reject(new Error(response.error || "Unable to obtain Google access token."));
+                reject(new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] ${response.error || "Unable to obtain Google access token."} ]`));
                 return;
             }
 
@@ -337,7 +337,7 @@ const uploadFile = async (
 
         const accessToken = window.gapi.client.getToken()?.access_token;
         if (!accessToken) {
-            throw new Error("No access token available");
+            throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] No access token available. ]");
         }
 
         const response = await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,webContentLink,thumbnailLink,iconLink", {
@@ -349,7 +349,7 @@ const uploadFile = async (
         });
 
         if (!response.ok) {
-            throw new Error(`Upload failed: ${response.statusText}`);
+            throw new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Upload failed: ${response.statusText} ]`);
         }
 
         const uploadedFile = await response.json();

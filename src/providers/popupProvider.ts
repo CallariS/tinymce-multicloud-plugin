@@ -22,7 +22,7 @@ const openPopup = (url: string, features: string): Window => {
     const popup = window.open(url, "tinymce_multicloud_picker", features);
 
     if (!popup) {
-        throw new Error("Popup could not be opened. Allow popups for this site.");
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / PopupProvider ] Popup could not be opened. Allow popups for this site. ]");
     }
 
     return popup;
@@ -74,7 +74,7 @@ const awaitPickerMessage = (
             }
 
             if (!message.payload?.item?.url) {
-                reject(new Error("Picker returned no file URL."));
+                reject(new Error("[[ WaXCode / TinyMCE Multicloud Plugin / PopupProvider ] Picker returned no file URL. ]"));
                 return;
             }
 
@@ -85,7 +85,7 @@ const awaitPickerMessage = (
 
         timeoutRef = window.setTimeout(() => {
             cleanup();
-            reject(new Error("Picker timed out."));
+            reject(new Error("[[ WaXCode / TinyMCE Multicloud Plugin / PopupProvider ] Picker timed out. ]"));
         }, timeoutMs);
     });
 

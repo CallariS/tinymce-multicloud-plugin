@@ -31,7 +31,7 @@ type WebDavNode = CloudItem & {
  */
 const required = (value: string | undefined, fieldName: string): string => {
     if (!value) {
-        throw new Error(`BayernCloud requires ${fieldName}.`);
+        throw new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] BayernCloud requires ${fieldName}. ]`);
     }
     return value;
 };
@@ -176,7 +176,7 @@ const listWebDavNodes = async (
     });
 
     if (!response.ok) {
-        throw new Error(`BayernCloud WebDAV listing failed (${response.status}).`);
+        throw new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] BayernCloud WebDAV listing failed (${response.status}). ]`);
     }
 
     const xml = await response.text();
@@ -371,7 +371,7 @@ const uploadFile = async (
         });
 
         if (!uploadResponse.ok) {
-            throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+            throw new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Upload failed: ${uploadResponse.status} ${uploadResponse.statusText} ]`);
         }
 
         console.info("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] File uploaded successfully ]");
@@ -457,7 +457,7 @@ export const bayerncloudProvider = (): CloudProvider => ({
         }
 
         if ((config.mode || "nextcloud-webdav") !== "nextcloud-webdav") {
-            throw new Error("Unsupported BayernCloud mode. Use nextcloud-webdav.");
+            throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Unsupported BayernCloud mode. Use nextcloud-webdav. ]");
         }
 
         const nodes = await listWebDavNodes(config);
@@ -526,7 +526,7 @@ export const bayerncloudProvider = (): CloudProvider => ({
             const popup = window.open(uploadUrl, "tinymce_multicloud_picker", popupFeatures);
 
             if (!popup) {
-                throw new Error("Popup could not be opened. Allow popups for this site.");
+                throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Popup could not be opened. Allow popups for this site. ]");
             }
 
             // Wait for upload result
@@ -558,7 +558,7 @@ export const bayerncloudProvider = (): CloudProvider => ({
                     }
 
                     if (!message.payload?.item?.url) {
-                        reject(new Error("Picker returned no file URL."));
+                        reject(new Error("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Picker returned no file URL. ]"));
                         return;
                     }
 
@@ -570,13 +570,13 @@ export const bayerncloudProvider = (): CloudProvider => ({
                 timeoutRef = window.setTimeout(() => {
                     cleanup();
                     popup.close();
-                    reject(new Error("Upload timed out."));
+                    reject(new Error("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Upload timed out. ]"));
                 }, timeoutMs) as unknown as number;
             });
         }
 
         if ((config.mode || "nextcloud-webdav") !== "nextcloud-webdav") {
-            throw new Error("Unsupported BayernCloud mode. Use nextcloud-webdav.");
+            throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Unsupported BayernCloud mode. Use nextcloud-webdav. ]");
         }
 
         return await uploadFile(config, file);
