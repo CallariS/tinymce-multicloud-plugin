@@ -250,7 +250,9 @@
             editor.getBody().scrollTop = 0;
             const iframe = editor.getContainer().querySelector('iframe');
             if (iframe && iframe.contentWindow) {
-              setTimeout(() => { iframe.contentWindow.scrollTo(0, 0);}, 4000);
+              iframe.addEventListener('load', () => {
+                iframe.contentWindow.scrollTo(0, 0);
+              });
             }
           });
         }
