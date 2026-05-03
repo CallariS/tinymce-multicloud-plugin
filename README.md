@@ -85,6 +85,13 @@ npm install
 npm run build
 ```
 
+## TinyMCE compatibility
+
+| TinyMCE version | Status |
+|---|---|
+| 6.x | ✅ Tested and supported |
+| 7.x | ✅ Tested and supported |
+
 ## Development
 
 ```bash
@@ -157,7 +164,7 @@ When configuring OAuth allowlists, include exactly:
 ## TinyMCE usage
 
 ```html
-<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js"></script>
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/7/tinymce.min.js"></script>
 <script src="./dist/index.global.js"></script>
 
 <textarea id="editor"></textarea>
