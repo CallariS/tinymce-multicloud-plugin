@@ -18,26 +18,38 @@ const rxRelativePath = /^(?:\.{1,2}\/|\/)[^\s]+$/;
 /** Matches strings that could plausibly be an API key (8+ alphanumeric/punctuation characters). */
 const rxApiKeyLike = /^[A-Za-z0-9._\-~]{8,}$/;
 /**
- * Dot-separated global path at which the shared {@link DBC} instance is registered
- * (i.e. `globalThis.MultiCloud.Validation.DBC`).
+ * Dot-separated global path at which the config-layer {@link DBC} instance is registered
+ * (i.e. `globalThis.MultiCloud.Validation.Config`).
+ *
+ * Controls how DBC violations in **configuration checks** (constructor preconditions,
+ * field-shape invariants) are reported. Configure independently via
+ * {@link configureMultiCloudValidation} `config` key.
  */
-const VALIDATION_DBC_PATH = "MultiCloud.Validation.DBC";
+const VALIDATION_DBC_PATH = "MultiCloud.Validation.Config";
 
 /**
- * Ensures the shared {@link DBC} instance exists at `globalThis.MultiCloud.Validation.DBC`.
+ * Dot-separated global path at which the boundary-layer {@link DBC} instance is registered
+ * (i.e. `globalThis.MultiCloud.Validation.Boundary`).
  *
- * On first call the function walks or creates each intermediate object along the
- * `VALIDATION_DBC_PATH` segment chain, then instantiates a `new DBC()` at the final
- * leaf node. Subsequent calls are no-ops because the leaf is already a `DBC` instance.
+ * Controls how DBC violations in **[Zod](https://zod.dev) boundary schema checks** (provider
+ * API response shapes) are reported. Configure independently via
+ * {@link configureMultiCloudValidation} `boundary` key.
+ */
+export const BOUNDARY_DBC_PATH = "MultiCloud.Validation.Boundary";
+
+/**
+ * Ensures a {@link DBC} instance exists at the given dot-separated `globalThis` path.
  *
- * This function is called once at module load time so that all tsCheck / decorator
- * calls in this file operate against a consistent DBC instance.
+ * Walks or creates each intermediate object along the segment chain, then instantiates
+ * `new DBC()` at the final leaf node. Subsequent calls for the same path are no-ops
+ * because the leaf is already a `DBC` instance.
  *
+ * @param path - Dot-separated path at which to register the DBC instance.
  * @author Salvatore Callari <Callari@WaXCode.net>
  */
-const ensureDBCInstance = (): void => {
+const ensureDBCAtPath = (path: string): void => {
     const host = globalThis as Record<string, unknown>;
-    const segments = VALIDATION_DBC_PATH.split(".");
+    const segments = path.split(".");
     let cursor: Record<string, unknown> = host;
 
     for (let i = 0; i < segments.length - 1; i++) {
@@ -59,7 +71,8 @@ const ensureDBCInstance = (): void => {
     }
 };
 
-ensureDBCInstance();
+ensureDBCAtPath(VALIDATION_DBC_PATH);
+ensureDBCAtPath(BOUNDARY_DBC_PATH);
 
 /**
  * Abstract base class for all per-provider configuration validators.
@@ -298,34 +311,22 @@ const normalizeProviderConfig = (
     return { ...value } as Record<string, unknown>;
 };
 
-/**
- * Configures the shared xdbc {@link DBC} instance used by the MultiCloud validation layer.
- *
- * By default the DBC instance throws a `DBC.Infringement` on contract violations.
- * Call this function to switch to soft logging mode (log to console instead of throwing)
- * or to turn off all violation output entirely.
- *
- * Must be called **before** any plugin initialisation to take effect.
- *
- * @param options.throwOnInfringement - When `true` (default), DBC violations throw.
- *   Set to `false` to enable soft logging mode.
- * @param options.logToConsole - When `true` (default), DBC violations are logged to the
- *   browser console. Set to `false` to suppress all output.
- *
- * @example
- * ```ts
- * // Enable soft logging mode (no exceptions thrown)
- * configureMultiCloudValidation({ throwOnInfringement: false, logToConsole: true });
- * ```
- *
- * @author Salvatore Callari <Callari@WaXCode.net>
- */
-export const configureMultiCloudValidation = (options: {
+/** Shape shared by both `config` and `boundary` sub-option objects. */
+type DBCLayerOptions = {
+    /** When `true` (default), violations throw `DBC.Infringement`. Set to `false` for soft logging mode. */
     throwOnInfringement?: boolean;
+    /** When `true` (default), violations are logged to the browser console. Set to `false` to suppress all output. */
     logToConsole?: boolean;
-}): void => {
+};
+
+/**
+ * Applies the given settings to the {@link DBC} instance registered at `path`.
+ * Silently no-ops if no DBC instance is found there.
+ */
+const applyDBCSettings = (path: string, settings: DBCLayerOptions | undefined): void => {
+    if (!settings) return;
     const host = globalThis as Record<string, unknown>;
-    const segments = VALIDATION_DBC_PATH.split(".");
+    const segments = path.split(".");
     let cursor: Record<string, unknown> = host;
     for (const segment of segments) {
         if (typeof cursor[segment] !== "object" || cursor[segment] === null) return;
@@ -333,10 +334,57 @@ export const configureMultiCloudValidation = (options: {
     }
     if (!(cursor instanceof DBC)) return;
     const dbc = cursor as unknown as DBC;
-    if (options.throwOnInfringement !== undefined)
-        dbc.infringementSettings.throwException = options.throwOnInfringement;
-    if (options.logToConsole !== undefined)
-        dbc.infringementSettings.logToConsole = options.logToConsole;
+    if (settings.throwOnInfringement !== undefined)
+        dbc.infringementSettings.throwException = settings.throwOnInfringement;
+    if (settings.logToConsole !== undefined)
+        dbc.infringementSettings.logToConsole = settings.logToConsole;
+};
+
+/**
+ * Configures the xdbc {@link DBC} instances used by the MultiCloud validation layer.
+ *
+ * Two independent DBC instances control how violations are reported:
+ * - **`config`** — governs configuration contract checks (missing/malformed plugin options
+ *   and provider credentials). Registered at `globalThis.MultiCloud.Validation.Config`.
+ * - **`boundary`** — governs [Zod](https://zod.dev) schema checks on data returned by
+ *   provider APIs (picker results, Graph API responses, etc.). Registered at
+ *   `globalThis.MultiCloud.Validation.Boundary`.
+ *
+ * Both layers default to throwing `DBC.Infringement` on violations. Call this function
+ * to switch either or both layers to soft logging mode (log to console instead of throwing)
+ * or to turn off their output entirely. Settings are applied independently — e.g. you can
+ * silence config violations while keeping boundary checks strict.
+ *
+ * Must be called **before** any plugin initialisation to take effect.
+ *
+ * @param options.config - Settings for the configuration contract layer.
+ * @param options.boundary - Settings for the API boundary schema layer.
+ *
+ * @example
+ * ```ts
+ * // Soft-log config violations, keep boundary checks strict (default)
+ * configureMultiCloudValidation({
+ *   config: { throwOnInfringement: false, logToConsole: true },
+ * });
+ * ```
+ *
+ * @example
+ * ```ts
+ * // Both layers in soft logging mode
+ * configureMultiCloudValidation({
+ *   config:    { throwOnInfringement: false, logToConsole: true },
+ *   boundary:  { throwOnInfringement: false, logToConsole: true },
+ * });
+ * ```
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
+export const configureMultiCloudValidation = (options: {
+    config?: DBCLayerOptions;
+    boundary?: DBCLayerOptions;
+}): void => {
+    applyDBCSettings(VALIDATION_DBC_PATH, options.config);
+    applyDBCSettings(BOUNDARY_DBC_PATH, options.boundary);
 };
 
 /**

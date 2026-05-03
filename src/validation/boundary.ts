@@ -5,7 +5,7 @@ import type {
     MultiCloudPluginOptions,
     PickerResult,
 } from "../types";
-import { PluginOptionsValidator } from "./config/validators";
+import { PluginOptionsValidator, BOUNDARY_DBC_PATH } from "./config/validators";
 
 /**
  * Zod schema that validates the shape of a {@link PickerResult} returned by any
@@ -115,59 +115,59 @@ export const validatePluginOptionsBoundary = (
  * @param providerId - Identifier of the provider (used in the error message context).
  * @param result - The raw picker result value to validate.
  * @returns The validated {@link PickerResult}.
- * @throws {ZodError} If the value does not conform to `pickerResultSchema`.
+ * @throws {DBC.Infringement} If the value does not conform to `pickerResultSchema`.
  *
  * @author Salvatore Callari <Callari@WaXCode.net>
  */
 export const validatePickerResultBoundary = (
     providerId: CloudProviderId,
     result: unknown,
-): PickerResult => ZOD.tsCheck<PickerResult>(result, pickerResultSchema, `${providerId} picker result`);
+): PickerResult => ZOD.tsCheck<PickerResult>(result, pickerResultSchema, `${providerId} picker result`, BOUNDARY_DBC_PATH);
 
 /**
  * Validates a raw Google Picker document object against `googleDocSchema`.
  *
  * @param doc - The raw document object from the Google Picker callback.
  * @returns The validated typed Google Doc object.
- * @throws {ZodError} If the value does not conform to `googleDocSchema`.
+ * @throws {DBC.Infringement} If the value does not conform to `googleDocSchema`.
  *
  * @author Salvatore Callari <Callari@WaXCode.net>
  */
 export const validateGoogleDocBoundary = (doc: unknown) =>
-    ZOD.tsCheck<z.infer<typeof googleDocSchema>>(doc, googleDocSchema, "google picker doc");
+    ZOD.tsCheck<z.infer<typeof googleDocSchema>>(doc, googleDocSchema, "google picker doc", BOUNDARY_DBC_PATH);
 
 /**
  * Validates a raw Microsoft Graph Drive item against `oneDriveFileSchema`.
  *
  * @param file - The raw item object from the OneDrive navigable picker.
  * @returns The validated typed OneDrive file object.
- * @throws {ZodError} If the value does not conform to `oneDriveFileSchema`.
+ * @throws {DBC.Infringement} If the value does not conform to `oneDriveFileSchema`.
  *
  * @author Salvatore Callari <Callari@WaXCode.net>
  */
 export const validateOneDriveFileBoundary = (file: unknown) =>
-    ZOD.tsCheck<z.infer<typeof oneDriveFileSchema>>(file, oneDriveFileSchema, "onedrive selection");
+    ZOD.tsCheck<z.infer<typeof oneDriveFileSchema>>(file, oneDriveFileSchema, "onedrive selection", BOUNDARY_DBC_PATH);
 
 /**
  * Validates a raw Dropbox Chooser file object against `dropboxFileSchema`.
  *
  * @param file - The raw file object from the Dropbox Chooser callback.
  * @returns The validated typed Dropbox file object.
- * @throws {ZodError} If the value does not conform to `dropboxFileSchema`.
+ * @throws {DBC.Infringement} If the value does not conform to `dropboxFileSchema`.
  *
  * @author Salvatore Callari <Callari@WaXCode.net>
  */
 export const validateDropboxFileBoundary = (file: unknown) =>
-    ZOD.tsCheck<z.infer<typeof dropboxFileSchema>>(file, dropboxFileSchema, "dropbox selection");
+    ZOD.tsCheck<z.infer<typeof dropboxFileSchema>>(file, dropboxFileSchema, "dropbox selection", BOUNDARY_DBC_PATH);
 
 /**
  * Validates a raw BayernCloud/Nextcloud WebDAV node against `webDavNodeSchema`.
  *
  * @param node - The raw WebDAV node object as returned by `parseWebDavListing`.
  * @returns The validated typed {@link WebDavNode}-shaped object.
- * @throws {ZodError} If the value does not conform to `webDavNodeSchema`.
+ * @throws {DBC.Infringement} If the value does not conform to `webDavNodeSchema`.
  *
  * @author Salvatore Callari <Callari@WaXCode.net>
  */
 export const validateWebDavNodeBoundary = (node: unknown) =>
-    ZOD.tsCheck<z.infer<typeof webDavNodeSchema>>(node, webDavNodeSchema, "bayerncloud webdav node");
+    ZOD.tsCheck<z.infer<typeof webDavNodeSchema>>(node, webDavNodeSchema, "bayerncloud webdav node", BOUNDARY_DBC_PATH);

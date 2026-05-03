@@ -41,7 +41,9 @@ This plugin uses [XDBC](https://github.com/CallariS/XDBC) for Design-by-Contract
 - **Fail-fast with actionable messages** — errors are surfaced at plugin init with a clear hint (e.g. *"Did you set Google Drive clientId?"*), not as opaque SDK failures deep in an OAuth flow.
 - **Contracts as documentation** — the decorator stack on each validator class is a machine-readable, always-up-to-date specification of what the configuration must look like.
 - **Uniform error shape** — all validation failures throw `DBC.Infringement` (subclass of `Error`), making them easy to `catch` and distinguish from runtime errors.
-- **Configurable behaviour** — the entire contract layer uses a single named DBC instance at `globalThis.MultiCloud.Validation.DBC`, which can be reconfigured at runtime (see [Soft logging mode](#soft-logging-mode) below).
+- **Configurable behaviour** — two independent named DBC instances allow each layer to be configured separately (see [Soft logging mode](#soft-logging-mode) below):
+  - `globalThis.MultiCloud.Validation.Config` — governs configuration contract checks
+  - `globalThis.MultiCloud.Validation.Boundary` — governs [Zod](https://zod.dev) boundary schema checks on provider API data
 - **Single error type** — all validation failures, whether from DBC contracts or [Zod](https://zod.dev) schema checks, throw `DBC.Infringement` ([XDBC](https://github.com/CallariS/XDBC)'s `ZOD.tsCheck` routes through `DBC.reportTsCheckInfringement` internally).
 
 ## [Zod](https://zod.dev) boundary validation
@@ -62,7 +64,7 @@ Where DBC validates *input configuration* before any logic runs, [XDBC](https://
 
 ### Error type
 
-Because validation runs through `ZOD.tsCheck` which calls `DBC.reportTsCheckInfringement` on failure, both DBC contract violations and [Zod](https://zod.dev) schema failures throw `DBC.Infringement`.
+Because validation runs through `ZOD.tsCheck` which calls `DBC.reportTsCheckInfringement` on failure, both DBC contract violations and [Zod](https://zod.dev) schema failures throw `DBC.Infringement`. The boundary layer uses its own DBC instance (`globalThis.MultiCloud.Validation.Boundary`) so it can be configured independently from config-layer checks.
 
 ```ts
 import { DBC } from "xdbc";
@@ -340,14 +342,23 @@ Every built-in provider supports `pickerUrl`. If `pickerUrl` is set, the plugin 
 
 ## Soft logging mode
 
-By default, all DBC contract violations throw a `DBC.Infringement` error, which halts plugin initialization immediately. If your integration is stable and you prefer contract violations to be logged as warnings rather than hard errors — for example in a production environment where you want the plugin to degrade gracefully rather than break — you can switch to soft logging mode:
+The plugin uses two independent DBC instances — one for **configuration checks** and one for **[Zod](https://zod.dev) boundary schema checks** — so each layer can be configured separately. By default both layers throw `DBC.Infringement` on violations.
+
+Use `configureMultiCloudValidation` with `config` and/or `boundary` sub-keys to change the behaviour of either layer:
 
 ```js
 import { configureMultiCloudValidation } from 'tinymce-multicloud-plugin';
 
+// Soft-log config violations only (useful for hardened production deployments).
+// Boundary checks remain strict — unexpected API shapes still throw.
 configureMultiCloudValidation({
-    throwOnInfringement: false,
-    logToConsole: true,
+    config: { throwOnInfringement: false, logToConsole: true },
+});
+
+// Both layers in soft logging mode:
+configureMultiCloudValidation({
+    config:   { throwOnInfringement: false, logToConsole: true },
+    boundary: { throwOnInfringement: false, logToConsole: true },
 });
 
 // Then initialize TinyMCE as usual
@@ -360,17 +371,21 @@ Or using the global bundle:
 <script src="./dist/index.global.js"></script>
 <script>
   TinyMceMultiCloudPlugin.configureMultiCloudValidation({
-    throwOnInfringement: false,
-    logToConsole: true,
+    config: { throwOnInfringement: false, logToConsole: true },
   });
 
   tinymce.init({ ... });
 </script>
 ```
 
+| Layer | DBC path | What it covers |
+|---|---|---|
+| `config` | `globalThis.MultiCloud.Validation.Config` | Plugin options, provider credential shape, `defaultProvider` contract |
+| `boundary` | `globalThis.MultiCloud.Validation.Boundary` | Provider API response shapes ([Zod](https://zod.dev) schemas) |
+
 > **Note:** `configureMultiCloudValidation` must be called **before** `tinymce.init()`. Contract checks run at plugin initialization time — once the plugin is registered and your options have been validated, changing these settings has no retroactive effect.
 
-> **Recommendation:** Keep the default `throwOnInfringement: true` during development. Soft logging mode is intended for hardened production integrations where all configuration has been verified and you want to avoid breaking the editor if a future plugin update tightens a validation rule.
+> **Recommendation:** Keep both layers at their default `throwOnInfringement: true` during development. Soft logging mode for `config` is intended for hardened production deployments where all configuration has been verified. The `boundary` layer should generally stay strict — unexpected shapes in provider API responses indicate a real integration problem.
 
 ## Demo
 
