@@ -18,9 +18,9 @@ Built-in provider adapters:
 
 Different cloud providers have different OAuth flows, SDKs, and picker UX constraints. The plugin uses a provider adapter contract and popup bridge protocol, so each provider can implement its own picker while TinyMCE integration stays consistent.
 
-## Design-by-Contract validation (xdbc)
+## Design-by-Contract validation (XDBC)
 
-This plugin uses [xdbc](https://www.npmjs.com/package/xdbc) for Design-by-Contract (DBC) validation of all plugin options and provider configurations. Instead of scattered `if`/`throw` guards, every precondition is expressed as a typed contract that fires before any plugin logic runs.
+This plugin uses [XDBC](https://github.com/CallariS/XDBC) for Design-by-Contract (DBC) validation of all plugin options and provider configurations. Instead of scattered `if`/`throw` guards, every precondition is expressed as a typed contract that fires before any plugin logic runs.
 
 ### What is validated
 
@@ -42,12 +42,13 @@ This plugin uses [xdbc](https://www.npmjs.com/package/xdbc) for Design-by-Contra
 - **Contracts as documentation** — the decorator stack on each validator class is a machine-readable, always-up-to-date specification of what the configuration must look like.
 - **Uniform error shape** — all validation failures throw `DBC.Infringement` (subclass of `Error`), making them easy to `catch` and distinguish from runtime errors.
 - **Configurable behaviour** — the entire contract layer uses a single named DBC instance at `globalThis.MultiCloud.Validation.DBC`, which can be reconfigured at runtime (see [Soft logging mode](#soft-logging-mode) below).
+- **Single error type** — all validation failures, whether from DBC contracts or Zod schema checks, throw `DBC.Infringement` (XDBC's `ZOD.tsCheck` routes through `DBC.reportTsCheckInfringement` internally).
 
 ## Zod boundary validation
 
-In addition to xdbc DBC contracts on configuration, the plugin validates all data that crosses provider API boundaries at runtime using **xdbc's Zod integration** (`ZOD.tsCheck` from `xdbc/src/DBC/ZOD`). Zod schemas are defined with the `zod` library but validation is always run through xdbc — keeping the error shape and behaviour consistent with the rest of the contract layer.
+In addition to XDBC DBC contracts on configuration, the plugin validates all data that crosses provider API boundaries at runtime using **XDBC's Zod integration** (`ZOD.tsCheck` from `xdbc/src/DBC/ZOD`). Zod schemas are defined with the `zod` library but validation is always run through XDBC — keeping the error shape and behaviour consistent with the rest of the contract layer.
 
-Where DBC validates *input configuration* before any logic runs, Zod validates *what providers return* before that data is trusted and used.
+Where DBC validates *input configuration* before any logic runs, XDBC's Zod implementation validates *what providers return* before that data is trusted and used.
 
 ### What is validated
 
@@ -61,19 +62,16 @@ Where DBC validates *input configuration* before any logic runs, Zod validates *
 
 ### Error type
 
-Because validation is run through `ZOD.tsCheck`, failures throw `ZodError` (from the `zod` package) — consistent with xdbc's own Zod integration behaviour. Both `ZodError` and `DBC.Infringement` are subclasses of `Error`.
+Because validation runs through `ZOD.tsCheck` which calls `DBC.reportTsCheckInfringement` on failure, both DBC contract violations and Zod schema failures throw `DBC.Infringement`.
 
 ```ts
-import { ZodError } from "zod";
 import { DBC } from "xdbc";
 
 try {
   tinymce.init({ plugins: "multicloud", multicloud_providers: myConfig });
 } catch (e) {
   if (e instanceof DBC.Infringement) {
-    // configuration contract violated (xdbc DBC)
-  } else if (e instanceof ZodError) {
-    // provider returned unexpected data shape (xdbc ZOD.tsCheck)
+    // either a configuration contract or a provider boundary schema was violated
   }
 }
 ```
