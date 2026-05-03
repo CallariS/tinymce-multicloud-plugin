@@ -1,4 +1,4 @@
-import type {
+﻿import type {
     BayernCloudNextcloudProviderConfig,
     CloudItem,
     CloudProvider,
@@ -345,7 +345,7 @@ const uploadFile = async (
     file: File,
 ): Promise<PickerResult | null> => {
     try {
-        console.log("Uploading file to Nextcloud:", file.name);
+        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Uploading file to Nextcloud:", file.name, "]");
 
         // Build WebDAV upload URL
         const baseUrl = required(config.baseUrl, "baseUrl");
@@ -357,7 +357,7 @@ const uploadFile = async (
             `remote.php/dav/files/${encodeURIComponent(username)}/${uploadPath}`
         );
 
-        console.log("Upload URL:", uploadUrl);
+        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Upload URL:", uploadUrl, "]");
 
         // Upload file using WebDAV PUT
         const uploadResponse = await fetch(uploadUrl, {
@@ -374,7 +374,7 @@ const uploadFile = async (
             throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
         }
 
-        console.log("File uploaded successfully");
+        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] File uploaded successfully ]");
 
         // Get the WebDAV path for the uploaded file
         const webdavFilePath = `/remote.php/dav/files/${username}/${uploadPath}`;
@@ -385,7 +385,7 @@ const uploadFile = async (
         if (config.createPublicShare) {
             shareUrl = await createPublicShare(config, webdavFilePath);
             if (shareUrl) {
-                console.log("Created public share:", shareUrl);
+                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Created public share:", shareUrl, "]");
                 // For images, do NOT append /download — Content-Disposition: attachment prevents <img> rendering
                 if (!isImageFile) {
                     shareUrl = shareUrl + "/download";
@@ -424,7 +424,7 @@ const uploadFile = async (
             }),
         };
     } catch (error) {
-        console.error("Upload error:", error);
+        console.error("[[ WaXCode / TinyMCE Multicloud Plugin / BayernCloud ] Upload error:", error, "]");
         throw error;
     }
 };

@@ -1,4 +1,4 @@
-import type {
+﻿import type {
     CloudProvider,
     GoogleDriveProviderConfig,
     PickerResult,
@@ -126,7 +126,7 @@ const getFileMetadata = async (fileId: string): Promise<any> => {
         });
         return response.result;
     } catch (error) {
-        console.warn("Failed to fetch file metadata:", error);
+        console.warn("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Failed to fetch file metadata:", error, "]");
         return null;
     }
 };
@@ -222,34 +222,34 @@ const launchPicker = async (
             .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
             .addView(view)
             .setCallback((data: any) => {
-                console.log("Google Picker callback:", data);
+                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Google Picker callback:", data, "]");
 
                 // Ignore intermediate events like 'loaded', only handle terminal actions
                 if (data.action === window.google.picker.Action.CANCEL) {
-                    console.log("Picker cancelled");
+                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Picker cancelled ]");
                     resolve(null);
                     return;
                 }
 
                 if (data.action !== window.google.picker.Action.PICKED) {
-                    console.log("Non-terminal action, ignoring:", data.action);
+                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Non-terminal action, ignoring:", data.action, "]");
                     return; // Don't resolve, wait for PICKED or CANCEL
                 }
 
                 if (!data.docs?.length) {
-                    console.log("No files in picked event");
+                    console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] No files in picked event ]");
                     resolve(null);
                     return;
                 }
 
                 const doc = data.docs[0];
-                console.log("Selected document:", doc);
+                console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Selected document:", doc, "]");
 
                 // Fetch file metadata asynchronously and resolve
                 (async () => {
                     try {
                         const metadata = await getFileMetadata(doc.id);
-                        console.log("File metadata from Drive API:", metadata);
+                        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] File metadata from Drive API:", metadata, "]");
 
                         const validatedDoc = validateGoogleDocBoundary(doc);
                         const fallbackUrl = `https://drive.google.com/file/d/${doc.id}/view`;
@@ -265,13 +265,13 @@ const launchPicker = async (
                         let directUrl: string;
                         if (isRasterImage) {
                             directUrl = `https://drive.google.com/thumbnail?id=${validatedDoc.id}&sz=w2000`;
-                            console.log("Using thumbnail endpoint for image:", directUrl);
+                            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using thumbnail endpoint for image:", directUrl, "]");
                         } else if (metadata?.webContentLink) {
                             directUrl = metadata.webContentLink;
-                            console.log("Using webContentLink:", directUrl);
+                            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using webContentLink:", directUrl, "]");
                         } else {
                             directUrl = validatedDoc.url || fallbackUrl;
-                            console.log("Using fallback URL:", directUrl);
+                            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using fallback URL:", directUrl, "]");
                         }
 
                         const embedUrl = getEmbedUrl(validatedDoc.id, validatedDoc.mimeType);
@@ -292,10 +292,10 @@ const launchPicker = async (
                             }),
                         };
 
-                        console.log("Returning picker result:", result);
+                        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Returning picker result:", result, "]");
                         resolve(result);
                     } catch (error) {
-                        console.error("Error processing picker result:", error);
+                        console.error("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Error processing picker result:", error, "]");
                         resolve(null);
                     }
                 })();
@@ -322,7 +322,7 @@ const uploadFile = async (
     file: File,
 ): Promise<PickerResult | null> => {
     try {
-        console.log("Uploading file to Google Drive:", file.name);
+        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Uploading file to Google Drive:", file.name, "]");
 
         // Create metadata
         const metadata = {
@@ -353,7 +353,7 @@ const uploadFile = async (
         }
 
         const uploadedFile = await response.json();
-        console.log("File uploaded successfully:", uploadedFile);
+        console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] File uploaded successfully:", uploadedFile, "]");
 
         // Make the file publicly accessible
         try {
@@ -368,9 +368,9 @@ const uploadFile = async (
                     type: "anyone",
                 }),
             });
-            console.log("File set to public sharing");
+            console.log("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] File set to public sharing ]");
         } catch (error) {
-            console.warn("Failed to set public sharing (file remains private):", error);
+            console.warn("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Failed to set public sharing (file remains private):", error, "]");
         }
 
         // Fetch full metadata
@@ -403,7 +403,7 @@ const uploadFile = async (
             }),
         };
     } catch (error) {
-        console.error("Upload error:", error);
+        console.error("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Upload error:", error, "]");
         throw error;
     }
 };
