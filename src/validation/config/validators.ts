@@ -150,6 +150,23 @@ const normalizeProviderConfig = (
     providerId: CloudProviderId,
     value: unknown,
 ): Record<string, unknown> => {
+    OR.tsCheck(
+        value,
+        [
+            {
+                check: (v) =>
+                    v === undefined ||
+                    v === null ||
+                    typeof v === "boolean" ||
+                    (typeof v === "object" && !Array.isArray(v))
+                        ? true
+                        : "Expected object, boolean, or undefined",
+            },
+        ],
+        "Did you pass a valid provider config (object, boolean, or undefined)?",
+        `providers.${providerId}`,
+    );
+
     if (value === undefined || value === null) {
         return { enabled: false };
     }
@@ -158,15 +175,7 @@ const normalizeProviderConfig = (
         return { enabled: value };
     }
 
-    if (typeof value === "object" && !Array.isArray(value)) {
-        // Ensure it's a plain object by creating a shallow copy
-        // This handles cases where the object might be a Proxy or have special prototype chains
-        return { ...value } as Record<string, unknown>;
-    }
-
-    throw new Error(
-        `[XDBC Boundary] providers.${providerId}: expected object|boolean|undefined provider config.`,
-    );
+    return { ...value } as Record<string, unknown>;
 };
 
 export class PluginOptionsValidator {
@@ -231,36 +240,40 @@ export class PluginOptionsValidator {
             "plugin options",
         );
 
-        const insertMode = raw.defaultInsertMode;
-        if (insertMode !== undefined && insertMode !== "link" && insertMode !== "image" && insertMode !== "embed") {
-            throw new Error(`[XDBC Boundary] plugin options.defaultInsertMode: expected "link", "image", or "embed".`);
+        OR.tsCheck(
+            raw.defaultInsertMode,
+            [{ check: (v) => v === undefined || v === "link" || v === "image" || v === "embed" ? true : "Value has to be one of: link, image, embed" }],
+            "Did you set defaultInsertMode to link, image, or embed?",
+            "plugin options.defaultInsertMode",
+        );
+
+        if (raw.popupTimeoutMs !== undefined) {
+            TYPE.tsCheck(raw.popupTimeoutMs, "number", "Did you set popupTimeoutMs as a number?", "plugin options.popupTimeoutMs");
+            OR.tsCheck(
+                raw.popupTimeoutMs,
+                [{ check: (v) => typeof v === "number" && v > 0 ? true : "Value must be greater than 0" }],
+                "Did you set popupTimeoutMs greater than 0?",
+                "plugin options.popupTimeoutMs",
+            );
         }
 
-        const timeout = raw.popupTimeoutMs;
-        if (timeout !== undefined) {
-            if (typeof timeout !== "number") {
-                throw new Error(`[XDBC Boundary] plugin options.popupTimeoutMs: expected a number.`);
-            }
-            if (timeout <= 0) {
-                throw new Error(`[XDBC Boundary] plugin options.popupTimeoutMs: expected a positive number greater than 0.`);
-            }
-        }
-
-        const defaultProvider = raw.defaultProvider;
-        if (defaultProvider !== undefined) {
-            const providersMap =
-                typeof raw.providers === "object" && raw.providers !== null && !Array.isArray(raw.providers)
-                    ? (raw.providers as Record<string, unknown>)
-                    : null;
-            if (
-                typeof defaultProvider !== "string" ||
-                providersMap === null ||
-                !Object.prototype.hasOwnProperty.call(providersMap, defaultProvider)
-            ) {
-                throw new Error(
-                    `[XDBC Boundary] plugin options.defaultProvider: "${String(defaultProvider)}" is not configured in providers.`,
-                );
-            }
+        if (raw.defaultProvider !== undefined) {
+            OR.tsCheck(
+                raw,
+                [{
+                    check: (v) => {
+                        const obj = v as Record<string, unknown>;
+                        if (typeof obj.defaultProvider !== "string") return "defaultProvider must be a string";
+                        const providers = obj.providers;
+                        if (providers === undefined || providers === null || typeof providers !== "object") return "provider not configured in providers map";
+                        return Object.prototype.hasOwnProperty.call(providers, obj.defaultProvider)
+                            ? true
+                            : "provider not configured in providers map";
+                    },
+                }],
+                "Did you configure defaultProvider inside providers map?",
+                "plugin options.defaultProvider",
+            );
         }
 
         this.boundaryOptions = raw;
