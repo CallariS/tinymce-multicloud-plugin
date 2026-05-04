@@ -136,6 +136,9 @@ const listFolderItems = async (accessToken: string, folderId?: string): Promise<
     if (!response.ok) {
         const errorText = await response.text();
         console.error("[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Graph API error:", response.status, errorText, "]");
+        if (response.status === 404) {
+            throw new Error("OneDrive is not available for this account. Please visit onedrive.live.com once to activate it, then try again.");
+        }
         throw new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / OneDrive ] Graph API error: ${response.status} ${response.statusText} ]`);
     }
 
