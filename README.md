@@ -331,6 +331,19 @@ Every built-in provider supports `pickerUrl`. If `pickerUrl` is set, the plugin 
 ### Google Drive
 - Configure OAuth consent screen and allowed JS origins in Google Cloud.
 
+> **⚠️ Google Drive embeds require the viewer to be signed in to Google**
+>
+> All Google Drive embeds (`drive.google.com/file/d/.../preview`) require Google cookies inside the iframe. Modern browsers block third-party cookies by default, so any viewer who is **not already signed in to Google** in their browser will see a login prompt instead of the file.
+>
+> **Uploaded files** — the plugin automatically sets sharing to "Anyone with the link" after upload, so the file itself is accessible, but the embed still requires Google cookies.
+>
+> **Picked files** — sharing is **not changed** by the plugin. Files remain at whatever sharing setting they had in Drive (usually "Restricted" / private). Viewers who are not the file owner will not be able to see them at all.
+>
+> **Recommendations:**
+> - For content that must be publicly visible to all readers, **use the upload button** (↑) rather than the picker (↓), or manually set the file to "Anyone with the link" in Google Drive first.
+> - To set a file to "Anyone with the link" in Google Drive: right-click the file → **Share** → click **"Restricted"** dropdown → select **"Anyone with the link"** → click **Done**.
+> - For truly public embeds with no sign-in requirement, prefer **Dropbox** or **OneDrive** — their embed mechanisms do not depend on the viewer having a Google account.
+
 ### OneDrive
 - Configure redirect URI and tenant restrictions in Entra/Microsoft app registration.
 
