@@ -22,13 +22,10 @@ jobs:
             # ── Google Drive ──────────────────────────────────────────────────────────────
             # /file/d/.../preview returns 401 from CI IPs; /thumbnail works without auth.
             # A working thumbnail proves the file is publicly shared.
-            "https://drive.google.com/thumbnail?id=1-eJTdbDRMJqrC7Mc1erxp17U-CAj31jF&sz=w2000"
-            "https://drive.google.com/thumbnail?id=1T_CqXjd8r4oYh4U9LRt74ymkRvgtvJOu&sz=w2000"
-            "https://drive.google.com/thumbnail?id=1hrLcStthxyubGlRKuM3yPi73_KvSEkts&sz=w2000"
-            "https://drive.google.com/thumbnail?id=1mbPA8tPfv0idtKl94Ns17tb_x9T6u7iM&sz=w2000"
-            "https://drive.google.com/thumbnail?id=1N41uP1StSqjH76--b0spf7lZVoIY7eT5&sz=w2000"
             "https://drive.google.com/thumbnail?id=1OQ4BHtwrYYeYS9evIrGKdqS2S-AoD1lw&sz=w2000"
-            "https://drive.google.com/thumbnail?id=14OefWr90LotEdOTVJxDXPc1eZqehCCXp&sz=w2000"
+            "https://drive.google.com/thumbnail?id=1-eJTdbDRMJqrC7Mc1erxp17U-CAj31jF&sz=w2000"
+            "https://drive.google.com/thumbnail?id=1N41uP1StSqjH76--b0spf7lZVoIY7eT5&sz=w2000"
+            "https://drive.google.com/thumbnail?id=1hrLcStthxyubGlRKuM3yPi73_KvSEkts&sz=w2000"
             "https://drive.google.com/thumbnail?id=1xqgCCub-C9Lsm6PiK5ps4I-lCJkWT15a&sz=w2000"
             "https://drive.google.com/thumbnail?id=1RHMvj4q7_zxT12apIPKhmKtyLQ79xtm5&sz=w2000"
             "https://drive.google.com/thumbnail?id=1zSJdUxDaOlQJLMAqAz1Bf3PO2zBjt24i&sz=w2000"
