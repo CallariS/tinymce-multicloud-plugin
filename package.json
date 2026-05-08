@@ -1,15 +1,26 @@
 {
-    "name": "tinymce-multicloud-plugin",
+    "name": "@waxcode/tinymce-multicloud-plugin",
     "version": "0.1.0",
     "description": "TinyMCE plugin for picking and inserting assets from multiple cloud providers.",
     "type": "module",
-    "main": "dist/index.global.js",
-    "types": "dist/index.d.ts",
+    "main": "./dist/index.cjs",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.cjs"
+        }
+    },
     "files": [
         "dist",
         "README.md",
         "LICENSE"
     ],
+    "publishConfig": {
+        "access": "public"
+    },
     "scripts": {
         "build": "tsup",
         "dev": "tsup --watch",
@@ -29,7 +40,7 @@
         "bayerncloud",
         "cloud"
     ],
-    "author": "",
+    "author": "Callari, Salvatore",
     "license": "MIT",
     "peerDependencies": {
         "tinymce": ">=6"
