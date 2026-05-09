@@ -114,6 +114,7 @@ The worker:
 - ✅ Validates URLs before proxying
 - ✅ Passes through authentication headers securely
 - ✅ Supports a target host allowlist (`ALLOWED_TARGET_HOSTS`) — **recommended for production**
+- ✅ Built-in per-IP rate limiting (60 req/min) — implemented in code, no dashboard setup required
 
 ### Restricting the target allowlist (recommended for production)
 

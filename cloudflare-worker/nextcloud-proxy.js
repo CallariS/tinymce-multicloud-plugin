@@ -14,6 +14,30 @@
  * 7. Update picker to use this URL
  */
 
+// ---------------------------------------------------------------------------
+// In-memory rate limiter — 60 requests per minute per client IP.
+// Uses a sliding-window counter stored in a module-level Map. The Map is
+// per-Worker-isolate (not globally shared across all edge nodes), so this is
+// best-effort rather than globally consistent — but it reliably prevents
+// burst abuse from a single browser session, which is the primary concern
+// for a CORS proxy. No Cloudflare bindings or dashboard setup required.
+// ---------------------------------------------------------------------------
+const RATE_LIMIT_MAX = 60;
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const _rateLimitMap = new Map();
+
+function checkRateLimit(ip) {
+    const now = Date.now();
+    const entry = _rateLimitMap.get(ip);
+    if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+        _rateLimitMap.set(ip, { count: 1, windowStart: now });
+        return true;
+    }
+    if (entry.count >= RATE_LIMIT_MAX) return false;
+    entry.count++;
+    return true;
+}
+
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
@@ -29,6 +53,15 @@ export default {
         // Handle CORS preflight
         if (request.method === 'OPTIONS') {
             return handleOptions(request);
+        }
+
+        // Per-IP rate limiting (in-memory, per-isolate — see top of file)
+        const clientIp = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+        if (!checkRateLimit(clientIp)) {
+            return new Response('Rate limit exceeded — try again in a moment', {
+                status: 429,
+                headers: { 'Retry-After': '60', ...corsHeaders(request) }
+            });
         }
 
         try {

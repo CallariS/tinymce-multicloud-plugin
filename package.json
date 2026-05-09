@@ -30,7 +30,9 @@
         "docs:api": "typedoc",
         "pages:prepare": "node scripts/prepare-pages-selfhost.mjs",
         "pages:build": "npm run build && npm run docs:api && npm run pages:prepare",
-        "docs:pages": "npm run build && npm run docs:api && node scripts/prepare-docs-pages.mjs"
+        "docs:pages": "npm run build && npm run docs:api && node scripts/prepare-docs-pages.mjs",
+        "changelog": "node scripts/generate-changelog.mjs",
+        "changelog:full": "node scripts/generate-changelog.mjs --all"
     },
     "keywords": [
         "tinymce",
@@ -58,6 +60,8 @@
     "devDependencies": {
         "@types/jest": "^29.5.14",
         "@types/node": "^22.0.0",
+        "conventional-changelog": "^7.2.0",
+        "conventional-changelog-angular": "^8.3.1",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^30.3.0",
         "tinymce": "^7",
