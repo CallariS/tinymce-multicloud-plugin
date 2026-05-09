@@ -9,7 +9,7 @@ jobs:
   health:
     runs-on: ubuntu-latest
     # Skip silently if the worker URL repository variable has not been configured
-    if: vars.CLOUDFLARE_WORKER_URL != ''
+    if: ${{ vars.CLOUDFLARE_WORKER_URL != '' }}
     steps:
       - name: Ping /health endpoint
         run: |
