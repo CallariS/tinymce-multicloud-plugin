@@ -10,10 +10,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
-- `registerProvider(provider)` and `unregisterProvider(id)` exported from the plugin bundle, allowing integrators to add custom cloud providers without forking the plugin ([`src/index.ts`](src/index.ts)).
-- Origin pinning in `awaitPickerMessage`: the `postMessage` listener now validates `event.origin` against the known picker popup origin, preventing cross-origin message injection ([`src/providers/popupProvider.ts`](src/providers/popupProvider.ts)).
-- Full CSP directive reference for all four built-in providers in [`docs/PRODUCTION_SETUP.md`](docs/PRODUCTION_SETUP.md) (sections for `script-src`, `frame-src`, `connect-src`, `img-src`, and a minimal example header).
-- TinyMCE 7 validated and adopted as the default dev/demo version; `devDependencies` updated to `tinymce@^7`. `peerDependencies` range remains `>=6`.
+- `uploadPublicSharingWarning` plugin option: shows an amber warning panel in the upload dialog informing users that the uploaded file will be publicly accessible. Accepts a custom string passed through `editor.translate()` for i18n; falls back to a built-in default message.
+- German and Italian translations for the default upload public-sharing warning message.
+- Manual light/dark theme toggle in the demo page; preference persisted in `localStorage` and takes precedence over the OS media query.
+- GitHub Pages now publishes the TypeDoc API reference at `https://callaris.github.io/tinymce-multicloud-plugin/` — no provider secrets required in CI.
+- `scripts/prepare-docs-pages.mjs` and `npm run docs:pages` script for assembling an API-docs-only GitHub Pages bundle.
+- `ALLOWED_TARGET_HOSTS` environment variable support in the Cloudflare Worker: when set to a comma-separated list of hostnames, only those hosts may be proxied. Recommended for production deployments.
+- `/health` endpoint on the Cloudflare Worker (returns `{"status":"ok","ts":<epoch>}`) for uptime monitoring.
+- `.github/workflows/worker-health.yml`: daily CI workflow that pings the Worker `/health` endpoint and fails loudly if it is unreachable. Requires `CLOUDFLARE_WORKER_URL` repository variable to be set; skips silently otherwise.
+- `.nvmrc` specifying Node 20 for consistent local development environments.
+- README: market gap section with alternatives comparison table (Filestack, Uploadcare) covering cost, file storage model, embed support, and self-hosting.
+
+### Changed
+- GitHub Pages workflow (`deploy-pages.yml`) no longer requires provider credential secrets — it only builds and publishes the TypeDoc API reference.
+- Cloudflare Worker landing page link for "Production setup guide" now points to the GitHub-rendered Markdown view instead of the raw `.md` file.
+- Landing page card on `waxcode.net` demo site is now horizontally centered.
 
 ---
 

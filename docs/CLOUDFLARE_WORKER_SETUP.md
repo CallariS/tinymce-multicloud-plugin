@@ -113,7 +113,24 @@ The worker:
 - ✅ Only allows your GitHub Pages origin (+ localhost for dev)
 - ✅ Validates URLs before proxying
 - ✅ Passes through authentication headers securely
-- ⚠️ Anyone with your worker URL can proxy requests (consider rate limiting for production)
+- ✅ Supports a target host allowlist (`ALLOWED_TARGET_HOSTS`) — **recommended for production**
+
+### Restricting the target allowlist (recommended for production)
+
+By default the worker will proxy to any HTTPS host, which is acceptable for personal or demo use. For production deployments, set the `ALLOWED_TARGET_HOSTS` environment variable to a comma-separated list of your Nextcloud hostnames:
+
+**Via `wrangler.toml`** (update before deploying):
+```toml
+[vars]
+ALLOWED_TARGET_HOSTS = "nextcloud.example.com,cloud.example.org"
+```
+
+**Via the Cloudflare dashboard** (no redeploy needed):
+1. Open your Worker → **Settings** → **Variables**
+2. Add variable `ALLOWED_TARGET_HOSTS` = `nextcloud.example.com,cloud.example.org`
+3. Click **Save**
+
+Requests targeting any other hostname will receive HTTP 403.
 
 ## Custom Domain (Optional)
 
@@ -123,6 +140,30 @@ You can add a custom domain to your worker:
 3. Follow the DNS setup instructions
 
 ## Monitoring
+
+The worker exposes a `/health` endpoint that returns HTTP 200 with `{"status":"ok","ts":<epoch>}`. Use this for uptime checks.
+
+### Automated health check via GitHub Actions
+
+The repository includes `.github/workflows/worker-health.yml`, which pings `/health` daily and fails the workflow (creating a visible badge failure and optional email notification) if the worker is unreachable.
+
+To enable it, add your worker URL as a **repository variable** (not a secret — it is not sensitive):
+
+1. Go to your repository → **Settings** → **Secrets and variables** → **Actions** → **Variables** tab
+2. Click **New repository variable**
+3. Name: `CLOUDFLARE_WORKER_URL`
+4. Value: `https://nextcloud-proxy.your-account.workers.dev`
+
+The workflow skips silently if the variable is not set.
+
+### Manual check
+
+```bash
+curl https://nextcloud-proxy.your-account.workers.dev/health
+# → {"status":"ok","ts":1746789600000}
+```
+
+### Cloudflare dashboard metrics
 
 View usage statistics:
 1. Go to your Worker in the dashboard

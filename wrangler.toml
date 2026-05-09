@@ -13,6 +13,13 @@ compatibility_date = "2024-01-01"
 [build]
 command = ""
 
+# Environment variables — set ALLOWED_TARGET_HOSTS to restrict which Nextcloud
+# hostnames the proxy will forward to (recommended for production).
+# Leave empty to allow any HTTPS host (suitable for personal/demo use only).
+# Example: "nextcloud.example.com,cloud.example.org"
+[vars]
+ALLOWED_TARGET_HOSTS = ""
+
 [env.production]
 name = "nextcloud-proxy"
 

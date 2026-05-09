@@ -16,6 +16,16 @@
 
 export default {
     async fetch(request, env, ctx) {
+        const url = new URL(request.url);
+
+        // Health check endpoint — used by monitoring workflows
+        if (url.pathname === '/health') {
+            return new Response(JSON.stringify({ status: 'ok', ts: Date.now() }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json', ...corsHeaders(request) }
+            });
+        }
+
         // Handle CORS preflight
         if (request.method === 'OPTIONS') {
             return handleOptions(request);
@@ -23,7 +33,6 @@ export default {
 
         try {
             // Extract target Nextcloud URL from query parameter
-            const url = new URL(request.url);
             const targetUrl = url.searchParams.get('target');
 
             if (!targetUrl) {
@@ -48,6 +57,22 @@ export default {
             if (targetURL.protocol !== 'https:') {
                 return new Response('Only HTTPS targets allowed', {
                     status: 400,
+                    headers: corsHeaders(request)
+                });
+            }
+
+            // Enforce target host allowlist when ALLOWED_TARGET_HOSTS env var is set.
+            // Set it in the Cloudflare dashboard or wrangler.toml [vars] as a
+            // comma-separated list of hostnames, e.g. "nextcloud.example.com,cloud.example.org".
+            // When unset (empty / undefined) any HTTPS host is allowed — suitable for
+            // personal/demo use; restrict for production deployments.
+            const allowedHosts = (env.ALLOWED_TARGET_HOSTS ?? '')
+                .split(',')
+                .map(h => h.trim())
+                .filter(Boolean);
+            if (allowedHosts.length > 0 && !allowedHosts.includes(targetURL.hostname)) {
+                return new Response('Target host not in allowlist', {
+                    status: 403,
                     headers: corsHeaders(request)
                 });
             }
