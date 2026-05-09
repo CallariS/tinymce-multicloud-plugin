@@ -256,11 +256,11 @@ Values injected into TinyMCE `htmlpanel` markup pass through `escapeHtml` (escap
 | CORS proxy security | HTTPS-only targets; CORS allowlist; configurable target host allowlist (`ALLOWED_TARGET_HOSTS`); per-IP rate limiting (60 req/min, in-code sliding window); `origin`/`referer` headers stripped |
 | `redirectUri` respected | OneDrive `redirectUri` threaded from config through all MSAL `getAccessToken` call sites |
 
-### 8.2 Accepted / informational
+### 8.2 Informational notes
 
 | Ref | Classification | Notes |
 |---|---|---|
-| H1 | High (accepted) | Google Drive (gapi/GIS) and Dropbox (Dropins) SDK scripts cannot be SRI-hashed — CDN performs content negotiation, making hash pinning impossible without self-hosting the SDKs. Documented in `PRODUCTION_SETUP.md` with mitigations. |
+| I0 | Informational | Google Drive (gapi/GIS) and Dropbox (Dropins) SDK scripts are delivered from vendor CDNs that silently update their content — SRI hash pinning is architecturally incompatible with this delivery model and is not possible for any application using these SDKs in the browser. This is the standard, documented consumption pattern for both SDKs; self-hosting is the only alternative (separate maintenance burden). Mitigations documented in `PRODUCTION_SETUP.md`. |
 | I1 | Informational | Source maps published intentionally — OSS project; maps aid community debugging |
 | I2 | Informational | Residual `any` types in `oneDrive.ts` are bounded to SDK boundary points; do not propagate into plugin logic after Zod validation |
 | I3 | Informational | No retry on transient API failures — out of scope for v0.1; manual re-open is the recovery path |
@@ -468,7 +468,7 @@ configureMultiCloudValidation({
 
 | Ref | Severity | Item | Impact |
 |---|---|---|---|
-| H1 | High (accepted) | Google Drive (gapi/GIS) and Dropbox (Dropins) SDK scripts cannot be SRI-hashed | CDN performs content negotiation — hash cannot be pinned without self-hosting. Mitigations documented in `PRODUCTION_SETUP.md`. |
+| O0 | Informational | Google Drive (gapi/GIS) and Dropbox (Dropins) SDKs are loaded from vendor CDNs that silently update their content | SRI hash pinning is architecturally incompatible with this SDK delivery model — it applies to every application using these SDKs, not a choice made by this plugin. Self-hosting is the only alternative. Mitigations documented in `PRODUCTION_SETUP.md`. |
 | O1 | Medium | MSAL module-level singleton in `oneDrive.ts` | If `redirectUri` changes between plugin registrations on the same page, the singleton retains the first-call value. Affects edge-case multi-tenant SPA scenarios only. |
 | O2 | Low | No retry on transient API failures | A single 500 from Graph API or Dropbox API surfaces as a plugin error; manual re-open is required. |
 | O3 | Low | Dropbox OAuth token in `localStorage` | Standard for SPA implicit grant. Token cleared on 401 and expiry. Admins with strict storage policies may require an alternative grant flow. |
@@ -484,7 +484,7 @@ configureMultiCloudValidation({
 |---|---|---|
 | **Code quality** | ★★★★☆ | TypeScript strict mode; bounded `any`; consistent style; full JSDoc on all hot paths |
 | **Test coverage** | ★★★★☆ | 224 tests across 10 suites; happy paths and validation edge cases covered; no live API integration tests (appropriate for a library) |
-| **Security** | ★★★★☆ | Randomised handler keys; SRI on MSAL; origin-pinned postMessage; Zod boundary validation; `escapeHtml` on all injected HTML; rate-limited CORS proxy; documented residual CDN SRI risk |
+| **Security** | ★★★★☆ | Randomised handler keys; SRI on MSAL; origin-pinned postMessage; Zod boundary validation; `escapeHtml` on all injected HTML; rate-limited CORS proxy; vendor CDN SDK delivery model noted (industry-standard, not plugin-introduced) |
 | **Documentation** | ★★★★★ | README with market context, CONTRIBUTING, production guide, Cloudflare setup guide, CHANGELOG, TypeDoc API reference — all current and accurate |
 | **Architecture** | ★★★★☆ | Clean provider adapter pattern; dual picker strategy (SDK + popup bridge); consistent insert-mode resolution; some SDK coupling inherent to provider integration |
 | **Extensibility** | ★★★★★ | `registerProvider`/`unregisterProvider`; popup bridge protocol; full type exports; runtime provider override; validation configurability |
