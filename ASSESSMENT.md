@@ -490,21 +490,3 @@ configureMultiCloudValidation({
 | **Extensibility** | ★★★★★ | `registerProvider`/`unregisterProvider`; popup bridge protocol; full type exports; runtime provider override; validation configurability |
 | **Operations** | ★★★★★ | Automated CI/CD; daily health check; Dependabot; `.nvmrc`; changelog automation; zero-secrets repository; one-command deployments for all targets |
 | **Overall maturity** | ★★★★☆ | Production-ready for TinyMCE 6/7 deployments with appropriate OAuth app registration and CSP. Recommended for enterprise editorial platforms with multi-cloud storage requirements. |
-
----
-
-## 16. Hiring Signal Summary (for recruiters)
-
-This project demonstrates:
-
-- **Problem identification and product thinking** — identified a genuine gap in the TinyMCE ecosystem (no free, non-CDN, multi-cloud file picker), researched commercial alternatives, and built to fill it.
-- **OAuth integration breadth** — four different provider SDK patterns in a single codebase: Google GIS + gapi Picker, MSAL 2.x + Microsoft Graph, Dropbox Dropins + Upload API, WebDAV + OCS. Each is handled correctly including token caching, redirect URI threading, and public share link creation.
-- **Design-by-Contract discipline** — XDBC DBC contracts with decorator stacks and actionable error messages, not scattered `if`/`throw` guards.
-- **Layered validation** — configuration contracts separated from API boundary schemas; two independently configurable DBC instances; consistent error type throughout.
-- **Security awareness** — XSS prevention (`escapeHtml`), origin validation, SRI, randomised handler keys, CORS proxy hardening including in-code rate limiting; residual risks documented with mitigations.
-- **Test discipline** — 224 tests, 0.43 test-to-source ratio, proper use of `jest.isolateModules` for singleton-resetting, separate Jest environments per concern.
-- **Operations maturity** — automated CI/CD, daily health monitoring, Dependabot, prescribed Node version, changelog automation — all without a team.
-- **Documentation quality** — README, production guide, CONTRIBUTING, Cloudflare setup guide, TypeDoc API reference, CHANGELOG — all accurate and maintained.
-- **Full product lifecycle** — MIT licensed, published to npm, live demo, API docs on GitHub Pages, real deployed infrastructure.
-
-**Typical fit:** mid-to-senior frontend or fullstack roles, especially at organisations running TinyMCE, enterprise CMS platforms, or cloud-integrated editorial workflows. Strong portfolio signal for positions requiring OAuth expertise, TypeScript discipline, or open-source contribution history.
