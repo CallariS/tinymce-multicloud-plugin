@@ -1,0 +1,34 @@
+version: 2
+updates:
+  # npm dependencies (runtime + devDependencies)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    # Group all devDependency updates into a single PR to reduce noise.
+    # Runtime dependencies (xdbc, zod) get individual PRs so they are easy to review.
+    groups:
+      dev-dependencies:
+        dependency-type: "development"
+    labels:
+      - "dependencies"
+    open-pull-requests-limit: 10
+    # TinyMCE is a peer dependency (optional) — still track it so major
+    # version bumps surface as a PR for compatibility testing.
+    ignore: []
+
+  # GitHub Actions — keep workflow action versions up to date
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    labels:
+      - "dependencies"
+      - "ci"
+    open-pull-requests-limit: 5
