@@ -97,7 +97,7 @@ writeFileSync(
     <style>
       body { font-family: Segoe UI, Arial, sans-serif; margin: 2rem; line-height: 1.5; }
       a { color: #0b5fff; }
-      .card { border: 1px solid #d9d9d9; border-radius: 12px; padding: 1rem; max-width: 780px; }
+      .card { border: 1px solid #d9d9d9; border-radius: 12px; padding: 1rem; max-width: 780px; margin: 2rem auto; }
       h1 { margin-top: 0; }
     </style>
   </head>
@@ -107,7 +107,7 @@ writeFileSync(
       <p>This site is generated for GitHub Pages demos.</p>
       <ul>
         <li><a href="./demo/tinymce-demo.html">Open demo editor</a></li>
-        <li><a href="./docs/PRODUCTION_SETUP.md">Production setup guide</a></li>
+        <li><a href="https://github.com/CallariS/tinymce-multicloud-plugin/blob/master/docs/PRODUCTION_SETUP.md" target="_blank" rel="noopener">Production setup guide</a></li>
         ${hasApiDocs ? '<li><a href="./docs/api/index.html">API reference</a></li>' : ''}
       </ul>
     </div>
