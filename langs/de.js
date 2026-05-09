@@ -28,4 +28,6 @@ tinymce.addI18n('de', {
     '{#} does not support file uploads.': '{#} unterstützt keine Datei-Uploads.',
     'Media could not be loaded. If you just uploaded or shared the file, it may still be processing \u2014 wait a moment and reload the page.':
         'Medien konnten nicht geladen werden. Wenn Sie die Datei gerade hochgeladen oder freigegeben haben, wird sie möglicherweise noch verarbeitet \u2014 warten Sie einen Moment und laden Sie die Seite neu.',
+    'The uploaded file will be made publicly accessible so it can be embedded in editor content. Anyone with the link will be able to view it.':
+        'Die hochgeladene Datei wird öffentlich zugänglich gemacht, damit sie in Editorinhalte eingebettet werden kann. Jeder mit dem Link kann sie einsehen.',
 });

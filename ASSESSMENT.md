@@ -308,8 +308,6 @@ GitHub Actions workflow (`.github/workflows/deploy-pages.yml`) triggers on push 
 
 1. Runs `npm run build` — produces `dist/`
 2. Runs `npm run docs:api` — produces `docs/api/` (TypeDoc)
-3. Runs `npm run pages:prepare` — assembles the static demo site under `site/`
-4. Deploys `site/` to GitHub Pages
 
 **Secrets required:**
 

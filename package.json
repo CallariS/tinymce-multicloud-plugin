@@ -29,7 +29,8 @@
         "test:watch": "jest --watch",
         "docs:api": "typedoc",
         "pages:prepare": "node scripts/prepare-pages-selfhost.mjs",
-        "pages:build": "npm run build && npm run docs:api && npm run pages:prepare"
+        "pages:build": "npm run build && npm run docs:api && npm run pages:prepare",
+        "docs:pages": "npm run build && npm run docs:api && node scripts/prepare-docs-pages.mjs"
     },
     "keywords": [
         "tinymce",

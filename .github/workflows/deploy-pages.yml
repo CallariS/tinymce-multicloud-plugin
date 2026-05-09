@@ -1,4 +1,4 @@
-name: Deploy GitHub Pages
+name: Deploy API Docs to GitHub Pages
 
 on:
   push:
@@ -30,13 +30,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build plugin and Pages site
-        run: npm run pages:build
-        env:
-          GOOGLE_BROWSER_API_KEY: ${{ secrets.GOOGLE_BROWSER_API_KEY }}
-          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
-          ONEDRIVE_CLIENT_ID: ${{ secrets.ONEDRIVE_CLIENT_ID }}
-          DROPBOX_APP_KEY: ${{ secrets.DROPBOX_APP_KEY }}
+      - name: Build plugin and API docs
+        run: npm run docs:pages
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

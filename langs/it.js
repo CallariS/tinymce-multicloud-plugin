@@ -25,4 +25,6 @@ tinymce.addI18n('it', {
     '{#} does not support file uploads.': '{#} non supporta il caricamento di file.',
     'Media could not be loaded. If you just uploaded or shared the file, it may still be processing \u2014 wait a moment and reload the page.':
         'Impossibile caricare il file multimediale. Se è stato appena caricato o condiviso, potrebbe essere ancora in elaborazione \u2014 attendere un momento e ricaricare la pagina.',
+    'The uploaded file will be made publicly accessible so it can be embedded in editor content. Anyone with the link will be able to view it.':
+        'Il file caricato verrà reso pubblicamente accessibile in modo da poter essere incorporato nel contenuto dell\u0027editor. Chiunque abbia il collegamento potrà visualizzarlo.',
 });

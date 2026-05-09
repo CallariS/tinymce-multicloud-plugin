@@ -212,6 +212,16 @@ export interface MultiCloudPluginOptions {
     dialogTitle?: string;
     /** Global popup timeout in milliseconds. Applied to all popup-mode pickers unless overridden per-provider. Defaults to `120000` (2 minutes). */
     popupTimeoutMs?: number;
+    /**
+     * Warning message shown in the upload dialog to inform users that uploaded files will be
+     * made publicly accessible. Must be a non-empty string — empty or whitespace-only values
+     * are rejected by the XDBC contract layer.
+     *
+     * The value is passed through `editor.translate()`, so it can be a translation key defined
+     * in a TinyMCE language pack. When omitted, a built-in default message is used (translatable
+     * via the plugin's own language files).
+     */
+    uploadPublicSharingWarning?: string;
 }
 
 /**

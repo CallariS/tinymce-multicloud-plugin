@@ -455,6 +455,25 @@ export class PluginOptionsValidator {
         "Did you configure defaultProvider inside providers map?",
         VALIDATION_DBC_PATH,
     )
+    @OR.INVARIANT(
+        [
+            {
+                check: (v) => {
+                    if (v === null || typeof v !== "object" || Array.isArray(v)) {
+                        return "Value has to be an object";
+                    }
+
+                    const w = (v as Record<string, unknown>).uploadPublicSharingWarning;
+                    if (w === undefined) return true;
+                    if (typeof w !== "string") return "uploadPublicSharingWarning must be a string";
+                    return /^.*\S.*$/.test(w) ? true : "uploadPublicSharingWarning must not be blank or whitespace-only";
+                },
+            },
+        ],
+        undefined,
+        "Did you leave uploadPublicSharingWarning empty? It must contain visible text.",
+        VALIDATION_DBC_PATH,
+    )
     private boundaryOptions: Record<string, unknown> = {};
 
     /**
@@ -517,6 +536,11 @@ export class PluginOptionsValidator {
             );
         }
 
+        if (raw.uploadPublicSharingWarning !== undefined) {
+            TYPE.tsCheck(raw.uploadPublicSharingWarning, "string", "Did you set uploadPublicSharingWarning as a string?", "plugin options.uploadPublicSharingWarning", VALIDATION_DBC_PATH);
+            REGEX.tsCheck(raw.uploadPublicSharingWarning, rxNonEmpty, "Did you leave uploadPublicSharingWarning empty? It must contain visible text.", "plugin options.uploadPublicSharingWarning", VALIDATION_DBC_PATH);
+        }
+
         this.boundaryOptions = raw;
 
         const providersRaw =
@@ -546,6 +570,7 @@ export class PluginOptionsValidator {
             defaultInsertMode: raw.defaultInsertMode as MultiCloudPluginOptions["defaultInsertMode"],
             dialogTitle: raw.dialogTitle as string | undefined,
             popupTimeoutMs: raw.popupTimeoutMs as number | undefined,
+            uploadPublicSharingWarning: raw.uploadPublicSharingWarning as string | undefined,
         };
     }
 }

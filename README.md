@@ -1,9 +1,10 @@
 # TinyMCE MultiCloud Plugin
 
 [![npm](https://img.shields.io/npm/v/@waxcode/tinymce-multicloud-plugin)](https://www.npmjs.com/package/@waxcode/tinymce-multicloud-plugin)
+[![npm downloads](https://img.shields.io/npm/dt/@waxcode/tinymce-multicloud-plugin)](https://www.npmjs.com/package/@waxcode/tinymce-multicloud-plugin)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Deploy GitHub Pages](https://github.com/CallariS/tinymce-multicloud-plugin/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/CallariS/tinymce-multicloud-plugin/actions/workflows/deploy-pages.yml)
 [![Demo](https://img.shields.io/badge/demo-live-blue)](https://waxcode.net/Demos/TinyMCE-MultiCloud-Plugin/demo/tinymce-demo.html)
+[![API Docs](https://img.shields.io/badge/API%20docs-GitHub%20Pages-blue)](https://callaris.github.io/tinymce-multicloud-plugin/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
 A TinyMCE plugin that lets users browse/pick files from multiple cloud providers and insert them into editor content as links, images, or embeds.
@@ -13,6 +14,29 @@ Built-in provider adapters:
 - OneDrive
 - Dropbox
 - BayernCloud
+
+## Why this plugin exists
+
+No open-source TinyMCE plugin existed that lets users pick files directly from their own Google Drive, OneDrive, or Dropbox accounts without routing files through a paid third-party service. The commercial alternatives (Filestack, Uploadcare) work by copying the selected file to their own CDN — which adds per-month costs, creates a vendor dependency, and moves file ownership away from the user.
+
+This plugin was built to fill that gap: files stay in the user's own cloud account, the plugin just brokers the picker and returns a URL. No CDN, no per-upload quota, no vendor lock-in.
+
+### Alternatives comparison
+
+| | **TinyMCE MultiCloud Plugin** | **Filestack** | **Uploadcare** |
+|---|---|---|---|
+| **License / cost** | MIT, free | $69–$379+/month | $0–$119+/month |
+| **File storage** | User's own cloud account | Filestack CDN (vendor) | Uploadcare CDN (vendor) |
+| **Cloud sources** | Google Drive, OneDrive, Dropbox, Nextcloud/BayernCloud | Drive, Dropbox, OneDrive, Box, + more | Drive, Dropbox, OneDrive, + more |
+| **Embed support** | ✅ link / image / iframe / audio+video | ✅ via CDN URL | ✅ via CDN URL |
+| **Files stay in user's account** | ✅ Yes | ❌ Copied to vendor CDN | ❌ Copied to vendor CDN |
+| **Bandwidth quota** | None (provider handles delivery) | 75–400 GB/month (plan limit) | Varies by plan |
+| **Self-hostable** | ✅ Fully (drop a JS file) | ❌ SaaS only | ❌ SaaS only |
+| **Open source** | ✅ MIT | ❌ | ❌ |
+
+The trade-off: because files remain in the user's cloud storage, they must be publicly accessible for embedded content to be viewable by readers. The plugin handles this automatically — it creates the public share link via the provider's API so the user does not need to configure sharing manually. A warning is shown in the upload dialog to make clear that the file will be publicly accessible to anyone with the link.
+
+---
 
 ## Why this architecture
 
@@ -112,54 +136,6 @@ For local development with real cloud provider SDKs:
 3. Follow the provider console checklists in `docs/PRODUCTION_SETUP.md`.
 
 > **Note:** `demo/multicloud.config.js` is gitignored — never commit real credentials to the repository.
-
-## GitHub Pages demo deployment
-
-This repository includes a Pages workflow at `.github/workflows/deploy-pages.yml`.
-
-### Manual local check
-
-```bash
-npm run pages:build
-```
-
-This creates a static bundle in `site/`.
-
-Note: `site/` is generated output and is intentionally not tracked in git.
-
-### Automatic publish
-
-1. Push to `main` or `master`.
-2. In GitHub repository settings, ensure Pages is enabled and uses GitHub Actions.
-3. Add the following [repository secrets](https://docs.github.com/en/actions/security-guides/encrypted-secrets) so the build can inject credentials:
-
-   | Secret name | Where to get it |
-   |---|---|
-   | `GOOGLE_BROWSER_API_KEY` | Google Cloud Console → APIs & Services → Credentials |
-   | `GOOGLE_OAUTH_CLIENT_ID` | Google Cloud Console → OAuth 2.0 Client ID — **enter only the bare ID, without `.apps.googleusercontent.com`** (see warning below) |
-   | `ONEDRIVE_CLIENT_ID` | Azure Portal → App registrations → Application (client) ID |
-   | `DROPBOX_APP_KEY` | Dropbox Developer Console → App settings |
-
-   > **⚠️ Google Client ID — copy-paste trap**
-   > In the Google Cloud Console the client ID is displayed **with** the `.apps.googleusercontent.com` suffix, and the copy button on the credentials list page also copies the full string including the suffix.
-   > The build script appends `.apps.googleusercontent.com` automatically, so paste **only the part before it**.
-   > Example — if the console shows:
-   > `506225751213-abc123.apps.googleusercontent.com`
-   > enter into the secret:
-   > `506225751213-abc123`
-
-4. Wait for the `Deploy GitHub Pages` workflow to complete.
-
-The demo URL will be:
-
-- `https://<owner>.github.io/<repo>/demo/tinymce-demo.html`
-
-The Pages bundle self-hosts TinyMCE from this repository output, so the demo does not require a Tiny Cloud API key.
-
-When configuring OAuth allowlists, include exactly:
-
-- `https://<owner>.github.io`
-- `https://<owner>.github.io/<repo>`
 
 ## TinyMCE usage
 

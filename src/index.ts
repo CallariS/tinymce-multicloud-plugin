@@ -164,6 +164,7 @@ const getOptions = (editor: any): MultiCloudPluginOptions => {
         defaultInsertMode: editor.options.get("multicloud_default_insert_mode") || "link",
         dialogTitle: editor.options.get("multicloud_dialog_title") || "Insert From Cloud",
         popupTimeoutMs: editor.options.get("multicloud_popup_timeout_ms") || 120000,
+        uploadPublicSharingWarning: editor.options.get("multicloud_upload_public_sharing_warning") || undefined,
     };
 
     return validatePluginOptionsBoundary(raw);
@@ -602,11 +603,19 @@ const openUploadDialog = (
         }
     };
 
+    const DEFAULT_UPLOAD_WARNING = "The uploaded file will be made publicly accessible so it can be embedded in editor content. Anyone with the link will be able to view it.";
+    const warningKey = options.uploadPublicSharingWarning ?? DEFAULT_UPLOAD_WARNING;
+    const warningText = escapeHtml(editor.translate(warningKey));
+
     editor.windowManager.open({
         title: editor.translate("Upload to Cloud"),
         body: {
             type: "panel",
             items: [
+                {
+                    type: "htmlpanel",
+                    html: `<div role="alert" style="background:#fff8e1;border:1px solid #f9a825;border-radius:4px;padding:8px 10px;margin-bottom:2px;font-size:0.9em;display:flex;gap:8px;align-items:flex-start;color:#5a4000;"><span aria-hidden="true" style="font-size:1.1em;flex-shrink:0;">\u26a0</span><span>${warningText}</span></div>`,
+                },
                 {
                     type: "htmlpanel",
                     html: buildProviderButtonsHtml(uploadProviders, initialProvider, uploadHandlerKey),
@@ -801,6 +810,11 @@ const register = (): void => {
         editor.options.register("multicloud_popup_timeout_ms", {
             processor: "number",
             default: 120000,
+        });
+
+        editor.options.register("multicloud_upload_public_sharing_warning", {
+            processor: "string",
+            default: "",
         });
 
         const allProviders: CloudProvider[] = [
