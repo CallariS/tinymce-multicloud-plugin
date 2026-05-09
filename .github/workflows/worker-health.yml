@@ -8,14 +8,18 @@ on:
 jobs:
   health:
     runs-on: ubuntu-latest
-    # Skip silently if the worker URL repository variable has not been configured
-    if: ${{ vars.CLOUDFLARE_WORKER_URL != '' }}
     steps:
       - name: Ping /health endpoint
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${{ vars.CLOUDFLARE_WORKER_URL }}/health")
+          WORKER_URL="${{ vars.CLOUDFLARE_WORKER_URL }}"
+          if [ -z "$WORKER_URL" ]; then
+            echo "CLOUDFLARE_WORKER_URL not set — skipping health check"
+            exit 0
+          fi
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${WORKER_URL}/health")
           echo "HTTP status: $STATUS"
           if [ "$STATUS" != "200" ]; then
-            echo "::error::Cloudflare Worker health check failed (HTTP $STATUS). Check the Worker at ${{ vars.CLOUDFLARE_WORKER_URL }}"
+            echo "::error::Cloudflare Worker health check failed (HTTP $STATUS). Check the Worker at ${WORKER_URL}"
             exit 1
           fi
+          echo "Worker is healthy."
