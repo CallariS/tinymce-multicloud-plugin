@@ -15,9 +15,9 @@ jobs:
 
           URLS=(
             # ── Demo pages ────────────────────────────────────────────────────
-            "https://callaris.github.io/tinymce-multicloud-plugin/demo/tinymce-demo.html"
-            "https://callaris.github.io/tinymce-multicloud-plugin/demo/privacy-policy.html"
-            "https://callaris.github.io/tinymce-multicloud-plugin/demo/terms-of-service.html"
+            "https://waxcode.net/Demos/TinyMCE-MultiCloud-Plugin/demo/tinymce-demo.html"
+            "https://waxcode.net/Demos/TinyMCE-MultiCloud-Plugin/demo/privacy-policy.html"
+            "https://waxcode.net/Demos/TinyMCE-MultiCloud-Plugin/demo/terms-of-service.html"
 
             # ── Google Drive ──────────────────────────────────────────────────────────────
             # /file/d/.../preview returns 401 from CI IPs; /thumbnail works without auth.
