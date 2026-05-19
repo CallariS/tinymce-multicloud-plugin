@@ -65,6 +65,11 @@ export default {
         }
 
         try {
+            // Google OAuth 2.0 authorization code exchange
+            if (url.pathname === '/google-token') {
+                return await handleGoogleTokenExchange(request, env, corsHeaders(request));
+            }
+
             // Extract target Nextcloud URL from query parameter
             const targetUrl = url.searchParams.get('target');
 
@@ -144,6 +149,92 @@ export default {
         }
     }
 };
+
+/**
+ * Handles POST /google-token — exchanges a Google OAuth 2.0 authorization code for an
+ * access token using the GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET worker environment vars.
+ *
+ * Only access_token and expires_in are returned to the browser; refresh_token and id_token
+ * are intentionally discarded to minimise the credential surface exposed to the client.
+ *
+ * Expected request body:  { code: string }
+ * Successful response:    { access_token: string; expires_in: number }
+ */
+async function handleGoogleTokenExchange(request, env, headers) {
+    if (request.method !== 'POST') {
+        return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+            status: 405,
+            headers: { 'Content-Type': 'application/json', ...headers },
+        });
+    }
+
+    let body;
+    try {
+        body = await request.json();
+    } catch {
+        return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...headers },
+        });
+    }
+
+    const { code } = body;
+    if (typeof code !== 'string' || code.length < 10 || code.length > 2048) {
+        return new Response(JSON.stringify({ error: 'Invalid authorization code' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json', ...headers },
+        });
+    }
+
+    const clientId = env.GOOGLE_CLIENT_ID;
+    const clientSecret = env.GOOGLE_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+        return new Response(JSON.stringify({ error: 'Google OAuth not configured on this worker' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json', ...headers },
+        });
+    }
+
+    const params = new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: 'postmessage',
+        grant_type: 'authorization_code',
+    });
+
+    let tokenResponse;
+    try {
+        tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+        });
+    } catch {
+        return new Response(JSON.stringify({ error: 'Failed to reach Google token endpoint' }), {
+            status: 502,
+            headers: { 'Content-Type': 'application/json', ...headers },
+        });
+    }
+
+    const tokenData = await tokenResponse.json();
+
+    if (!tokenResponse.ok || !tokenData.access_token) {
+        return new Response(
+            JSON.stringify({ error: tokenData.error_description ?? tokenData.error ?? 'Token exchange failed' }),
+            { status: tokenResponse.status, headers: { 'Content-Type': 'application/json', ...headers } },
+        );
+    }
+
+    return new Response(JSON.stringify({
+        access_token: tokenData.access_token,
+        expires_in: tokenData.expires_in ?? 3600,
+    }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', ...headers },
+    });
+}
 
 /**
  * Get CORS headers for response

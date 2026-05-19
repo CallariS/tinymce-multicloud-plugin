@@ -17,8 +17,14 @@ command = ""
 # hostnames the proxy will forward to (recommended for production).
 # Leave empty to allow any HTTPS host (suitable for personal/demo use only).
 # Example: "nextcloud.example.com,cloud.example.org"
+#
+# For the Google OAuth token exchange endpoint (/google-token), set GOOGLE_CLIENT_ID
+# and GOOGLE_CLIENT_SECRET to the values from your Google Cloud Console OAuth client.
+# Keep GOOGLE_CLIENT_SECRET out of source control — set it as a secret via:
+#   wrangler secret put GOOGLE_CLIENT_SECRET
 [vars]
 ALLOWED_TARGET_HOSTS = ""
+GOOGLE_CLIENT_ID = "506225751213-ukmgqs8l1rbj6qma54a0frv89cph16gs.apps.googleusercontent.com"
 
 [env.production]
 name = "nextcloud-proxy"

@@ -117,6 +117,17 @@ export interface GoogleDriveProviderConfig extends ProviderRuntimeConfig {
     pickerLocale?: string;
     /** Comma-separated MIME type filter applied to the Picker DocsView. */
     viewMimeTypes?: string;
+    /**
+     * URL of a server-side token exchange endpoint (e.g. a Cloudflare Worker `/google-token` route)
+     * that accepts a `POST { code: string }` and returns `{ access_token: string; expires_in?: number }`.
+     *
+     * When set, the plugin uses the secure **Authorization Code** flow (`initCodeClient`) instead of
+     * the deprecated implicit (token) flow (`initTokenClient`). The Worker holds the `client_secret`
+     * and performs the code exchange against `https://oauth2.googleapis.com/token`.
+     *
+     * Recommended for production. Required to satisfy Google's "Sichere Abläufe verwenden" project check.
+     */
+    tokenExchangeUrl?: string;
 }
 
 /**

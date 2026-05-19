@@ -7,8 +7,10 @@ import { createPopupProvider } from "./popupProvider";
 import { detectInsertMode, loadScript } from "./utils";
 import { validateGoogleDocBoundary } from "../validation/boundary";
 
-/** Shape of the OAuth 2.0 token response returned by the Google Identity Services token client. */
+/** Shape of the OAuth 2.0 token response returned by the GIS token client (legacy implicit flow). */
 type TokenResponse = { access_token?: string; error?: string };
+/** Shape of the token exchange response returned by the Cloudflare Worker `/google-token` endpoint. */
+type TokenExchangeResponse = { access_token: string; expires_in?: number };
 
 declare global {
     interface Window {
@@ -24,8 +26,12 @@ const GIS_SCRIPT = "https://accounts.google.com/gsi/client";
 
 /** Guards against re-initialising the gapi `client:picker` module on subsequent calls. */
 let gapiClientReady = false;
-/** The GIS token client instance, created once and reused across pick calls. */
+/** The GIS code client instance (Authorization Code flow). Initialised when `tokenExchangeUrl` is set. */
+let codeClient: any;
+/** The GIS token client instance (implicit flow, legacy). Initialised when `tokenExchangeUrl` is absent. */
 let tokenClient: any;
+/** Unix timestamp (ms) after which the cached access token must be refreshed. */
+let tokenExpiresAt = 0;
 
 /**
  * Ensures the Google APIs (gapi client + GIS) are loaded and initialised.
@@ -69,15 +75,31 @@ const ensureGoogleApis = async (config: GoogleDriveProviderConfig): Promise<void
         });
     }
 
-    if (!tokenClient) {
-        tokenClient = window.google.accounts.oauth2.initTokenClient({
-            client_id: config.clientId,
-            scope: (config.scopes || [
-                "https://www.googleapis.com/auth/drive.readonly",
-                "https://www.googleapis.com/auth/drive.file",
-            ]).join(" "),
-            callback: () => undefined,
-        });
+    const scopes = (config.scopes || [
+        "https://www.googleapis.com/auth/drive.readonly",
+        "https://www.googleapis.com/auth/drive.file",
+    ]).join(" ");
+
+    if (config.tokenExchangeUrl) {
+        // Authorization Code flow (secure, recommended)
+        if (!codeClient) {
+            codeClient = window.google.accounts.oauth2.initCodeClient({
+                client_id: config.clientId,
+                scope: scopes,
+                ux_mode: "popup",
+                callback: () => undefined,
+            });
+        }
+    } else {
+        // Legacy implicit (token) flow — kept for backward compatibility
+        if (!tokenClient) {
+            console.warn("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Using the deprecated implicit (token) flow. Set tokenExchangeUrl in the Google Drive provider config to switch to the secure Authorization Code flow. ]]");
+            tokenClient = window.google.accounts.oauth2.initTokenClient({
+                client_id: config.clientId,
+                scope: scopes,
+                callback: () => undefined,
+            });
+        }
     }
 };
 
@@ -106,6 +128,97 @@ const requestToken = async (): Promise<string> =>
         const existingToken = window.gapi.client.getToken();
         tokenClient.requestAccessToken({ prompt: existingToken ? "" : "consent" });
     });
+
+/**
+ * Requests a Google OAuth 2.0 authorization code via the GIS code client (Authorization Code flow).
+ *
+ * Opens a browser popup showing the Google consent screen. After the user grants consent the
+ * GIS library delivers the one-time authorization code to the configured callback.
+ *
+ * @returns A promise resolving to the authorization code string.
+ * @throws {Error} If the user denies consent or the popup closes without completing auth.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
+const requestAuthCode = (): Promise<string> =>
+    new Promise((resolve, reject) => {
+        codeClient.callback = (response: { code?: string; error?: string }) => {
+            if (response.error || !response.code) {
+                reject(new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] ${response.error || "Unable to obtain Google authorization code."} ]]`));
+                return;
+            }
+            resolve(response.code);
+        };
+        codeClient.requestCode();
+    });
+
+/**
+ * Exchanges a Google OAuth 2.0 authorization code for an access token by calling the
+ * configured server-side token exchange endpoint (Cloudflare Worker).
+ *
+ * The Worker holds the `client_secret` and performs the exchange against
+ * `https://oauth2.googleapis.com/token`, returning only the access token to the browser.
+ *
+ * @param code - One-time authorization code received from the GIS callback.
+ * @param tokenExchangeUrl - URL of the Cloudflare Worker `/google-token` endpoint.
+ * @returns A promise resolving to the token exchange response.
+ * @throws {Error} If the Worker request fails or the response is missing an access token.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
+const exchangeCodeForToken = async (
+    code: string,
+    tokenExchangeUrl: string,
+): Promise<TokenExchangeResponse> => {
+    const response = await fetch(tokenExchangeUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Token exchange failed (${response.status}): ${text} ]]`);
+    }
+
+    const data = await response.json() as TokenExchangeResponse;
+    if (!data.access_token) {
+        throw new Error("[[ WaXCode / TinyMCE Multicloud Plugin / GoogleDrive ] Token exchange response is missing access_token. ]]");
+    }
+    return data;
+};
+
+/**
+ * Obtains a valid Google OAuth 2.0 access token using whichever flow is configured.
+ *
+ * - **Authorization Code flow** (when `config.tokenExchangeUrl` is set): reuses a cached token
+ *   when one exists and has not yet expired; otherwise opens the GIS consent popup, exchanges
+ *   the resulting code at the Worker, and stores the token in the gapi client.
+ * - **Legacy implicit flow** (when `config.tokenExchangeUrl` is absent): delegates to
+ *   {@link requestToken} with a deprecation warning emitted by {@link ensureGoogleApis}.
+ *
+ * @param config - Provider config used to determine which flow to use.
+ * @returns A promise resolving to the raw access token string.
+ * @throws {Error} If the token request or exchange fails.
+ *
+ * @author Salvatore Callari <Callari@WaXCode.net>
+ */
+const requestAccessToken = async (config: GoogleDriveProviderConfig): Promise<string> => {
+    if (config.tokenExchangeUrl) {
+        // Reuse a cached, unexpired token (60-second safety margin)
+        const existing = window.gapi.client.getToken();
+        if (existing?.access_token && Date.now() < tokenExpiresAt) {
+            return existing.access_token;
+        }
+        const code = await requestAuthCode();
+        const { access_token, expires_in } = await exchangeCodeForToken(code, config.tokenExchangeUrl);
+        window.gapi.client.setToken({ access_token });
+        tokenExpiresAt = Date.now() + ((expires_in ?? 3600) - 60) * 1000;
+        return access_token;
+    }
+    // Legacy: implicit (token) flow
+    return requestToken();
+};
 
 /**
  * Fetches file metadata from the Drive v3 REST API for the given file ID.
@@ -419,14 +532,14 @@ export const googleDriveProvider = (): CloudProvider => ({
         }
 
         await ensureGoogleApis(config);
-        const accessToken = await requestToken();
+        const accessToken = await requestAccessToken(config);
         return await launchPicker(config, accessToken);
     },
     upload: async (context, file) => {
         const config = context.providerConfig as GoogleDriveProviderConfig;
 
         await ensureGoogleApis(config);
-        await requestToken(); // Ensure we have a valid token
+        await requestAccessToken(config); // Ensure we have a valid token
         const result = await uploadFile(config, file);
 
         if (result && file.type.startsWith("video/")) {

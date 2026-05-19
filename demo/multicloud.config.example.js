@@ -6,6 +6,9 @@ window.MULTICLOUD_CONFIG = {
             clientId: "GOOGLE_OAUTH_CLIENT_ID.apps.googleusercontent.com",
             apiKey: "GOOGLE_BROWSER_API_KEY",
             scopes: ["https://www.googleapis.com/auth/drive.file"],
+            // Secure Authorization Code flow — set this to your Cloudflare Worker /google-token endpoint.
+            // Requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to be set as Worker env vars.
+            // tokenExchangeUrl: "https://nextcloud-proxy.YOUR-ACCOUNT.workers.dev/google-token",
             // Optional for custom picker pages:
             // pickerUrl: "./pickers/google-drive.html",
         },
