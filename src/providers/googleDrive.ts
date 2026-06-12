@@ -76,7 +76,6 @@ const ensureGoogleApis = async (config: GoogleDriveProviderConfig): Promise<void
     }
 
     const scopes = (config.scopes || [
-        "https://www.googleapis.com/auth/drive.readonly",
         "https://www.googleapis.com/auth/drive.file",
     ]).join(" ");
 

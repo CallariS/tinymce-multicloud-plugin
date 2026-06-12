@@ -223,6 +223,8 @@
           multicloud_default_insert_mode: config.defaultInsertMode,
           multicloud_dialog_title: config.dialogTitle,
           multicloud_popup_timeout_ms: config.popupTimeoutMs,
+          // Activate the editor on load so scroll works without a click.
+          auto_focus: 'editor',
           setup: setupEditor,
         };
         if (lang) opts.language = lang;
@@ -297,6 +299,23 @@
               doc.addEventListener('keydown', cleanup, true);
               doc.addEventListener('touchstart', cleanup, true);
             }));
+
+            // Re-activate TinyMCE when the mouse re-enters the editor after
+            // the user has moved focus elsewhere (e.g. toolbar). editor.focus()
+            // updates TinyMCE's internal activated state (unlike raw body.focus()),
+            // enabling scroll without requiring a click. We save/restore the inner
+            // scroll position so the view doesn't jump to the caret.
+            const iframeEl = editor.getContainer().querySelector('iframe');
+            const focusOnHover = () => {
+              const scrollY = win.scrollY;
+              editor.focus(false);
+              requestAnimationFrame(() => win.scrollTo(0, scrollY));
+            };
+            if (iframeEl) {
+              iframeEl.addEventListener('mouseenter', focusOnHover);
+            }
+            // Edge case: mouse was already over the editor when init completed.
+            doc.addEventListener('mousemove', focusOnHover, { once: true, passive: true });
           });
         }
 

@@ -98,10 +98,15 @@ jobs:
 
           # OneDrive: 404/410 = link actually gone (fail).
           # 000/401/403 = Microsoft blocking CI datacenter IPs (warn only, link still exists).
+          # Note: GitHub Actions runs with `set -eo pipefail`, so a non-zero curl exit
+          # code (e.g. 23 = CURLE_WRITE_ERROR when MS terminates the connection) would
+          # kill the entire script before the WARN/OK handler runs.  We use `|| true`
+          # to prevent that, and set STATUS="000" as the fallback so the warning logic
+          # below can handle Microsoft-blocked connections gracefully.
           for URL in "${ONEDRIVE_URLS[@]}"; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
               -A "$AGENT" \
-              --max-time 20 --retry 1 "$URL")
+              --max-time 20 --retry 1 "$URL") || STATUS="000"
             if [[ "$STATUS" == "404" || "$STATUS" == "410" ]]; then
               echo "FAIL $STATUS  $URL"
               FAILED_URLS+=("$URL  →  HTTP $STATUS")

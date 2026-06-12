@@ -311,7 +311,7 @@ const promptSvgInsertMode = (
     new Promise((resolve) => {
         editor.windowManager.open({
             title: editor.translate("Insert SVG"),
-            size: "normal",
+            size: "medium",
             body: {
                 type: "panel",
                 items: [
