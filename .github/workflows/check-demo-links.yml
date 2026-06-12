@@ -83,10 +83,15 @@ jobs:
           FAILED=0
           FAILED_URLS=()
 
+          # GitHub Actions runs with bash -e (set -e), so any non-zero exit from curl
+          # (e.g. CURLE_WRITE_ERROR 23 when a server terminates the connection mid-
+          # transfer) would immediately kill the script before the status handler runs.
+          # Wrapping curl in $(_cmd_ || echo "000") ensures STATUS is always a valid
+          # HTTP code string and the assignment never triggers set -e.
           for URL in "${URLS[@]}"; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
               -A "$AGENT" \
-              --max-time 20 --location --retry 2 "$URL")
+              --max-time 20 --location --retry 2 "$URL" || echo "000")
             if [[ "$STATUS" =~ ^[23] ]]; then
               echo "OK   $STATUS  $URL"
             else
@@ -98,15 +103,10 @@ jobs:
 
           # OneDrive: 404/410 = link actually gone (fail).
           # 000/401/403 = Microsoft blocking CI datacenter IPs (warn only, link still exists).
-          # Note: GitHub Actions runs with `set -eo pipefail`, so a non-zero curl exit
-          # code (e.g. 23 = CURLE_WRITE_ERROR when MS terminates the connection) would
-          # kill the entire script before the WARN/OK handler runs.  We use `|| true`
-          # to prevent that, and set STATUS="000" as the fallback so the warning logic
-          # below can handle Microsoft-blocked connections gracefully.
           for URL in "${ONEDRIVE_URLS[@]}"; do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
               -A "$AGENT" \
-              --max-time 20 --retry 1 "$URL") || STATUS="000"
+              --max-time 20 --retry 1 "$URL" || echo "000")
             if [[ "$STATUS" == "404" || "$STATUS" == "410" ]]; then
               echo "FAIL $STATUS  $URL"
               FAILED_URLS+=("$URL  →  HTTP $STATUS")
